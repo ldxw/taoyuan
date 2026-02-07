@@ -23,6 +23,9 @@
                   .join(' + ')
               }}
             </p>
+            <p v-if="getUpgradeBlockReason(tool.type)" class="text-xs text-danger mb-1">
+              {{ getUpgradeBlockReason(tool.type) }}
+            </p>
             <button class="btn text-xs" :disabled="!canUpgrade(tool.type)" @click="handleUpgrade(tool.type)">
               <ArrowUp :size="14" />
               升级
@@ -40,7 +43,22 @@
   import { useInventoryStore, usePlayerStore, useNpcStore, useGameStore } from '@/stores'
   import { getUpgradeCost, TOOL_NAMES, TIER_NAMES, getItemById } from '@/data'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
-  import type { ToolType } from '@/types'
+  import type { ToolType, ToolTier, FriendshipLevel } from '@/types'
+
+  /** 升级目标等级 → 所需小满好感 */
+  const TIER_FRIENDSHIP_REQ: Partial<Record<ToolTier, FriendshipLevel>> = {
+    iron: 'acquaintance',
+    steel: 'friendly'
+  }
+  const LEVEL_ORDER: FriendshipLevel[] = ['stranger', 'acquaintance', 'friendly', 'bestFriend']
+  const LEVEL_NAMES: Record<FriendshipLevel, string> = {
+    stranger: '陌生',
+    acquaintance: '相识',
+    friendly: '熟识',
+    bestFriend: '挚友'
+  }
+  const meetsLevel = (current: FriendshipLevel, required: FriendshipLevel): boolean =>
+    LEVEL_ORDER.indexOf(current) >= LEVEL_ORDER.indexOf(required)
   import { addLog } from '@/composables/useGameLog'
   import { handleEndDay } from '@/composables/useEndDay'
 
@@ -55,9 +73,8 @@
     const cost = getUpgradeCost(type, tool.tier)
     if (!cost) return false
 
-    // 需要小满好感达到「相识」
-    const xiaoManLevel = npcStore.getFriendshipLevel('xiao_man')
-    if (xiaoManLevel === 'stranger') return false
+    const requiredLevel = TIER_FRIENDSHIP_REQ[cost.toTier]
+    if (requiredLevel && !meetsLevel(npcStore.getFriendshipLevel('xiao_man'), requiredLevel)) return false
 
     if (playerStore.money < cost.money) return false
     for (const mat of cost.materials) {
@@ -66,13 +83,35 @@
     return true
   }
 
+  /** 返回升级被阻止的原因（用于 UI 提示），可升级时返回空字符串 */
+  const getUpgradeBlockReason = (type: ToolType): string => {
+    const tool = inventoryStore.getTool(type)
+    if (!tool) return ''
+    const cost = getUpgradeCost(type, tool.tier)
+    if (!cost) return ''
+
+    const requiredLevel = TIER_FRIENDSHIP_REQ[cost.toTier]
+    if (requiredLevel && !meetsLevel(npcStore.getFriendshipLevel('xiao_man'), requiredLevel)) {
+      return `需要小满好感达到「${LEVEL_NAMES[requiredLevel]}」`
+    }
+
+    if (playerStore.money < cost.money) return '金币不足'
+    for (const mat of cost.materials) {
+      if (inventoryStore.getItemCount(mat.itemId) < mat.quantity) {
+        const itemName = getItemById(mat.itemId)?.name ?? mat.itemId
+        return `${itemName}不足（${inventoryStore.getItemCount(mat.itemId)}/${mat.quantity}）`
+      }
+    }
+    return ''
+  }
+
   const handleUpgrade = (type: ToolType) => {
     const tool = inventoryStore.getTool(type)
     if (!tool) return
     const cost = getUpgradeCost(type, tool.tier)
     if (!cost) return
     if (!canUpgrade(type)) {
-      addLog('条件不足，无法升级。（需要小满好感达到「相识」以上）')
+      addLog('条件不足，无法升级。')
       return
     }
 

@@ -2,7 +2,7 @@
   "name": "taoyuan",
   "title": "桃源乡",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.5",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

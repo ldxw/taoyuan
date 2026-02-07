@@ -17,7 +17,7 @@ import { addLog, showFloat } from './useGameLog'
 import { handleEndDay } from './useEndDay'
 import { sfxDig, sfxPlant, sfxWater, sfxHarvest, sfxLevelUp, sfxBuy, sfxCoin } from './useAudio'
 
-const QUALITY_NAMES: Record<Quality, string> = {
+export const QUALITY_NAMES: Record<Quality, string> = {
   normal: '普通',
   fine: '优良',
   excellent: '精品',

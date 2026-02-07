@@ -47,10 +47,7 @@
         v-for="plot in farmStore.plots"
         :key="plot.id"
         class="aspect-square rounded-[2px] flex flex-col items-center justify-center text-sm cursor-pointer transition-colors hover:border-accent/60 hover:bg-panel/80 relative"
-        :class="[
-          getPlotDisplay(plot).color,
-          needsWater(plot) ? 'border-2 border-danger/50' : 'border border-accent/20'
-        ]"
+        :class="[getPlotDisplay(plot).color, needsWater(plot) ? 'border-2 border-danger/50' : 'border border-accent/20']"
         :title="getPlotTooltip(plot)"
         @click="handlePlotAction(plot.id)"
       >
@@ -108,9 +105,7 @@
       </span>
     </div>
     <!-- 浇水提示 -->
-    <p v-if="unwateredCount > 0" class="text-xs text-danger mt-1">
-      还有 {{ unwateredCount }} 块地需要浇水
-    </p>
+    <p v-if="unwateredCount > 0" class="text-xs text-danger mt-1">还有 {{ unwateredCount }} 块地需要浇水</p>
 
     <!-- 果树区 -->
     <div class="mt-4 border-t border-accent/20 pt-3">
@@ -123,7 +118,7 @@
           <span class="w-16">{{ getTreeName(tree.type) }}</span>
           <span v-if="!tree.mature" class="text-muted">生长中 {{ tree.growthDays }}/28天</span>
           <span v-else-if="tree.todayFruit" class="text-accent">今日已结果</span>
-          <span v-else class="text-success">已成熟 ({{ tree.seasonAge }}季)</span>
+          <span v-else class="text-success">已成熟 ({{ tree.seasonAge }}季) · {{ getTreeFruitSeason(tree.type) }}产果</span>
           <div v-if="!tree.mature" class="flex-1 h-1.5 bg-bg rounded-[2px] border border-accent/10">
             <div
               class="h-full rounded-[2px] bg-success transition-all"
@@ -165,6 +160,7 @@
               <Wrench :size="14" />
               装采脂器
             </button>
+            <span v-else class="text-muted">需在工坊制造采脂器</span>
           </template>
           <template v-else-if="tree.tapReady">
             <span class="text-accent">可收取</span>
@@ -239,17 +235,30 @@
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { Droplets, Leaf, Droplet, Beaker, TreePine, TreeDeciduous, ArrowRight, ArrowLeft, Wrench, Gift, CirclePlus } from 'lucide-vue-next'
-  import { useFarmStore, useInventoryStore, useGameStore, useHomeStore } from '@/stores'
+  import {
+    Droplets,
+    Leaf,
+    Droplet,
+    Beaker,
+    TreePine,
+    TreeDeciduous,
+    ArrowRight,
+    ArrowLeft,
+    Wrench,
+    Gift,
+    CirclePlus
+  } from 'lucide-vue-next'
+  import { useFarmStore, useInventoryStore, useGameStore, useHomeStore, usePlayerStore, useSkillStore, SEASON_NAMES } from '@/stores'
   import { getCropById, getCropsBySeason } from '@/data'
   import { FRUIT_TREE_DEFS, MAX_FRUIT_TREES } from '@/data/fruitTrees'
   import { WILD_TREE_DEFS, MAX_WILD_TREES, getWildTreeDef } from '@/data/wildTrees'
   import { CROPS } from '@/data/crops'
   import { FERTILIZERS, getFertilizerById } from '@/data/processing'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
-  import { addLog } from '@/composables/useGameLog'
-  import { handlePlotClick, useFarmActions } from '@/composables/useFarmActions'
+  import { addLog, showFloat } from '@/composables/useGameLog'
+  import { handlePlotClick, useFarmActions, QUALITY_NAMES } from '@/composables/useFarmActions'
   import type { SprinklerType, FertilizerType, FruitTreeType, WildTreeType } from '@/types'
+  import { sfxHarvest } from '@/composables/useAudio'
 
   const { selectedSeed } = useFarmActions()
 
@@ -415,6 +424,12 @@
     return FRUIT_TREE_DEFS.find(d => d.type === type)?.name ?? type
   }
 
+  const getTreeFruitSeason = (type: string): string => {
+    const def = FRUIT_TREE_DEFS.find(d => d.type === type)
+    if (!def) return '?'
+    return SEASON_NAMES[def.fruitSeason as keyof typeof SEASON_NAMES]
+  }
+
   const plantableSaplings = computed(() => {
     return FRUIT_TREE_DEFS.filter(d => inventoryStore.hasItem(d.saplingId)).map(d => ({
       type: d.type as FruitTreeType,
@@ -532,7 +547,22 @@
         inventoryStore.addItem(crop.seedId)
       }
     } else if (plot.state === 'harvestable') {
-      handlePlotClick(plotId)
+      const playerStore = usePlayerStore()
+      if (!playerStore.consumeStamina(1)) {
+        addLog('体力不足，无法收获。')
+        return
+      }
+      const cropId = farmStore.greenhouseHarvestPlot(plotId)
+      if (cropId) {
+        const cropDef = getCropById(cropId)
+        const skillStore = useSkillStore()
+        const quality = skillStore.rollCropQualityWithBonus(0)
+        inventoryStore.addItem(cropId, 1, quality)
+        const qualityLabel = quality !== 'normal' ? `(${QUALITY_NAMES[quality]})` : ''
+        sfxHarvest()
+        showFloat(`+${cropDef?.name ?? cropId}${qualityLabel}`, 'success')
+        addLog(`在温室收获了${cropDef?.name ?? cropId}${qualityLabel}！(-1体力)`)
+      }
     }
   }
 </script>
