@@ -1,0 +1,107 @@
+name: 构建多平台程序 (Electron Client)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # 1. 构建 Electron 客户端
+  build-electron:
+    name: Build Electron (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Cache Electron Builder
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            electron-${{ runner.os }}-
+
+      - name: Build Electron
+        run: |
+          pnpm install
+          pnpm run build:electron --${{ matrix.platform }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 【关键点】这里只上传安装包后缀，不上传文件夹
+      - name: Upload Electron Installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.platform }}
+          path: |
+            pkg/*.exe
+
+  # 4. 发布 Release
+  release:
+    needs: [build-electron]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=v$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      # 1. 下载时，不使用 merge-multiple，防止覆盖冲突
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./raw-assets
+
+      # 2. 核心步骤：手动移动文件到一个扁平目录，并强制重命名
+      - name: Flatten and Rename Assets
+        run: |
+          mkdir -p ./final-release
+
+          # 移动 Electron 安装包 (排除 unpacked 目录)
+          find ./raw-assets/electron-* -type f -name "*.exe" -exec cp {} ./final-release/ \;
+
+          # 检查结果
+          echo "Final assets to upload:"
+          ls -R ./final-release
+
+      # 3. 删除已有 Release 的文件（如果存在）
+      - name: Delete existing release assets
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          # 获取 release 的所有资产并删除
+          gh release view "$VERSION" --json assets -q '.assets[].name' 2>/dev/null | while read -r asset; do
+            echo "Deleting asset: $asset"
+            gh release delete-asset "$VERSION" "$asset" -y || true
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # 4. 上传新文件
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          files: ./final-release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

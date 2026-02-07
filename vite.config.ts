@@ -6,9 +6,23 @@ import { resolve } from 'path'
 export default defineConfig({
   base: './',
   build: {
-    outDir: 'docs'
+    outDir: 'docs',
+    cssMinify: true
   },
-  plugins: [vue(), tailwindcss()],
+  esbuild: {
+    drop: ['console', 'debugger'],
+    legalComments: 'none'
+  },
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          comments: false
+        }
+      }
+    }),
+    tailwindcss()
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')

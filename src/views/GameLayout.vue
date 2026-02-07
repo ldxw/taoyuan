@@ -3,7 +3,7 @@
     <!-- 状态栏 -->
     <StatusBar @request-sleep="showSleepConfirm = true" />
 
-    <button class="btn btn-danger text-xs py-0 px-2 min-h-0 md:!hidden" @click.stop="showSleepConfirm = true">
+    <button class="btn text-center justify-center text-sm md:!hidden" @click.stop="showSleepConfirm = true">
       <Moon :size="12" />
       {{ sleepLabel }}
     </button>

@@ -1,16 +1,15 @@
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center gap-8 px-4" @click.once="startBgm">
+  <div class="flex min-h-screen flex-col items-center justify-center gap-8 px-4" @click.once="startBgm" @click="slotMenuOpen = null">
     <!-- 标题 -->
-    <div class="text-center">
+    <div class="flex items-center gap-3">
       <div class="logo" />
-      <h1 class="text-accent mb-2 text-2xl md:text-4xl tracking-widest">桃源乡</h1>
-      <p class="text-muted text-sm">—— 文字田园物语 ——</p>
+      <h1 class="text-accent text-2xl md:text-4xl tracking-widest">桃源乡</h1>
     </div>
 
     <!-- 主菜单 -->
-    <template v-if="!showCharCreate && !showFarmSelect && !showIdentitySetup">
+    <template v-if="!showCharCreate && !showFarmSelect && !showIdentitySetup && !showAbout">
       <div class="flex flex-col gap-3 w-full md:w-110">
-        <button class="btn text-center justify-center text-lg py-3" @click="showCharCreate = true">
+        <button class="btn text-center justify-center text-lg py-3" @click="showPrivacy = true">
           <Play :size="14" />
           新的旅程
         </button>
@@ -23,18 +22,30 @@
                 <FolderOpen :size="14" class="inline" />
                 存档 {{ info.slot + 1 }}
               </span>
-              <span class="text-muted text-xs truncate">
+              <span class="text-muted text-xs">
                 {{ info.playerName ?? '未命名' }} · 第{{ info.year }}年 {{ SEASON_NAMES[info.season as keyof typeof SEASON_NAMES] }} 第{{
                   info.day
                 }}天 · {{ info.money }}文
               </span>
             </button>
-            <button class="btn px-2 text-xs" @click="handleExportSlot(info.slot)" title="导出">
-              <Download :size="12" />
-            </button>
-            <button class="btn btn-danger px-2 text-xs" @click="handleDeleteSlot(info.slot)" title="删除">
-              <Trash2 :size="12" />
-            </button>
+            <div class="relative">
+              <button class="btn px-2 text-xs h-full" @click.stop="slotMenuOpen = slotMenuOpen === info.slot ? null : info.slot">
+                <Settings :size="12" />
+              </button>
+              <div
+                v-if="slotMenuOpen === info.slot"
+                class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-[2px] overflow-hidden w-30"
+              >
+                <button class="btn text-center !rounded-none justify-center text-sm" @click="handleExportSlot(info.slot)">
+                  <Download :size="12" />
+                  导出
+                </button>
+                <button class="btn btn-danger !rounded-none text-center justify-center text-sm" @click="handleDeleteSlot(info.slot)">
+                  <Trash2 :size="12" />
+                  删除
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -44,6 +55,38 @@
           导入存档
         </button>
         <input ref="fileInputRef" type="file" accept=".tyx" class="hidden" @change="handleImportFile" />
+
+        <!-- 关于 -->
+        <button class="btn text-center justify-center text-sm text-muted" @click="showAbout = true">
+          <Info :size="14" />
+          关于
+        </button>
+      </div>
+    </template>
+
+    <!-- 关于页面 -->
+    <template v-else-if="showAbout">
+      <div class="game-panel w-full max-w-md text-center">
+        <h2 class="text-accent text-lg mb-4">关于桃源乡</h2>
+        <p class="text-xs text-muted mb-4">一款文字田园物语，灵感来自 Stardew Valley</p>
+
+        <div class="flex flex-col gap-3 text-sm">
+          <div class="border border-accent/20 rounded-[2px] p-3">
+            <p class="text-muted text-xs mb-1">QQ 交流群</p>
+            <p class="text-accent">920930589</p>
+          </div>
+          <div class="border border-accent/20 rounded-[2px] p-3">
+            <p class="text-muted text-xs mb-1">GitHub 仓库</p>
+            <a href="https://github.com/setube/taoyuan" target="_blank" rel="noopener" class="text-accent underline break-all">
+              https://github.com/setube/taoyuan
+            </a>
+          </div>
+        </div>
+
+        <button class="btn text-sm mt-4" @click="showAbout = false">
+          <ArrowLeft :size="14" />
+          返回
+        </button>
       </div>
     </template>
 
@@ -170,11 +213,50 @@
         确认并继续
       </button>
     </template>
+
+    <!-- 隐私协议弹窗 -->
+    <div v-if="showPrivacy" class="fixed inset-0 z-50 flex items-center justify-center bg-bg/80" @click.self="handlePrivacyDecline">
+      <div class="game-panel w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+        <h2 class="text-accent text-lg mb-3 text-center">
+          <ShieldCheck :size="14" class="inline" />
+          隐私协议
+        </h2>
+        <div class="flex-1 overflow-y-auto text-xs text-muted space-y-2 mb-4 pr-1">
+          <p>欢迎来到桃源乡！在开始游戏之前，请阅读以下隐私协议：</p>
+          <p class="text-text">1. 数据存储</p>
+          <p>本游戏的存档、设置等数据保存在您的浏览器本地存储（localStorage）中。存档数据不会上传至服务器。</p>
+          <p class="text-text">2. 流量统计</p>
+          <p>
+            本游戏使用第三方统计服务收集匿名访问数据（如页面浏览量、访问时间、设备类型、浏览器信息等），用于分析游戏使用情况和改进体验。这些数据不包含您的个人身份信息。
+          </p>
+          <p class="text-text">3. 网络通信</p>
+          <p>除流量统计外，游戏核心功能均在本地运行，不会将您的游戏存档或操作数据发送至任何服务器。</p>
+          <p class="text-text">4. 数据安全</p>
+          <p>清除浏览器数据或更换设备可能导致存档丢失，建议定期使用导出功能备份存档。</p>
+          <p class="text-text">5. 第三方服务</p>
+          <p>
+            本游戏使用的第三方统计服务有其独立的隐私政策，我们不对其数据处理方式负责。游戏中的外部链接指向的第三方网站亦不受本协议约束。
+          </p>
+          <p class="text-text">6. 协议变更</p>
+          <p>本协议可能随版本更新而调整，届时将在游戏内重新提示。继续使用即视为同意最新版本的协议。</p>
+        </div>
+        <div class="flex gap-3 justify-center">
+          <button class="btn text-sm" @click="handlePrivacyDecline">
+            <ArrowLeft :size="14" />
+            不同意
+          </button>
+          <button class="btn text-sm px-6" @click="handlePrivacyAgree">
+            <ShieldCheck :size="14" />
+            同意并继续
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { Play, FolderOpen, ArrowLeft, Trash2, Download, Upload } from 'lucide-vue-next'
+  import { Play, FolderOpen, ArrowLeft, Trash2, Download, Upload, Info, Settings, ShieldCheck } from 'lucide-vue-next'
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { useGameStore, useSaveStore, useFarmStore, useAnimalStore, usePlayerStore, SEASON_NAMES } from '@/stores'
@@ -195,9 +277,22 @@
   const showCharCreate = ref(false)
   const showFarmSelect = ref(false)
   const showIdentitySetup = ref(false)
+  const showAbout = ref(false)
+  const slotMenuOpen = ref<number | null>(null)
   const selectedMap = ref<FarmMapType>('standard')
   const charName = ref('')
   const charGender = ref<Gender>('male')
+  const showPrivacy = ref(false)
+
+  const handlePrivacyAgree = () => {
+    localStorage.setItem('taoyuan_privacy_agreed', '1')
+    showPrivacy.value = false
+    showCharCreate.value = true
+  }
+
+  const handlePrivacyDecline = () => {
+    showPrivacy.value = false
+  }
 
   const refreshSlots = () => {
     slots.value = saveStore.getSlots()
@@ -324,18 +419,10 @@
 
 <style scoped>
   .logo {
-    width: 96px;
-    height: 96px;
-    margin: 0 auto 8px;
+    width: 50px;
+    height: 50px;
     background: url(@/assets/logo.png) center / contain no-repeat;
     image-rendering: pixelated;
-  }
-
-  @media (min-width: 768px) {
-    .logo {
-      width: 128px;
-      height: 128px;
-      margin-bottom: 12px;
-    }
+    flex-shrink: 0;
   }
 </style>

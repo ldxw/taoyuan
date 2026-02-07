@@ -51,7 +51,7 @@
         </div>
         <!-- 剩余时间 -->
         <div class="flex items-center gap-1">
-          <Clock :size="12" class="text-muted" />
+          <Clock :size="12" class="tinline" />
           <div class="w-12 md:w-16 h-2 bg-bg rounded-[2px] border border-accent/20">
             <div class="h-full rounded-[2px] transition-all duration-300" :class="timeBarColor" :style="{ width: timePercent + '%' }" />
           </div>
@@ -59,7 +59,7 @@
       </div>
       <!-- 音频控制 -->
       <div class="flex items-center gap-1 shrink-0">
-        <button class="!hidden btn btn-danger text-xs py-0 px-2 min-h-0 md:!flex" @click="showMobileMap = true">
+        <button class="!hidden btn text-xs py-0 px-2 min-h-0 md:!flex" @click="showMobileMap = true">
           <Map :size="12" />
           地图
         </button>
@@ -148,3 +148,21 @@
     emit('request-sleep')
   }
 </script>
+
+<style scoped>
+  /* 体力条闪烁 */
+  @keyframes staminaPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  .stamina-critical {
+    animation: staminaPulse 1s ease-in-out infinite;
+  }
+</style>
