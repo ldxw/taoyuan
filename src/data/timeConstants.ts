@@ -1,0 +1,219 @@
+import type { Weekday, TimePeriod, LocationGroup } from '@/types'
+
+// === 时间常量 ===
+export const DAY_START_HOUR = 6
+export const DAY_END_HOUR = 26 // 凌晨2点
+export const MIDNIGHT_HOUR = 24
+export const PASSOUT_HOUR = 26
+
+// === 星期系统 ===
+export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+export const WEEKDAY_NAMES: Record<Weekday, string> = {
+  mon: '周一',
+  tue: '周二',
+  wed: '周三',
+  thu: '周四',
+  fri: '周五',
+  sat: '周六',
+  sun: '周日'
+}
+
+/** 第1天=周一, 第7天=周日, 第8天=周一 ... */
+export const getWeekday = (day: number): Weekday => {
+  return WEEKDAYS[(day - 1) % 7]!
+}
+
+// === 时段判断 ===
+export const getTimePeriod = (hour: number): TimePeriod => {
+  if (hour >= 6 && hour < 12) return 'morning'
+  if (hour >= 12 && hour < 17) return 'afternoon'
+  if (hour >= 17 && hour < 20) return 'evening'
+  if (hour >= 20 && hour < 24) return 'night'
+  return 'late_night'
+}
+
+// === 时间显示 ===
+export const formatHour = (hour: number): string => {
+  const realHour = hour >= 24 ? hour - 24 : hour
+  if (hour >= 6 && hour < 12) return `上午 ${realHour}:00`
+  if (hour === 12) return `中午 12:00`
+  if (hour > 12 && hour < 18) return `下午 ${realHour}:00`
+  if (hour >= 18 && hour < 24) return `晚上 ${realHour}:00`
+  return `凌晨 ${realHour}:00`
+}
+
+/** 更精细的时间显示（支持小数小时） */
+export const formatTime = (hour: number): string => {
+  const totalMinutes = Math.round(hour * 60)
+  let h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  const realH = h >= 24 ? h - 24 : h
+  const mm = m.toString().padStart(2, '0')
+
+  if (h >= 6 && h < 12) return `上午 ${realH}:${mm}`
+  if (h === 12 && m === 0) return `中午 12:00`
+  if (h >= 12 && h < 18) return `下午 ${realH}:${mm}`
+  if (h >= 18 && h < 24) return `晚上 ${realH}:${mm}`
+  return `凌晨 ${realH}:${mm}`
+}
+
+// === 行动时间开销 (单位：小时) ===
+export const ACTION_TIME_COSTS = {
+  // 农场
+  till: 0.33,
+  plant: 0.17,
+  water: 0.17,
+  harvest: 0.17,
+  // 钓鱼
+  fishStart: 2,
+  // 挖矿
+  mineOre: 0.5,
+  combat: 0.5,
+  nextFloor: 0.33,
+  // 采集
+  forage: 1,
+  // 烹饪
+  cook: 0.5,
+  eat: 0,
+  // 社交
+  talk: 0.5,
+  gift: 0,
+  // 加工坊
+  craftMachine: 0.5,
+  startProcessing: 0,
+  collectProduct: 0,
+  craftSprinkler: 0.5,
+  craftFertilizer: 0.5,
+  craftJadeRing: 0.5,
+  // 畜棚
+  feedAnimals: 0.5,
+  petAnimal: 0.17,
+  // 农舍
+  collectCave: 0.17,
+  aging: 0.17,
+  plantTree: 0.5,
+  // 工具升级
+  toolUpgrade: 1,
+  // UI
+  checkInventory: 0,
+  checkSkills: 0,
+  checkAchievement: 0
+} as const
+
+// === 地点分组映射 ===
+export const TAB_TO_LOCATION_GROUP: Record<string, LocationGroup | null> = {
+  farm: 'farm',
+  animal: 'farm',
+  home: 'farm',
+  village: 'village_area',
+  shop: 'village_area',
+  cooking: 'village_area',
+  workshop: 'village_area',
+  upgrade: 'village_area',
+  forage: 'nature',
+  fishing: 'nature',
+  mining: 'mine',
+  inventory: null,
+  skills: null,
+  achievement: null
+}
+
+// === 移动时间 ===
+export const TRAVEL_TIME: Record<string, number> = {
+  'farm->village_area': 0.5,
+  'farm->nature': 0.5,
+  'farm->mine': 1,
+  'village_area->farm': 0.5,
+  'village_area->nature': 0.5,
+  'village_area->mine': 1,
+  'nature->farm': 0.5,
+  'nature->village_area': 0.5,
+  'nature->mine': 1,
+  'mine->farm': 1,
+  'mine->village_area': 1,
+  'mine->nature': 1
+}
+
+const LOCATION_GROUP_NAMES: Record<LocationGroup, string> = {
+  farm: '农场',
+  village_area: '桃源村',
+  nature: '野外',
+  mine: '矿洞'
+}
+
+export const getLocationGroupName = (group: LocationGroup): string => {
+  return LOCATION_GROUP_NAMES[group]
+}
+
+// === 商店营业 ===
+export interface ShopSchedule {
+  tabKey: string
+  name: string
+  closedDays: Weekday[]
+  openHour: number
+  closeHour: number
+}
+
+export const SHOP_SCHEDULES: ShopSchedule[] = [
+  { tabKey: 'shop', name: '万物铺', closedDays: ['wed'], openHour: 8, closeHour: 18 },
+  { tabKey: 'upgrade', name: '工坊', closedDays: ['sun'], openHour: 9, closeHour: 17 }
+]
+
+export const isShopOpen = (tabKey: string, day: number, hour: number): { open: boolean; reason?: string } => {
+  const schedule = SHOP_SCHEDULES.find(s => s.tabKey === tabKey)
+  if (!schedule) return { open: true }
+  const weekday = getWeekday(day)
+  if (schedule.closedDays.includes(weekday)) {
+    return { open: false, reason: `${schedule.name}今天（${WEEKDAY_NAMES[weekday]}）休息。` }
+  }
+  if (hour < schedule.openHour) {
+    return { open: false, reason: `${schedule.name}还没开门（${formatHour(schedule.openHour)}开门）。` }
+  }
+  if (hour >= schedule.closeHour) {
+    return { open: false, reason: `${schedule.name}已经打烊了（${formatHour(schedule.closeHour)}关门）。` }
+  }
+  return { open: true }
+}
+
+// === NPC 出没时间 ===
+export interface NpcScheduleEntry {
+  npcId: string
+  availableDays: Weekday[] | 'all'
+  availableHours: { from: number; to: number }
+}
+
+export const NPC_SCHEDULES: NpcScheduleEntry[] = [
+  { npcId: 'chen_bo', availableDays: 'all', availableHours: { from: 8, to: 20 } },
+  { npcId: 'liu_niang', availableDays: 'all', availableHours: { from: 9, to: 21 } },
+  { npcId: 'a_shi', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri'], availableHours: { from: 7, to: 18 } },
+  { npcId: 'qiu_yue', availableDays: 'all', availableHours: { from: 6, to: 22 } },
+  { npcId: 'lin_lao', availableDays: 'all', availableHours: { from: 8, to: 19 } },
+  { npcId: 'xiao_man', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 9, to: 17 } }
+]
+
+export const isNpcAvailable = (npcId: string, day: number, hour: number): boolean => {
+  const schedule = NPC_SCHEDULES.find(s => s.npcId === npcId)
+  if (!schedule) return true
+  const weekday = getWeekday(day)
+  if (schedule.availableDays !== 'all' && !schedule.availableDays.includes(weekday)) return false
+  return hour >= schedule.availableHours.from && hour < schedule.availableHours.to
+}
+
+export const getNpcUnavailableReason = (npcId: string, day: number, hour: number): string | null => {
+  const schedule = NPC_SCHEDULES.find(s => s.npcId === npcId)
+  if (!schedule) return null
+  const weekday = getWeekday(day)
+  if (schedule.availableDays !== 'all' && !schedule.availableDays.includes(weekday)) {
+    return '今天不在村里'
+  }
+  if (hour < schedule.availableHours.from) return '还没出门'
+  if (hour >= schedule.availableHours.to) return '已经回家了'
+  return null
+}
+
+// === 深夜惩罚 ===
+export const LATE_NIGHT_STAMINA_RECOVERY = 0.75
+export const PASSOUT_STAMINA_RECOVERY = 0.5
+export const PASSOUT_MONEY_PENALTY_RATE = 0.1
+export const PASSOUT_MONEY_PENALTY_CAP = 1000
