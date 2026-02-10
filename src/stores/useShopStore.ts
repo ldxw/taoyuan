@@ -57,12 +57,10 @@ export const useShopStore = defineStore('shop', () => {
   const buySeed = (seedId: string, quantity: number = 1): boolean => {
     const seed = availableSeeds.value.find(s => s.seedId === seedId)
     if (!seed) return false
+    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === seedId && s.quantity + quantity <= 99)) return false
     const totalCost = applyDiscount(seed.price) * quantity
     if (!playerStore.spendMoney(totalCost)) return false
-    if (!inventoryStore.addItem(seedId, quantity)) {
-      playerStore.earnMoney(totalCost)
-      return false
-    }
+    inventoryStore.addItem(seedId, quantity)
     return true
   }
 
@@ -135,12 +133,10 @@ export const useShopStore = defineStore('shop', () => {
 
   /** 购买通用物品 */
   const buyItem = (itemId: string, price: number, quantity: number = 1): boolean => {
+    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity + quantity <= 99)) return false
     const totalCost = applyDiscount(price) * quantity
     if (!playerStore.spendMoney(totalCost)) return false
-    if (!inventoryStore.addItem(itemId, quantity)) {
-      playerStore.earnMoney(totalCost)
-      return false
-    }
+    inventoryStore.addItem(itemId, quantity)
     return true
   }
 
@@ -191,12 +187,10 @@ export const useShopStore = defineStore('shop', () => {
   const buyFromTraveler = (itemId: string): boolean => {
     const item = travelingStock.value.find(s => s.itemId === itemId)
     if (!item || item.quantity <= 0) return false
+    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity < 99)) return false
     const finalPrice = applyDiscount(item.price)
     if (!playerStore.spendMoney(finalPrice)) return false
-    if (!inventoryStore.addItem(itemId)) {
-      playerStore.earnMoney(finalPrice)
-      return false
-    }
+    inventoryStore.addItem(itemId)
     item.quantity--
     return true
   }
@@ -224,11 +218,23 @@ export const useShopStore = defineStore('shop', () => {
     if (idx === -1) return false
     const entry = shippingBox.value[idx]!
     if (entry.quantity < quantity) return false
-    if (!inventoryStore.addItem(itemId, quantity)) return false
-    entry.quantity -= quantity
+    // 先计算背包可用空间，避免 addItem 部分添加的副作用
+    const MAX_STACK = 99
+    let space = 0
+    for (const s of inventoryStore.items) {
+      if (s.itemId === itemId && s.quality === quality && s.quantity < MAX_STACK) {
+        space += MAX_STACK - s.quantity
+      }
+    }
+    space += (inventoryStore.capacity - inventoryStore.items.length) * MAX_STACK
+    const toTransfer = Math.min(quantity, space)
+    if (toTransfer <= 0) return false
+    // 先从出货箱移除，再添加到背包
+    entry.quantity -= toTransfer
     if (entry.quantity <= 0) {
       shippingBox.value.splice(idx, 1)
     }
+    inventoryStore.addItem(itemId, toTransfer, quality)
     return true
   }
 

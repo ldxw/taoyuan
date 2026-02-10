@@ -68,7 +68,9 @@
                 @click="handleStartProcessing(idx, recipe.id)"
               >
                 {{ recipe.name }}
-                <span v-if="recipe.inputItemId" class="text-muted">({{ getItemName(recipe.inputItemId) }}×{{ recipe.inputQuantity }})</span>
+                <span v-if="recipe.inputItemId" class="text-muted">
+                  ({{ getItemName(recipe.inputItemId) }} {{ inventoryStore.getItemCount(recipe.inputItemId) }}/{{ recipe.inputQuantity }})
+                </span>
               </button>
             </div>
             <p v-else class="text-xs text-muted">无可用配方</p>
@@ -124,9 +126,7 @@
             </div>
             <div v-if="craftModal.cost > 0" class="flex items-center justify-between mt-0.5">
               <span class="text-xs text-muted">金币</span>
-              <span class="text-xs" :class="playerStore.money >= craftModal.cost ? '' : 'text-danger'">
-                {{ craftModal.cost }}文
-              </span>
+              <span class="text-xs" :class="playerStore.money >= craftModal.cost ? '' : 'text-danger'">{{ craftModal.cost }}文</span>
             </div>
           </div>
 

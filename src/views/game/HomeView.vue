@@ -78,6 +78,60 @@
       </div>
     </div>
 
+    <!-- 仓库 -->
+    <div class="border border-accent/20 rounded-xs p-3 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-accent">
+          <Warehouse :size="14" class="inline" />
+          仓库
+        </p>
+        <span v-if="warehouseStore.unlocked" class="text-xs text-muted">{{ warehouseStore.items.length }}/{{ warehouseStore.capacity }}</span>
+      </div>
+
+      <!-- 未解锁 -->
+      <div v-if="!warehouseStore.unlocked">
+        <p class="text-xs text-muted mb-2">解锁仓库后可额外存放物品，容量独立于背包。</p>
+        <div
+          class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
+          @click="showWarehouseUnlockModal = true"
+        >
+          <span class="text-xs">解锁仓库</span>
+          <span class="text-xs text-accent whitespace-nowrap">{{ warehouseStore.UNLOCK_COST }}文</span>
+        </div>
+      </div>
+
+      <!-- 已解锁 -->
+      <template v-else>
+        <!-- 仓库物品列表 -->
+        <div v-if="warehouseStore.items.length > 0" class="flex flex-col gap-1 mb-2 max-h-36 overflow-y-auto">
+          <div
+            v-for="(item, idx) in warehouseStore.items"
+            :key="idx"
+            class="flex items-center justify-between border border-accent/10 rounded-xs px-2 py-1"
+          >
+            <span class="text-xs truncate mr-2" :class="qualityTextClass(item.quality)">
+              {{ getItemName(item.itemId) }}
+              <span v-if="item.quality !== 'normal'" class="text-[10px]">({{ QUALITY_LABEL[item.quality] }})</span>
+            </span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-muted">&times;{{ item.quantity }}</span>
+              <button class="btn text-xs py-0 px-1" @click="handleWithdraw(item.itemId, item.quality)">取出</button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="flex flex-col items-center justify-center py-4 text-muted mb-2">
+          <Warehouse :size="24" />
+          <p class="text-xs mt-1">仓库空空如也</p>
+        </div>
+
+        <!-- 存入按钮 -->
+        <button v-if="depositableItems.length > 0" class="btn text-xs" @click="showDepositModal = true">
+          <ArrowDown :size="12" />
+          存入物品
+        </button>
+      </template>
+    </div>
+
     <!-- 子女 -->
     <div v-if="npcStore.getSpouse()" class="border border-accent/20 rounded-xs p-3 mb-4">
       <p class="text-sm text-accent mb-2">
@@ -184,21 +238,41 @@
         class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
         @click.self="showUpgradeModal = false"
       >
-        <div class="game-panel max-w-xs w-full">
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-sm text-accent">升级农舍</p>
-            <button class="btn text-xs py-0 px-1" @click="showUpgradeModal = false">
-              <X :size="12" />
-            </button>
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showUpgradeModal = false">
+            <X :size="14" />
+          </button>
+
+          <p class="text-sm text-accent mb-2">升级农舍</p>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2">
+            <p class="text-xs">升级为「{{ homeStore.nextUpgrade.name }}」</p>
+            <p class="text-xs text-muted mt-0.5">{{ homeStore.nextUpgrade.description }}</p>
           </div>
-          <div class="text-xs space-y-1 mb-3 border-b border-accent/20 pb-2">
-            <p>升级为「{{ homeStore.nextUpgrade.name }}」</p>
-            <p class="text-muted">{{ homeStore.nextUpgrade.description }}</p>
-            <p>材料：{{ homeStore.nextUpgrade.materialCost.map(m => `${getItemName(m.itemId)}×${m.quantity}`).join('、') }}</p>
-            <p>费用：{{ homeStore.nextUpgrade.cost }}文</p>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2 space-y-1">
+            <p class="text-xs text-muted mb-1">所需材料</p>
+            <div v-for="mat in homeStore.nextUpgrade.materialCost" :key="mat.itemId" class="flex items-center justify-between">
+              <span class="text-xs text-muted">{{ getItemName(mat.itemId) }}</span>
+              <span class="text-xs" :class="inventoryStore.getItemCount(mat.itemId) >= mat.quantity ? '' : 'text-danger'">
+                {{ inventoryStore.getItemCount(mat.itemId) }}/{{ mat.quantity }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-muted">金币</span>
+              <span class="text-xs" :class="playerStore.money >= homeStore.nextUpgrade.cost ? '' : 'text-danger'">
+                {{ homeStore.nextUpgrade.cost }}文
+              </span>
+            </div>
           </div>
-          <button class="btn text-xs w-full" @click="handleUpgradeFromModal">
-            <ArrowUp :size="14" />
+
+          <button
+            class="btn text-xs w-full justify-center"
+            :class="{ 'bg-accent! text-bg!': canUpgradeFarmhouse }"
+            :disabled="!canUpgradeFarmhouse"
+            @click="handleUpgradeFromModal"
+          >
+            <ArrowUp :size="12" />
             升级
           </button>
         </div>
@@ -212,20 +286,40 @@
         class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
         @click.self="showGreenhouseModal = false"
       >
-        <div class="game-panel max-w-xs w-full">
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-sm text-accent">解锁温室</p>
-            <button class="btn text-xs py-0 px-1" @click="showGreenhouseModal = false">
-              <X :size="12" />
-            </button>
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showGreenhouseModal = false">
+            <X :size="14" />
+          </button>
+
+          <p class="text-sm text-accent mb-2">解锁温室</p>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2">
+            <p class="text-xs text-muted">解锁后可在任何季节种植作物，作物自动浇水。</p>
           </div>
-          <div class="text-xs space-y-1 mb-3 border-b border-accent/20 pb-2">
-            <p class="text-muted">解锁后可在任何季节种植作物，作物自动浇水。</p>
-            <p>材料：{{ GREENHOUSE_MATERIAL_COST.map(m => `${getItemName(m.itemId)}×${m.quantity}`).join('、') }}</p>
-            <p>费用：{{ GREENHOUSE_UNLOCK_COST }}文</p>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2 space-y-1">
+            <p class="text-xs text-muted mb-1">所需材料</p>
+            <div v-for="mat in GREENHOUSE_MATERIAL_COST" :key="mat.itemId" class="flex items-center justify-between">
+              <span class="text-xs text-muted">{{ getItemName(mat.itemId) }}</span>
+              <span class="text-xs" :class="inventoryStore.getItemCount(mat.itemId) >= mat.quantity ? '' : 'text-danger'">
+                {{ inventoryStore.getItemCount(mat.itemId) }}/{{ mat.quantity }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-muted">金币</span>
+              <span class="text-xs" :class="playerStore.money >= GREENHOUSE_UNLOCK_COST ? '' : 'text-danger'">
+                {{ GREENHOUSE_UNLOCK_COST }}文
+              </span>
+            </div>
           </div>
-          <button class="btn text-xs w-full" @click="handleUnlockFromModal">
-            <Unlock :size="14" />
+
+          <button
+            class="btn text-xs w-full justify-center"
+            :class="{ 'bg-accent! text-bg!': canUnlockGreenhouse }"
+            :disabled="!canUnlockGreenhouse"
+            @click="handleUnlockFromModal"
+          >
+            <Unlock :size="12" />
             解锁
           </button>
         </div>
@@ -269,15 +363,93 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 仓库存入弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showDepositModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showDepositModal = false"
+      >
+        <div class="game-panel max-w-sm w-full">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-accent">存入仓库</p>
+            <button class="btn text-xs py-0 px-1" @click="showDepositModal = false">
+              <X :size="12" />
+            </button>
+          </div>
+          <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div
+              v-for="item in depositableItems"
+              :key="item.itemId + item.quality"
+              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
+              @click="handleDeposit(item.itemId, item.quality)"
+            >
+              <span class="text-xs truncate mr-2" :class="qualityTextClass(item.quality)">
+                {{ getItemName(item.itemId) }}
+                <span v-if="item.quality !== 'normal'" class="text-[10px]">({{ QUALITY_LABEL[item.quality] }})</span>
+              </span>
+              <span class="text-xs text-muted">&times;{{ item.quantity }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 仓库解锁弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showWarehouseUnlockModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showWarehouseUnlockModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showWarehouseUnlockModal = false">
+            <X :size="14" />
+          </button>
+
+          <p class="text-sm text-accent mb-2">解锁仓库</p>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2">
+            <p class="text-xs text-muted">独立于背包的额外存储空间，初始{{ warehouseStore.INITIAL_CAPACITY }}格，可在商店购买扩容。</p>
+          </div>
+
+          <div class="border border-accent/10 rounded-xs p-2 mb-2 space-y-1">
+            <div v-for="mat in WAREHOUSE_UNLOCK_MATERIALS" :key="mat.itemId" class="flex items-center justify-between">
+              <span class="text-xs text-muted">{{ getItemName(mat.itemId) }}</span>
+              <span class="text-xs" :class="inventoryStore.getItemCount(mat.itemId) >= mat.quantity ? '' : 'text-danger'">
+                {{ inventoryStore.getItemCount(mat.itemId) }}/{{ mat.quantity }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-muted">金币</span>
+              <span class="text-xs" :class="playerStore.money >= warehouseStore.UNLOCK_COST ? '' : 'text-danger'">
+                {{ warehouseStore.UNLOCK_COST }}文
+              </span>
+            </div>
+          </div>
+
+          <button
+            class="btn text-xs w-full justify-center"
+            :class="{ 'bg-accent! text-bg!': canUnlockWarehouse }"
+            :disabled="!canUnlockWarehouse"
+            @click="handleUnlockWarehouse"
+          >
+            <Unlock :size="12" />
+            解锁
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref } from 'vue'
-  import { ArrowUp, Mountain, Gem, Unlock, Heart, Leaf, Users, Home, X } from 'lucide-vue-next'
-  import { useHomeStore, useInventoryStore, useNpcStore, useGameStore } from '@/stores'
+  import { ArrowUp, ArrowDown, Mountain, Gem, Unlock, Heart, Leaf, Users, Home, Warehouse, X } from 'lucide-vue-next'
+  import { useHomeStore, useInventoryStore, useNpcStore, useGameStore, usePlayerStore, useWarehouseStore } from '@/stores'
   import { getItemById } from '@/data'
-  import { GREENHOUSE_UNLOCK_COST, GREENHOUSE_MATERIAL_COST } from '@/data/buildings'
+  import { GREENHOUSE_UNLOCK_COST, GREENHOUSE_MATERIAL_COST, WAREHOUSE_UNLOCK_MATERIALS } from '@/data/buildings'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import type { Quality, ChildStage } from '@/types'
   import { addLog } from '@/composables/useGameLog'
@@ -287,11 +459,15 @@
   const inventoryStore = useInventoryStore()
   const gameStore = useGameStore()
   const npcStore = useNpcStore()
+  const playerStore = usePlayerStore()
+  const warehouseStore = useWarehouseStore()
 
   const releaseConfirmChildId = ref<number | null>(null)
   const showUpgradeModal = ref(false)
   const showGreenhouseModal = ref(false)
   const showAgingModal = ref(false)
+  const showDepositModal = ref(false)
+  const showWarehouseUnlockModal = ref(false)
 
   const CHILD_STAGE_NAMES: Record<ChildStage, string> = {
     baby: '婴儿',
@@ -399,6 +575,124 @@
       inventoryStore.addItem(result.itemId, 1, result.quality)
       const name = getItemName(result.itemId)
       addLog(`从酒窖取出了${name}。`)
+    }
+  }
+
+  // === 仓库 ===
+
+  const handleUnlockWarehouse = () => {
+    if (warehouseStore.unlocked) return
+    if (!canUnlockWarehouse.value) {
+      addLog('金币或材料不足，无法解锁仓库。')
+      return
+    }
+    for (const mat of WAREHOUSE_UNLOCK_MATERIALS) {
+      inventoryStore.removeItem(mat.itemId, mat.quantity)
+    }
+    playerStore.spendMoney(warehouseStore.UNLOCK_COST)
+    warehouseStore.unlocked = true
+    showWarehouseUnlockModal.value = false
+    addLog(`仓库已解锁！（-${warehouseStore.UNLOCK_COST}文）`)
+  }
+
+  const canUnlockWarehouse = computed(() => {
+    if (playerStore.money < warehouseStore.UNLOCK_COST) return false
+    return WAREHOUSE_UNLOCK_MATERIALS.every(mat => inventoryStore.getItemCount(mat.itemId) >= mat.quantity)
+  })
+
+  const canUpgradeFarmhouse = computed(() => {
+    const upgrade = homeStore.nextUpgrade
+    if (!upgrade) return false
+    if (playerStore.money < upgrade.cost) return false
+    return upgrade.materialCost.every(mat => inventoryStore.getItemCount(mat.itemId) >= mat.quantity)
+  })
+
+  const canUnlockGreenhouse = computed(() => {
+    if (playerStore.money < GREENHOUSE_UNLOCK_COST) return false
+    return GREENHOUSE_MATERIAL_COST.every(mat => inventoryStore.getItemCount(mat.itemId) >= mat.quantity)
+  })
+
+  const QUALITY_LABEL: Record<Quality, string> = {
+    normal: '普通',
+    fine: '优良',
+    excellent: '精品',
+    supreme: '极品'
+  }
+
+  const qualityTextClass = (q: Quality, fallback = ''): string => {
+    if (q === 'fine') return 'text-quality-fine'
+    if (q === 'excellent') return 'text-quality-excellent'
+    if (q === 'supreme') return 'text-quality-supreme'
+    return fallback
+  }
+
+  /** 背包中可存入仓库的物品（排除种子） */
+  const depositableItems = computed(() =>
+    inventoryStore.items.filter(i => {
+      const def = getItemById(i.itemId)
+      return def && def.category !== 'seed'
+    })
+  )
+
+  /** 计算容器中某物品的可用空间 */
+  const calcAvailableSpace = (
+    storeItems: { itemId: string; quality: Quality; quantity: number }[],
+    storeCap: number,
+    itemId: string,
+    quality: Quality
+  ): number => {
+    const MAX_STACK = 99
+    let space = 0
+    for (const s of storeItems) {
+      if (s.itemId === itemId && s.quality === quality && s.quantity < MAX_STACK) {
+        space += MAX_STACK - s.quantity
+      }
+    }
+    const emptySlots = storeCap - storeItems.length
+    space += emptySlots * MAX_STACK
+    return space
+  }
+
+  /** 存入仓库（每次存一组） */
+  const handleDeposit = (itemId: string, quality: Quality) => {
+    const slot = inventoryStore.items.find(i => i.itemId === itemId && i.quality === quality)
+    if (!slot) return
+    const qty = slot.quantity
+    const space = calcAvailableSpace(warehouseStore.items, warehouseStore.capacity, itemId, quality)
+    const toTransfer = Math.min(qty, space)
+    if (toTransfer <= 0) {
+      addLog('仓库已满，无法存入。')
+      return
+    }
+    inventoryStore.removeItem(itemId, toTransfer, quality)
+    warehouseStore.addItem(itemId, toTransfer, quality)
+    if (toTransfer < qty) {
+      addLog(`仓库空间不足，存入了${getItemName(itemId)}×${toTransfer}。`)
+    } else {
+      addLog(`存入了${getItemName(itemId)}×${toTransfer}。`)
+    }
+    if (depositableItems.value.length === 0 || warehouseStore.isFull) {
+      showDepositModal.value = false
+    }
+  }
+
+  /** 从仓库取出（每次取一组） */
+  const handleWithdraw = (itemId: string, quality: Quality) => {
+    const slot = warehouseStore.items.find(i => i.itemId === itemId && i.quality === quality)
+    if (!slot) return
+    const qty = slot.quantity
+    const space = calcAvailableSpace(inventoryStore.items, inventoryStore.capacity, itemId, quality)
+    const toTransfer = Math.min(qty, space)
+    if (toTransfer <= 0) {
+      addLog('背包已满，无法取出。')
+      return
+    }
+    warehouseStore.removeItem(itemId, toTransfer, quality)
+    inventoryStore.addItem(itemId, toTransfer, quality)
+    if (toTransfer < qty) {
+      addLog(`背包空间不足，取出了${getItemName(itemId)}×${toTransfer}。`)
+    } else {
+      addLog(`取出了${getItemName(itemId)}×${toTransfer}。`)
     }
   }
 </script>

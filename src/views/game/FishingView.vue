@@ -614,13 +614,13 @@
       qty = 1
       name = '石英'
     } else if (roll < 0.9) {
-      itemId = 'amethyst'
+      itemId = 'jade'
       qty = 1
-      name = '紫水晶'
+      name = '翡翠'
     } else if (roll < 0.95) {
-      itemId = 'topaz'
+      itemId = 'ruby'
       qty = 1
-      name = '黄晶'
+      name = '红宝石'
     } else {
       const goldNuggetChance = tierIndex >= 3 ? 0.15 : 0.05
       if (Math.random() < goldNuggetChance / 0.05) {

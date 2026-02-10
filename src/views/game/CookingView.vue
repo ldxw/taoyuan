@@ -12,7 +12,13 @@
         <div>
           <p class="text-sm">{{ recipe.name }}</p>
           <p class="text-xs text-muted">
-            材料：{{ recipe.ingredients.map(i => `${getItemById(i.itemId)?.name}×${i.quantity}`).join('、') }}
+            材料：
+            <template v-for="(ing, idx) in recipe.ingredients" :key="ing.itemId">
+              <span v-if="idx > 0">、</span>
+              <span :class="inventoryStore.getItemCount(ing.itemId) >= ing.quantity ? '' : 'text-danger'">
+                {{ getItemById(ing.itemId)?.name }} {{ inventoryStore.getItemCount(ing.itemId) }}/{{ ing.quantity }}
+              </span>
+            </template>
           </p>
           <p class="text-xs text-success">
             恢复{{ recipe.effect.staminaRestore }}体力
@@ -39,7 +45,7 @@
 
 <script setup lang="ts">
   import { UtensilsCrossed, Zap } from 'lucide-vue-next'
-  import { useCookingStore, useGameStore } from '@/stores'
+  import { useCookingStore, useInventoryStore, useGameStore } from '@/stores'
   import { getItemById } from '@/data'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { sfxClick } from '@/composables/useAudio'
@@ -47,6 +53,7 @@
   import { handleEndDay } from '@/composables/useEndDay'
 
   const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
   const gameStore = useGameStore()
 
   const handleCook = (recipeId: string) => {

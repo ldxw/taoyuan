@@ -264,7 +264,7 @@ export const handleSellAll = () => {
   }
 }
 
-/** 批量浇水（按水壶等级决定数量） */
+/** 一键浇水（浇所有未浇水地块，体力不足时自动停止） */
 export const handleBatchWater = () => {
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
@@ -284,8 +284,7 @@ export const handleBatchWater = () => {
     return
   }
 
-  const batchCount = inventoryStore.getToolBatchCount('wateringCan')
-  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered).slice(0, batchCount)
+  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered)
   if (targets.length === 0) {
     addLog('没有需要浇水的地块。')
     return
@@ -318,7 +317,7 @@ export const handleBatchWater = () => {
   if (watered > 0) {
     sfxWater()
     addLog(`一键浇水了${watered}块地。`)
-    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchWater)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchWater * inventoryStore.getToolStaminaMultiplier('wateringCan'))
     if (tr.message) addLog(tr.message)
     if (tr.passedOut) handleEndDay()
   } else {
@@ -326,7 +325,7 @@ export const handleBatchWater = () => {
   }
 }
 
-/** 批量开垦（按锄头等级决定数量） */
+/** 一键开垦（开垦所有荒地，体力不足时自动停止） */
 export const handleBatchTill = () => {
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
@@ -346,8 +345,7 @@ export const handleBatchTill = () => {
     return
   }
 
-  const batchCount = inventoryStore.getToolBatchCount('hoe')
-  const targets = farmStore.plots.filter(p => p.state === 'wasteland').slice(0, batchCount)
+  const targets = farmStore.plots.filter(p => p.state === 'wasteland')
   if (targets.length === 0) {
     addLog('没有需要开垦的荒地。')
     return
@@ -370,7 +368,7 @@ export const handleBatchTill = () => {
   if (tilled > 0) {
     sfxDig()
     addLog(`一键开垦了${tilled}块荒地。`)
-    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill * inventoryStore.getToolStaminaMultiplier('hoe'))
     if (tr.message) addLog(tr.message)
     if (tr.passedOut) handleEndDay()
   } else {
@@ -378,7 +376,7 @@ export const handleBatchTill = () => {
   }
 }
 
-/** 批量收获（按镰刀等级决定数量，不消耗体力） */
+/** 一键收获（收获所有成熟作物，不消耗体力） */
 export const handleBatchHarvest = () => {
   const gameStore = useGameStore()
   const farmStore = useFarmStore()
@@ -397,9 +395,7 @@ export const handleBatchHarvest = () => {
     return
   }
 
-  const batchCount = inventoryStore.getToolBatchCount('scythe')
-  const allHarvestable = farmStore.plots.filter(p => p.state === 'harvestable' && p.giantCropGroup === null)
-  const targets = batchCount >= 8 ? allHarvestable : allHarvestable.slice(0, batchCount)
+  const targets = farmStore.plots.filter(p => p.state === 'harvestable' && p.giantCropGroup === null)
   if (targets.length === 0) {
     addLog('没有可收获的作物。')
     return
@@ -431,7 +427,7 @@ export const handleBatchHarvest = () => {
   if (harvested > 0) {
     sfxHarvest()
     addLog(`一键收获了${harvested}株作物：${harvestedCrops.join('、')}。`)
-    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchHarvest)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchHarvest * inventoryStore.getToolStaminaMultiplier('scythe'))
     if (tr.message) addLog(tr.message)
     if (tr.passedOut) handleEndDay()
   }

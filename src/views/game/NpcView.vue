@@ -2,46 +2,53 @@
   <div>
     <h3 class="text-accent text-sm mb-3">桃源村</h3>
 
-    <!-- NPC 列表 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <!-- NPC 网格：移动端紧凑，桌面端详细 -->
+    <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 md:gap-2">
       <div
         v-for="npc in NPCS"
         :key="npc.id"
-        class="game-panel transition-colors"
-        :class="npcAvailable(npc.id) ? 'cursor-pointer hover:border-accent/60' : 'opacity-50'"
+        class="border border-accent/20 rounded-xs p-1.5 md:p-2 transition-colors"
+        :class="[npcAvailable(npc.id) ? 'cursor-pointer hover:bg-accent/5' : 'opacity-50', 'text-center md:text-left']"
         @click="handleSelectNpc(npc.id)"
       >
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="text-sm text-accent">
-              {{ npc.name }}
-              <span v-if="npcStore.getNpcState(npc.id)?.married" class="text-danger text-xs ml-1">[伴侣]</span>
-              <span v-else-if="npcStore.getNpcState(npc.id)?.dating" class="text-danger/70 text-xs ml-1">[约会中]</span>
-            </p>
-            <p class="text-xs text-muted">{{ npc.role }}</p>
-            <p v-if="npcStore.isBirthday(npc.id)" class="text-xs text-danger">
-              <Cake :size="14" class="inline" />
-              今天生日!
-            </p>
+        <!-- 移动端：紧凑布局 -->
+        <div class="md:hidden">
+          <p class="text-xs truncate" :class="levelColor(npcStore.getFriendshipLevel(npc.id))">
+            {{ npc.name }}
+          </p>
+          <p class="text-[10px]" :class="heartCount(npc.id) > 0 ? 'text-danger' : 'text-muted/30'">{{ heartCount(npc.id) }}&#x2665;</p>
+          <div class="flex items-center justify-center gap-0.5 mt-0.5 min-h-3.5">
+            <Heart v-if="npcStore.getNpcState(npc.id)?.married" :size="10" class="text-danger" />
+            <Heart v-else-if="npcStore.getNpcState(npc.id)?.dating" :size="10" class="text-danger/50" />
+            <Heart v-else-if="npc.marriageable" :size="10" class="text-muted/30" />
+            <Cake v-if="npcStore.isBirthday(npc.id)" :size="10" class="text-danger" />
           </div>
-          <span v-if="npc.marriageable" class="text-xs text-danger/50"><Heart :size="14" /></span>
         </div>
-        <p class="text-xs mt-1" :class="levelColor(npcStore.getFriendshipLevel(npc.id))">
-          {{ LEVEL_NAMES[npcStore.getFriendshipLevel(npc.id)] }}
-          ({{ npcStore.getNpcState(npc.id)?.friendship ?? 0 }})
-        </p>
-        <!-- 心级别进度条 -->
-        <div class="mt-1 flex gap-0.5">
-          <span
-            v-for="h in 10"
-            :key="h"
-            class="text-xs"
-            :class="(npcStore.getNpcState(npc.id)?.friendship ?? 0) >= h * 250 ? 'text-danger' : 'text-muted/30'"
-          >
-            &#x2665;
-          </span>
+        <!-- 桌面端：显示更多信息 -->
+        <div class="hidden md:block">
+          <div class="flex items-center justify-between">
+            <span class="text-xs" :class="levelColor(npcStore.getFriendshipLevel(npc.id))">
+              {{ npc.name }}
+              <span v-if="npcStore.getNpcState(npc.id)?.married" class="text-danger text-[10px] ml-0.5">[伴侣]</span>
+              <span v-else-if="npcStore.getNpcState(npc.id)?.dating" class="text-danger/70 text-[10px] ml-0.5">[约会中]</span>
+            </span>
+            <span v-if="npc.marriageable" class="text-danger/50"><Heart :size="10" /></span>
+          </div>
+          <p class="text-[10px] text-muted truncate">{{ npc.role }}</p>
+          <div class="flex items-center justify-between mt-0.5">
+            <div class="flex gap-px">
+              <span
+                v-for="h in 10"
+                :key="h"
+                class="text-[10px]"
+                :class="(npcStore.getNpcState(npc.id)?.friendship ?? 0) >= h * 250 ? 'text-danger' : 'text-muted/30'"
+              >
+                &#x2665;
+              </span>
+            </div>
+            <Cake v-if="npcStore.isBirthday(npc.id)" :size="10" class="text-danger" />
+          </div>
         </div>
-        <p v-if="!npcAvailable(npc.id)" class="text-xs text-muted mt-1">{{ npcUnavailableReason(npc.id) }}</p>
       </div>
     </div>
 
@@ -69,11 +76,7 @@
           <div v-if="selectedNpcState && selectedNpcState.triggeredHeartEvents.length > 0" class="mb-3">
             <p class="text-xs text-muted mb-1">回忆：</p>
             <div class="flex gap-1 flex-wrap">
-              <span
-                v-for="eid in selectedNpcState.triggeredHeartEvents"
-                :key="eid"
-                class="text-xs border border-accent/20 rounded-xs px-1"
-              >
+              <span v-for="eid in selectedNpcState.triggeredHeartEvents" :key="eid" class="text-xs border border-accent/20 rounded-xs px-1">
                 {{ getHeartEventTitle(eid) }}
               </span>
             </div>
@@ -209,7 +212,7 @@
   import { MessageCircle, Heart, Gift, Cake, X, Package } from 'lucide-vue-next'
   import { useNpcStore, useInventoryStore, useCookingStore, useGameStore, usePlayerStore } from '@/stores'
   import { NPCS, getNpcById, getItemById, getHeartEventById } from '@/data'
-  import { ACTION_TIME_COSTS, isNpcAvailable, getNpcUnavailableReason } from '@/data/timeConstants'
+  import { ACTION_TIME_COSTS, isNpcAvailable } from '@/data/timeConstants'
   import { addLog } from '@/composables/useGameLog'
   import { triggerHeartEvent } from '@/composables/useDialogs'
   import { handleEndDay } from '@/composables/useEndDay'
@@ -252,8 +255,9 @@
     }
   }
 
-  const npcUnavailableReason = (npcId: string): string => {
-    return getNpcUnavailableReason(npcId, gameStore.day, gameStore.hour) ?? ''
+  const heartCount = (npcId: string): number => {
+    const friendship = npcStore.getNpcState(npcId)?.friendship ?? 0
+    return Math.min(10, Math.floor(friendship / 250))
   }
 
   const giftableItems = computed(() =>
@@ -287,13 +291,6 @@
     if (!inventoryStore.hasItem('jade_ring')) return false
     return true
   })
-
-  const LEVEL_NAMES: Record<FriendshipLevel, string> = {
-    stranger: '陌生',
-    acquaintance: '相识',
-    friendly: '友善',
-    bestFriend: '挚友'
-  }
 
   const SEASON_NAMES_MAP: Record<string, string> = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' }
 

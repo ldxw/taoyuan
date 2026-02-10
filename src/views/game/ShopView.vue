@@ -129,7 +129,7 @@
           <div class="flex flex-col gap-2">
             <!-- 背包扩容 -->
             <div
-              v-if="inventoryStore.capacity < 36"
+              v-if="inventoryStore.capacity < 60"
               class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
               @click="
                 openBuyModal(
@@ -146,6 +146,29 @@
                 <p class="text-muted text-xs">当前{{ inventoryStore.capacity }}格 → {{ inventoryStore.capacity + 4 }}格</p>
               </div>
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(bagPrice) }}文</span>
+            </div>
+
+            <!-- 仓库扩容 -->
+            <div
+              v-if="warehouseStore.unlocked && warehouseStore.capacity < warehouseStore.MAX_CAPACITY"
+              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
+              @click="
+                openBuyModal(
+                  '仓库扩容',
+                  `当前${warehouseStore.capacity}格 → ${warehouseStore.capacity + warehouseStore.EXPAND_STEP}格`,
+                  discounted(warehousePrice),
+                  handleBuyWarehouse,
+                  () => playerStore.money >= discounted(warehousePrice)
+                )
+              "
+            >
+              <div>
+                <p class="text-sm">仓库扩容</p>
+                <p class="text-muted text-xs">
+                  当前{{ warehouseStore.capacity }}格 → {{ warehouseStore.capacity + warehouseStore.EXPAND_STEP }}格
+                </p>
+              </div>
+              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(warehousePrice) }}文</span>
             </div>
 
             <!-- 农场扩建 -->
@@ -625,7 +648,16 @@
     Hammer,
     X
   } from 'lucide-vue-next'
-  import { useShopStore, usePlayerStore, useInventoryStore, useFarmStore, useWalletStore, useGameStore, SEASON_NAMES } from '@/stores'
+  import {
+    useShopStore,
+    usePlayerStore,
+    useInventoryStore,
+    useFarmStore,
+    useWalletStore,
+    useGameStore,
+    useWarehouseStore,
+    SEASON_NAMES
+  } from '@/stores'
   import { getItemById } from '@/data'
   import { SHOPS, isShopAvailable, getShopClosedReason } from '@/data/shops'
   import type { ShopDef } from '@/data/shops'
@@ -646,6 +678,7 @@
   const playerStore = usePlayerStore()
   const inventoryStore = useInventoryStore()
   const farmStore = useFarmStore()
+  const warehouseStore = useWarehouseStore()
   const walletStore = useWalletStore()
   const gameStore = useGameStore()
 
@@ -806,7 +839,7 @@
   // === 万物铺 ===
 
   const bagPrice = computed(() => {
-    const level = (inventoryStore.capacity - 20) / 4
+    const level = (inventoryStore.capacity - 24) / 4
     return 500 + level * 500
   })
 
@@ -829,6 +862,25 @@
     } else {
       playerStore.earnMoney(actualPrice)
       addLog('背包已满级。')
+    }
+  }
+
+  const warehousePrice = computed(() => {
+    const level = (warehouseStore.capacity - warehouseStore.INITIAL_CAPACITY) / warehouseStore.EXPAND_STEP
+    return 800 + level * 400
+  })
+
+  const handleBuyWarehouse = () => {
+    const actualPrice = discounted(warehousePrice.value)
+    if (!playerStore.spendMoney(actualPrice)) {
+      addLog('金币不足。')
+      return
+    }
+    if (warehouseStore.expandCapacity()) {
+      addLog(`仓库扩容至${warehouseStore.capacity}格！(-${actualPrice}文)`)
+    } else {
+      playerStore.earnMoney(actualPrice)
+      addLog('仓库已满级。')
     }
   }
 

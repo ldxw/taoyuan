@@ -441,10 +441,19 @@
   }
 
   const handleSubmit = (bundleId: string, itemId: string) => {
-    if (achievementStore.submitToBundle(bundleId, itemId, 1)) {
+    const bundle = COMMUNITY_BUNDLES.find(b => b.id === bundleId)
+    const req = bundle?.requiredItems.find(r => r.itemId === itemId)
+    if (!req) return
+
+    const submitted = getSubmittedCount(bundleId, itemId)
+    const needed = req.quantity - submitted
+    const available = inventoryStore.getItemCount(itemId)
+    const toSubmit = Math.min(needed, available)
+    if (toSubmit <= 0) return
+
+    if (achievementStore.submitToBundle(bundleId, itemId, toSubmit)) {
       sfxClick()
-      const bundle = COMMUNITY_BUNDLES.find(b => b.id === bundleId)
-      addLog(`向「${bundle?.name}」提交了${getItemName(itemId)}。`)
+      addLog(`向「${bundle?.name}」提交了${getItemName(itemId)}×${toSubmit}。`)
       if (achievementStore.isBundleComplete(bundleId)) {
         addLog(`「${bundle?.name}」完成！获得了奖励！`)
       }

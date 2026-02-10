@@ -39,11 +39,7 @@
                 v-if="menuOpen === info.slot"
                 class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
               >
-                <button
-                  v-if="!isAndroidWebView"
-                  class="btn text-center rounded-none! justify-center text-sm"
-                  @click="handleExport(info.slot)"
-                >
+                <button v-if="!isWebView" class="btn text-center rounded-none! justify-center text-sm" @click="handleExport(info.slot)">
                   <Download :size="12" />
                   导出
                 </button>
@@ -59,7 +55,7 @@
       </div>
 
       <!-- 导入存档 -->
-      <template v-if="!isAndroidWebView">
+      <template v-if="!isWebView">
         <button class="btn text-center justify-center text-sm w-full" @click="triggerImport">
           <Upload :size="14" />
           导入存档
@@ -100,8 +96,7 @@
 
   const saveStore = useSaveStore()
 
-  const ua = navigator.userAgent || ''
-  const isAndroidWebView = /Android/.test(ua) && /wv/.test(ua)
+  const isWebView = window.__WEBVIEW__
 
   const slots = ref(saveStore.getSlots())
   const menuOpen = ref<number | null>(null)

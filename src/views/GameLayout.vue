@@ -1,5 +1,5 @@
 <template>
-  <div v-if="gameStore.isGameStarted" class="flex flex-col gap-2 md:gap-4 h-screen p-2 md:p-4" :class="{ 'py-5': isWebView }">
+  <div v-if="gameStore.isGameStarted" class="flex flex-col gap-2 md:gap-4 h-screen p-2 md:p-4" :class="{ 'py-7': isWebView }">
     <!-- 状态栏 -->
     <StatusBar @request-sleep="showSleepConfirm = true" />
 
@@ -241,7 +241,8 @@
   .mobile-map-btn,
   .mobile-setting-btn {
     position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--spacing) * 7 + constant(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--spacing) * 7 + env(safe-area-inset-bottom, 0px));
     right: 12px;
     z-index: 40;
     width: 40px;
@@ -261,7 +262,8 @@
   }
 
   .mobile-setting-btn {
-    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--spacing) * 7 + 48px + constant(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--spacing) * 7 + 48px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-map-btn:hover,

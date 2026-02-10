@@ -102,9 +102,10 @@ export const useQuestStore = defineStore('quest', () => {
       }
       inventoryStore.removeItem(quest.targetItemId, quest.targetQuantity)
     } else {
-      // 钓鱼/挖矿/采集/特殊订单类：检查收集进度
-      if (quest.collectedQuantity < quest.targetQuantity) {
-        return { success: false, message: `${quest.targetItemName}收集进度不足（${quest.collectedQuantity}/${quest.targetQuantity}）。` }
+      // 钓鱼/挖矿/采集/特殊订单类：检查收集进度或背包数量
+      const effectiveProgress = Math.max(quest.collectedQuantity, inventoryStore.getItemCount(quest.targetItemId))
+      if (effectiveProgress < quest.targetQuantity) {
+        return { success: false, message: `${quest.targetItemName}收集进度不足（${effectiveProgress}/${quest.targetQuantity}）。` }
       }
     }
 

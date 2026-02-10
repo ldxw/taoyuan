@@ -51,6 +51,24 @@
             </div>
           </div>
 
+          <!-- 配色主题 -->
+          <div class="border border-accent/20 rounded-xs p-3">
+            <p class="text-xs text-muted mb-2">配色主题</p>
+            <div class="flex items-center justify-center gap-2">
+              <button
+                v-for="t in THEMES"
+                :key="t.key"
+                class="w-8 h-8 border rounded-xs flex items-center justify-center text-[10px] transition-colors"
+                :class="settingsStore.theme === t.key ? 'border-accent' : 'border-accent/20'"
+                :style="{ backgroundColor: t.bg, color: t.text }"
+                :title="t.name"
+                @click="settingsStore.changeTheme(t.key)"
+              >
+                {{ t.name.charAt(0) }}
+              </button>
+            </div>
+          </div>
+
           <!-- 存档管理 -->
           <button class="btn text-xs py-1 px-3 w-full justify-center" @click="showSaveManager = true">
             <FolderOpen :size="12" />
@@ -73,6 +91,7 @@
   import { useAudio } from '@/composables/useAudio'
   import { useGameClock } from '@/composables/useGameClock'
   import { useSettingsStore } from '@/stores/useSettingsStore'
+  import { THEMES } from '@/data/themes'
   import SaveManager from '@/components/game/SaveManager.vue'
 
   defineProps<{ open: boolean }>()

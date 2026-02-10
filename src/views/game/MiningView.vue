@@ -498,8 +498,12 @@
     const def = getWeaponById(owned.defId)
     return def ? WEAPON_TYPE_NAMES[def.type] : '未知'
   })
-  const weaponAttack = computed(() => inventoryStore.getWeaponAttack() + skillStore.combatLevel * 2)
-  const critRateDisplay = computed(() => `${Math.round(inventoryStore.getWeaponCritRate() * 100)}%`)
+  const weaponAttack = computed(
+    () => inventoryStore.getWeaponAttack() + skillStore.combatLevel * 2 + inventoryStore.getRingEffectValue('attack_bonus')
+  )
+  const critRateDisplay = computed(
+    () => `${Math.round((inventoryStore.getWeaponCritRate() + inventoryStore.getRingEffectValue('crit_rate_bonus')) * 100)}%`
+  )
   const weaponEnchantName = computed(() => {
     const owned = inventoryStore.getEquippedWeapon()
     if (!owned.enchantmentId) return ''

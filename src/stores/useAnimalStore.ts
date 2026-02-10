@@ -340,7 +340,7 @@ export const useAnimalStore = defineStore('animal', () => {
 
     // 高好感带回采集物
     if (pet.value.friendship >= 800 && Math.random() < 0.1) {
-      const finds = ['herb', 'wild_berry', 'pine_cone', 'bamboo_shoot', 'mushroom']
+      const finds = ['herb', 'wild_berry', 'pine_cone', 'bamboo_shoot', 'wild_mushroom']
       const item = finds[Math.floor(Math.random() * finds.length)]!
       const inventoryStore = useInventoryStore()
       inventoryStore.addItem(item, 1)

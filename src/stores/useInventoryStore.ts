@@ -7,8 +7,8 @@ import { getWeaponById, getEnchantmentById } from '@/data/weapons'
 import { getRingById } from '@/data/rings'
 import { usePlayerStore } from './usePlayerStore'
 
-const INITIAL_CAPACITY = 20
-const MAX_CAPACITY = 36
+const INITIAL_CAPACITY = 24
+const MAX_CAPACITY = 60
 const MAX_STACK = 99
 
 export const useInventoryStore = defineStore('inventory', () => {
@@ -118,21 +118,27 @@ export const useInventoryStore = defineStore('inventory', () => {
     return remaining <= 0
   }
 
-  /** 移除物品（支持跨栈删除） */
-  const removeItem = (itemId: string, quantity: number = 1, quality: Quality = 'normal'): boolean => {
+  /** 移除物品（支持跨栈删除）。quality 不传时优先消耗低品质 */
+  const removeItem = (itemId: string, quantity: number = 1, quality?: Quality): boolean => {
     // 先检查总数是否足够
-    const total = items.value.filter(i => i.itemId === itemId && i.quality === quality).reduce((sum, i) => sum + i.quantity, 0)
+    const matchQuality = (i: { itemId: string; quality: Quality }) =>
+      i.itemId === itemId && (quality === undefined || i.quality === quality)
+    const total = items.value.filter(matchQuality).reduce((sum, i) => sum + i.quantity, 0)
     if (total < quantity) return false
 
+    // 不指定品质时按 normal → fine → excellent → supreme 顺序消耗
+    const qualityOrder: Quality[] = ['normal', 'fine', 'excellent', 'supreme']
     let remaining = quantity
-    for (let i = items.value.length - 1; i >= 0 && remaining > 0; i--) {
-      const slot = items.value[i]!
-      if (slot.itemId !== itemId || slot.quality !== quality) continue
-      const take = Math.min(remaining, slot.quantity)
-      slot.quantity -= take
-      remaining -= take
-      if (slot.quantity <= 0) {
-        items.value.splice(i, 1)
+    for (const q of quality !== undefined ? [quality] : qualityOrder) {
+      for (let i = items.value.length - 1; i >= 0 && remaining > 0; i--) {
+        const slot = items.value[i]!
+        if (slot.itemId !== itemId || slot.quality !== q) continue
+        const take = Math.min(remaining, slot.quantity)
+        slot.quantity -= take
+        remaining -= take
+        if (slot.quantity <= 0) {
+          items.value.splice(i, 1)
+        }
       }
     }
     return true
@@ -314,7 +320,7 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   const deserialize = (data: ReturnType<typeof serialize>) => {
-    items.value = data.items ?? []
+    items.value = (data.items ?? []).filter(i => getItemById(i.itemId))
     capacity.value = data.capacity ?? INITIAL_CAPACITY
     tools.value = data.tools ?? [
       { type: 'wateringCan', tier: 'basic' },

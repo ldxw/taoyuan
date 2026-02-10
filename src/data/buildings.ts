@@ -52,6 +52,12 @@ export const CAVE_MUSHROOM_DAILY_CHANCE = 0.6
 /** 蝙蝠洞每天产出概率 */
 export const CAVE_FRUIT_BAT_DAILY_CHANCE = 0.5
 
+/** 仓库解锁材料需求 */
+export const WAREHOUSE_UNLOCK_MATERIALS = [
+  { itemId: 'wood', quantity: 300 },
+  { itemId: 'iron_ore', quantity: 20 }
+]
+
 /** 温室解锁价格 */
 export const GREENHOUSE_UNLOCK_COST = 35000
 

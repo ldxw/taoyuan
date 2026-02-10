@@ -2,7 +2,7 @@
   <div
     class="flex min-h-screen flex-col items-center justify-center gap-8 px-4"
     @click.once="startBgm"
-    :class="{ 'py-5': isWebView }"
+    :class="{ 'py-7': isWebView }"
     @click="slotMenuOpen = null"
   >
     <!-- 标题 -->
@@ -40,11 +40,7 @@
               v-if="slotMenuOpen === info.slot"
               class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
             >
-              <button
-                v-if="!isAndroidWebView"
-                class="btn text-center rounded-none! justify-center text-sm"
-                @click="handleExportSlot(info.slot)"
-              >
+              <button v-if="!isWebView" class="btn text-center rounded-none! justify-center text-sm" @click="handleExportSlot(info.slot)">
                 <Download :size="12" />
                 导出
               </button>
@@ -58,7 +54,7 @@
       </div>
 
       <!-- 导入存档 -->
-      <template v-if="!isAndroidWebView">
+      <template v-if="!isWebView">
         <button class="btn text-center justify-center text-sm" @click="triggerImport">
           <Upload :size="14" />
           导入存档
@@ -373,9 +369,7 @@
   }
 
   // 判断是否webview环境
-  const ua = navigator.userAgent || ''
   const isWebView = window.__WEBVIEW__
-  const isAndroidWebView = /Android/.test(ua) && /wv/.test(ua)
 
   const handlePrivacyAgree = () => {
     localStorage.setItem('taoyuan_privacy_agreed', '1')

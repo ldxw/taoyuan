@@ -154,7 +154,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'mud_worm',
     name: '泥虫',
     hp: 15,
-    attack: 8,
+    attack: 5,
     defense: 1,
     expReward: 5,
     drops: [
@@ -167,7 +167,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'stone_crab',
     name: '石蟹',
     hp: 25,
-    attack: 10,
+    attack: 6,
     defense: 3,
     expReward: 8,
     drops: [
@@ -181,7 +181,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'ice_bat',
     name: '冰蝠',
     hp: 30,
-    attack: 12,
+    attack: 8,
     defense: 2,
     expReward: 12,
     drops: [
@@ -194,7 +194,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'ghost',
     name: '幽灵',
     hp: 20,
-    attack: 15,
+    attack: 10,
     defense: 0,
     expReward: 15,
     drops: [
@@ -208,7 +208,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'fire_bat',
     name: '火蝠',
     hp: 35,
-    attack: 12,
+    attack: 9,
     defense: 3,
     expReward: 18,
     drops: [
@@ -221,7 +221,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'shadow_warrior',
     name: '暗影武士',
     hp: 50,
-    attack: 13,
+    attack: 10,
     defense: 4,
     expReward: 28,
     drops: [
@@ -235,7 +235,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'crystal_golem',
     name: '水晶魔像',
     hp: 65,
-    attack: 16,
+    attack: 12,
     defense: 6,
     expReward: 35,
     drops: [
@@ -248,7 +248,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'prism_spider',
     name: '棱镜蛛',
     hp: 45,
-    attack: 20,
+    attack: 14,
     defense: 3,
     expReward: 40,
     drops: [
@@ -262,7 +262,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'shadow_lurker',
     name: '暗影潜伏者',
     hp: 80,
-    attack: 22,
+    attack: 16,
     defense: 5,
     expReward: 50,
     drops: [
@@ -275,7 +275,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'void_wraith',
     name: '虚空幽魂',
     hp: 55,
-    attack: 28,
+    attack: 20,
     defense: 2,
     expReward: 55,
     drops: [
@@ -289,7 +289,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'abyss_serpent',
     name: '深渊巨蟒',
     hp: 100,
-    attack: 25,
+    attack: 18,
     defense: 7,
     expReward: 65,
     drops: [
@@ -302,7 +302,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'bone_dragon',
     name: '骨龙',
     hp: 120,
-    attack: 28,
+    attack: 22,
     defense: 8,
     expReward: 80,
     drops: [
@@ -319,7 +319,7 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
     id: 'iridium_golem',
     name: '铱金魔像',
     hp: 100,
-    attack: 25,
+    attack: 18,
     defense: 10,
     expReward: 70,
     drops: [
@@ -332,7 +332,7 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
     id: 'skull_serpent',
     name: '骷髅飞蛇',
     hp: 70,
-    attack: 30,
+    attack: 22,
     defense: 4,
     expReward: 60,
     drops: [
@@ -345,7 +345,7 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
     id: 'ancient_mummy',
     name: '远古木乃伊',
     hp: 130,
-    attack: 22,
+    attack: 16,
     defense: 12,
     expReward: 80,
     drops: [
@@ -374,7 +374,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'mud_golem',
     name: '泥岩巨兽',
     hp: 80,
-    attack: 14,
+    attack: 8,
     defense: 5,
     expReward: 50,
     drops: [
@@ -387,7 +387,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'frost_queen',
     name: '冰霜女王',
     hp: 120,
-    attack: 18,
+    attack: 12,
     defense: 6,
     expReward: 80,
     drops: [
@@ -400,7 +400,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'lava_lord',
     name: '熔岩君主',
     hp: 180,
-    attack: 22,
+    attack: 16,
     defense: 8,
     expReward: 120,
     drops: [
@@ -413,7 +413,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'crystal_king',
     name: '水晶之王',
     hp: 250,
-    attack: 28,
+    attack: 20,
     defense: 10,
     expReward: 180,
     drops: [
@@ -426,7 +426,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'shadow_sovereign',
     name: '暗影君主',
     hp: 350,
-    attack: 35,
+    attack: 25,
     defense: 12,
     expReward: 250,
     drops: [
@@ -439,7 +439,7 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
     id: 'abyss_dragon',
     name: '深渊龙王',
     hp: 500,
-    attack: 42,
+    attack: 30,
     defense: 15,
     expReward: 400,
     drops: [

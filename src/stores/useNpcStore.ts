@@ -418,20 +418,14 @@ export const useNpcStore = defineStore('npc', () => {
     return {}
   }
 
-  /** 每日重置对话和送礼状态 + 好感衰减 */
+  /** 每日重置对话和送礼状态 + 伴侣好感衰减 */
   const dailyReset = () => {
     const gameStore = useGameStore()
-    const floorMap: Record<FriendshipLevel, number> = { bestFriend: 2000, friendly: 1000, acquaintance: 500, stranger: 0 }
 
     for (const state of npcStates.value) {
-      if (!state.talkedToday) {
-        if (state.married) {
-          state.friendship = Math.max(0, state.friendship - 20)
-        } else {
-          const currentLevel = getFriendshipLevel(state.npcId)
-          const floor = floorMap[currentLevel]
-          state.friendship = Math.max(floor, state.friendship - 2)
-        }
+      // 只有已婚伴侣不聊天才会掉好感，普通NPC不衰减
+      if (!state.talkedToday && state.married) {
+        state.friendship = Math.max(0, state.friendship - 10)
       }
       state.talkedToday = false
       state.giftedToday = false

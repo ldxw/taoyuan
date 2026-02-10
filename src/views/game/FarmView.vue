@@ -16,15 +16,15 @@
     <div class="flex gap-1.5 mb-3 flex-wrap">
       <button class="btn text-xs" :disabled="unwateredCount === 0" @click="doBatchWater">
         <Droplets :size="12" />
-        浇水 ({{ Math.min(waterBatchCount, unwateredCount) }})
+        一键浇水 ({{ unwateredCount }})
       </button>
       <button class="btn text-xs" :disabled="wastelandCount === 0" @click="doBatchTill">
         <Shovel :size="12" />
-        开垦 ({{ Math.min(tillBatchCount, wastelandCount) }})
+        一键开垦 ({{ wastelandCount }})
       </button>
       <button class="btn text-xs" :disabled="harvestableCount === 0" @click="doBatchHarvest">
         <Wheat :size="12" />
-        收获 ({{ scytheBatchCount >= 8 ? harvestableCount : Math.min(scytheBatchCount, harvestableCount) }})
+        一键收获 ({{ harvestableCount }})
       </button>
     </div>
 
@@ -249,7 +249,7 @@
           <!-- 已放入的物品 -->
           <div v-if="shopStore.shippingBox.length > 0" class="border border-accent/10 rounded-xs p-2 mb-2">
             <p class="text-xs text-muted mb-1">已放入</p>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1 max-h-36 overflow-y-auto">
               <div
                 v-for="(entry, idx) in shopStore.shippingBox"
                 :key="idx"
@@ -709,10 +709,6 @@
   const unwateredCount = computed(() => farmStore.plots.filter(needsWater).length)
   const wastelandCount = computed(() => farmStore.plots.filter(p => p.state === 'wasteland').length)
   const harvestableCount = computed(() => farmStore.plots.filter(p => p.state === 'harvestable' && p.giantCropGroup === null).length)
-
-  const waterBatchCount = computed(() => inventoryStore.getToolBatchCount('wateringCan'))
-  const tillBatchCount = computed(() => inventoryStore.getToolBatchCount('hoe'))
-  const scytheBatchCount = computed(() => inventoryStore.getToolBatchCount('scythe'))
 
   const doBatchWater = () => handleBatchWater()
   const doBatchTill = () => handleBatchTill()

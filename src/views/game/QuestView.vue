@@ -100,10 +100,10 @@
             <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
               <div
                 class="h-full rounded-xs bg-accent transition-all"
-                :style="{ width: Math.floor((quest.collectedQuantity / quest.targetQuantity) * 100) + '%' }"
+                :style="{ width: Math.floor((getEffectiveProgress(quest) / quest.targetQuantity) * 100) + '%' }"
               />
             </div>
-            <span class="text-xs text-muted">{{ quest.collectedQuantity }}/{{ quest.targetQuantity }}</span>
+            <span class="text-xs text-muted">{{ getEffectiveProgress(quest) }}/{{ quest.targetQuantity }}</span>
           </div>
           <div v-else class="mt-0.5">
             <span class="text-xs text-muted">背包 {{ inventoryStore.getItemCount(quest.targetItemId) }}/{{ quest.targetQuantity }}</span>
@@ -231,10 +231,10 @@
                 <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                   <div
                     class="h-full rounded-xs bg-accent transition-all"
-                    :style="{ width: Math.floor((selectedActiveQuest.collectedQuantity / selectedActiveQuest.targetQuantity) * 100) + '%' }"
+                    :style="{ width: Math.floor((getEffectiveProgress(selectedActiveQuest) / selectedActiveQuest.targetQuantity) * 100) + '%' }"
                   />
                 </div>
-                <span class="text-xs text-muted">{{ selectedActiveQuest.collectedQuantity }}/{{ selectedActiveQuest.targetQuantity }}</span>
+                <span class="text-xs text-muted">{{ getEffectiveProgress(selectedActiveQuest) }}/{{ selectedActiveQuest.targetQuantity }}</span>
               </div>
               <p v-else class="text-xs">
                 背包中 {{ inventoryStore.getItemCount(selectedActiveQuest.targetItemId) }}/{{ selectedActiveQuest.targetQuantity }}
@@ -332,11 +332,16 @@
 
   // === 日常委托 ===
 
+  /** 非送货类任务的有效进度（取追踪数量和背包数量的较大值） */
+  const getEffectiveProgress = (quest: QuestInstance): number => {
+    return Math.min(Math.max(quest.collectedQuantity, inventoryStore.getItemCount(quest.targetItemId)), quest.targetQuantity)
+  }
+
   const canSubmit = (quest: QuestInstance): boolean => {
     if (quest.type === 'delivery') {
       return inventoryStore.getItemCount(quest.targetItemId) >= quest.targetQuantity
     }
-    return quest.collectedQuantity >= quest.targetQuantity
+    return getEffectiveProgress(quest) >= quest.targetQuantity
   }
 
   const handleAccept = (questId: string) => {
