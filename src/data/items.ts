@@ -26,7 +26,7 @@ const CROP_ITEMS: ItemDef[] = CROPS.map(crop => ({
   name: crop.name,
   category: 'crop',
   description: crop.description,
-  sellPrice: crop.sellPrice,
+  sellPrice: Math.floor(crop.sellPrice * 1.5),
   edible: true,
   staminaRestore: Math.floor(crop.sellPrice / 5),
   healthRestore: Math.floor(crop.sellPrice / 10)
@@ -34,20 +34,20 @@ const CROP_ITEMS: ItemDef[] = CROPS.map(crop => ({
 
 /** 矿石物品 */
 const ORE_ITEMS: ItemDef[] = [
-  { id: 'copper_ore', name: '铜矿', category: 'ore', description: '常见的金属矿石。', sellPrice: 15, edible: false },
-  { id: 'iron_ore', name: '铁矿', category: 'ore', description: '坚硬的铁矿石。', sellPrice: 30, edible: false },
-  { id: 'gold_ore', name: '金矿', category: 'ore', description: '珍贵的金矿石。', sellPrice: 60, edible: false },
-  { id: 'crystal_ore', name: '水晶矿', category: 'ore', description: '折射光芒的水晶矿石。', sellPrice: 100, edible: false },
-  { id: 'shadow_ore', name: '暗影矿', category: 'ore', description: '沉重漆黑的神秘矿石。', sellPrice: 150, edible: false },
-  { id: 'void_ore', name: '虚空矿', category: 'ore', description: '来自深渊尽头的矿石。', sellPrice: 200, edible: false },
-  { id: 'iridium_ore', name: '铱矿', category: 'ore', description: '最坚硬稀有的金属矿石。', sellPrice: 300, edible: false },
-  { id: 'quartz', name: '石英', category: 'gem', description: '晶莹剔透的石英。', sellPrice: 25, edible: false },
-  { id: 'jade', name: '翡翠', category: 'gem', description: '温润的翡翠。', sellPrice: 80, edible: false },
-  { id: 'ruby', name: '红宝石', category: 'gem', description: '光芒四射的红宝石。', sellPrice: 120, edible: false },
-  { id: 'moonstone', name: '月光石', category: 'gem', description: '散发柔和光辉的宝石。', sellPrice: 180, edible: false },
-  { id: 'obsidian', name: '黑曜石', category: 'gem', description: '暗如深渊的火山玻璃。', sellPrice: 250, edible: false },
-  { id: 'dragon_jade', name: '龙玉', category: 'gem', description: '传说中龙脉凝聚的神玉。', sellPrice: 350, edible: false },
-  { id: 'prismatic_shard', name: '五彩碎片', category: 'gem', description: '蕴含远古能量的碎片。', sellPrice: 500, edible: false },
+  { id: 'copper_ore', name: '铜矿', category: 'ore', description: '常见的金属矿石。', sellPrice: 5, edible: false },
+  { id: 'iron_ore', name: '铁矿', category: 'ore', description: '坚硬的铁矿石。', sellPrice: 10, edible: false },
+  { id: 'gold_ore', name: '金矿', category: 'ore', description: '珍贵的金矿石。', sellPrice: 18, edible: false },
+  { id: 'crystal_ore', name: '水晶矿', category: 'ore', description: '折射光芒的水晶矿石。', sellPrice: 30, edible: false },
+  { id: 'shadow_ore', name: '暗影矿', category: 'ore', description: '沉重漆黑的神秘矿石。', sellPrice: 45, edible: false },
+  { id: 'void_ore', name: '虚空矿', category: 'ore', description: '来自深渊尽头的矿石。', sellPrice: 60, edible: false },
+  { id: 'iridium_ore', name: '铱矿', category: 'ore', description: '最坚硬稀有的金属矿石。', sellPrice: 80, edible: false },
+  { id: 'quartz', name: '石英', category: 'gem', description: '晶莹剔透的石英。', sellPrice: 10, edible: false },
+  { id: 'jade', name: '翡翠', category: 'gem', description: '温润的翡翠。', sellPrice: 30, edible: false },
+  { id: 'ruby', name: '红宝石', category: 'gem', description: '光芒四射的红宝石。', sellPrice: 45, edible: false },
+  { id: 'moonstone', name: '月光石', category: 'gem', description: '散发柔和光辉的宝石。', sellPrice: 65, edible: false },
+  { id: 'obsidian', name: '黑曜石', category: 'gem', description: '暗如深渊的火山玻璃。', sellPrice: 90, edible: false },
+  { id: 'dragon_jade', name: '龙玉', category: 'gem', description: '传说中龙脉凝聚的神玉。', sellPrice: 120, edible: false },
+  { id: 'prismatic_shard', name: '五彩碎片', category: 'gem', description: '蕴含远古能量的碎片。', sellPrice: 180, edible: false },
   { id: 'battery', name: '电池组', category: 'material', description: '避雷针吸收雷电后产出的能量。', sellPrice: 100, edible: false }
 ]
 
@@ -109,7 +109,7 @@ const FISH_ITEMS: ItemDef[] = FISH.map(fish => ({
   name: fish.name,
   category: 'fish' as const,
   description: fish.description,
-  sellPrice: fish.sellPrice,
+  sellPrice: Math.floor(fish.sellPrice * 1.5),
   edible: true,
   staminaRestore: Math.floor(fish.sellPrice / 5),
   healthRestore: Math.floor(fish.sellPrice / 8)
@@ -520,7 +520,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鸡蛋',
     category: 'animal_product',
     description: '新鲜的鸡蛋。',
-    sellPrice: 50,
+    sellPrice: 75,
     edible: true,
     staminaRestore: 5,
     healthRestore: 3
@@ -530,7 +530,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鸭蛋',
     category: 'animal_product',
     description: '个大味美的鸭蛋。',
-    sellPrice: 95,
+    sellPrice: 142,
     edible: true,
     staminaRestore: 8,
     healthRestore: 4
@@ -540,21 +540,21 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '牛奶',
     category: 'animal_product',
     description: '新鲜的牛奶。',
-    sellPrice: 125,
+    sellPrice: 187,
     edible: true,
     staminaRestore: 10,
     healthRestore: 5
   },
-  { id: 'wool', name: '羊毛', category: 'animal_product', description: '柔软的羊毛。', sellPrice: 340, edible: false },
+  { id: 'wool', name: '羊毛', category: 'animal_product', description: '柔软的羊毛。', sellPrice: 510, edible: false },
   { id: 'hay', name: '干草', category: 'material', description: '喂养牲畜的干草。', sellPrice: 0, edible: false },
   // 新增动物产品
-  { id: 'rabbit_fur', name: '兔毛', category: 'animal_product', description: '柔软的兔毛。', sellPrice: 150, edible: false },
+  { id: 'rabbit_fur', name: '兔毛', category: 'animal_product', description: '柔软的兔毛。', sellPrice: 225, edible: false },
   {
     id: 'rabbit_foot',
     name: '幸运兔脚',
     category: 'animal_product',
     description: '传说能带来好运的兔脚，十分稀有。',
-    sellPrice: 200,
+    sellPrice: 300,
     edible: false
   },
   {
@@ -562,7 +562,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鹅蛋',
     category: 'animal_product',
     description: '个头很大的鹅蛋。',
-    sellPrice: 110,
+    sellPrice: 165,
     edible: true,
     staminaRestore: 10,
     healthRestore: 5
@@ -572,7 +572,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鹌鹑蛋',
     category: 'animal_product',
     description: '小巧的鹌鹑蛋。',
-    sellPrice: 25,
+    sellPrice: 37,
     edible: true,
     staminaRestore: 3,
     healthRestore: 2
@@ -582,7 +582,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鸽子蛋',
     category: 'animal_product',
     description: '营养丰富的鸽子蛋。',
-    sellPrice: 45,
+    sellPrice: 67,
     edible: true,
     staminaRestore: 5,
     healthRestore: 3
@@ -592,18 +592,18 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '乌鸡蛋',
     category: 'animal_product',
     description: '滋补的乌鸡蛋。',
-    sellPrice: 130,
+    sellPrice: 195,
     edible: true,
     staminaRestore: 15,
     healthRestore: 8
   },
-  { id: 'peacock_feather', name: '孔雀羽', category: 'animal_product', description: '华丽的孔雀尾羽。', sellPrice: 350, edible: false },
+  { id: 'peacock_feather', name: '孔雀羽', category: 'animal_product', description: '华丽的孔雀尾羽。', sellPrice: 525, edible: false },
   {
     id: 'goat_milk',
     name: '羊奶',
     category: 'animal_product',
     description: '新鲜的羊奶。',
-    sellPrice: 110,
+    sellPrice: 165,
     edible: true,
     staminaRestore: 10,
     healthRestore: 5
@@ -613,7 +613,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '松露',
     category: 'animal_product',
     description: '珍贵的地下菌类。',
-    sellPrice: 300,
+    sellPrice: 450,
     edible: true,
     staminaRestore: 5,
     healthRestore: 3
@@ -623,7 +623,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '水牛奶',
     category: 'animal_product',
     description: '醇厚的水牛奶。',
-    sellPrice: 100,
+    sellPrice: 150,
     edible: true,
     staminaRestore: 8,
     healthRestore: 4
@@ -633,18 +633,18 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '牦牛奶',
     category: 'animal_product',
     description: '高原牦牛的浓郁奶。',
-    sellPrice: 140,
+    sellPrice: 210,
     edible: true,
     staminaRestore: 12,
     healthRestore: 6
   },
-  { id: 'alpaca_wool', name: '羊驼毛', category: 'animal_product', description: '极其柔软的羊驼毛。', sellPrice: 250, edible: false },
+  { id: 'alpaca_wool', name: '羊驼毛', category: 'animal_product', description: '极其柔软的羊驼毛。', sellPrice: 375, edible: false },
   {
     id: 'antler_velvet',
     name: '鹿茸',
     category: 'animal_product',
     description: '珍贵的鹿茸，可直接食用补体力。',
-    sellPrice: 450,
+    sellPrice: 675,
     edible: true,
     staminaRestore: 30,
     healthRestore: 15
@@ -654,7 +654,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '驴奶',
     category: 'animal_product',
     description: '驴奶，味道温和。',
-    sellPrice: 80,
+    sellPrice: 120,
     edible: true,
     staminaRestore: 6,
     healthRestore: 3
@@ -664,7 +664,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '驼奶',
     category: 'animal_product',
     description: '营养丰富的驼奶。',
-    sellPrice: 160,
+    sellPrice: 240,
     edible: true,
     staminaRestore: 12,
     healthRestore: 6
@@ -674,7 +674,7 @@ const ANIMAL_PRODUCT_ITEMS: ItemDef[] = [
     name: '鸵鸟蛋',
     category: 'animal_product',
     description: '巨大的鸵鸟蛋。',
-    sellPrice: 200,
+    sellPrice: 300,
     edible: true,
     staminaRestore: 15,
     healthRestore: 8
@@ -687,7 +687,7 @@ const FRUIT_TREE_ITEMS: ItemDef[] = FRUIT_TREE_DEFS.map(t => ({
   name: t.fruitName,
   category: 'fruit' as const,
   description: `${t.name}结出的${t.fruitName}。`,
-  sellPrice: t.fruitSellPrice,
+  sellPrice: Math.floor(t.fruitSellPrice * 1.5),
   edible: true,
   staminaRestore: Math.floor(t.fruitSellPrice / 5),
   healthRestore: Math.floor(t.fruitSellPrice / 10)
@@ -809,7 +809,10 @@ const CRAB_POT_ITEMS: ItemDef[] = [
     staminaRestore: 9,
     healthRestore: 4
   },
-  { id: 'trash', name: '垃圾', category: 'misc', description: '没什么用的杂物。', sellPrice: 1, edible: false }
+  { id: 'trash', name: '垃圾', category: 'misc', description: '没什么用的杂物。', sellPrice: 1, edible: false },
+  { id: 'driftwood', name: '浮木', category: 'misc', description: '水中捞起的朽木。', sellPrice: 2, edible: false },
+  { id: 'broken_cd', name: '碎碟片', category: 'misc', description: '不知谁丢的破碟子。', sellPrice: 1, edible: false },
+  { id: 'soggy_newspaper', name: '湿报纸', category: 'misc', description: '泡烂的旧报纸。', sellPrice: 1, edible: false }
 ]
 
 /** 花蜜物品 */
@@ -915,10 +918,10 @@ const CLOTH_ITEMS: ItemDef[] = [
 
 /** 金属锭物品 */
 const BAR_ITEMS: ItemDef[] = [
-  { id: 'copper_bar', name: '铜锭', category: 'material', description: '冶炼出的铜锭。', sellPrice: 120, edible: false },
-  { id: 'iron_bar', name: '铁锭', category: 'material', description: '冶炼出的铁锭。', sellPrice: 250, edible: false },
-  { id: 'gold_bar', name: '金锭', category: 'material', description: '冶炼出的金锭。', sellPrice: 500, edible: false },
-  { id: 'iridium_bar', name: '铱锭', category: 'material', description: '冶炼出的铱锭，极其珍贵。', sellPrice: 2500, edible: false }
+  { id: 'copper_bar', name: '铜锭', category: 'material', description: '冶炼出的铜锭。', sellPrice: 40, edible: false },
+  { id: 'iron_bar', name: '铁锭', category: 'material', description: '冶炼出的铁锭。', sellPrice: 80, edible: false },
+  { id: 'gold_bar', name: '金锭', category: 'material', description: '冶炼出的金锭。', sellPrice: 160, edible: false },
+  { id: 'iridium_bar', name: '铱锭', category: 'material', description: '冶炼出的铱锭，极其珍贵。', sellPrice: 700, edible: false }
 ]
 
 /** 木炭物品 */
@@ -1042,6 +1045,42 @@ const HERB_PRODUCT_ITEMS: ItemDef[] = [
     edible: true,
     staminaRestore: 60,
     healthRestore: 30
+  },
+  {
+    id: 'animal_medicine',
+    name: '兽药',
+    category: 'misc',
+    description: '治疗生病的牲畜，立即痊愈。',
+    sellPrice: 30,
+    edible: false
+  }
+]
+
+/** 特殊饲料物品 */
+const FEED_ITEMS: ItemDef[] = [
+  {
+    id: 'premium_feed',
+    name: '精饲料',
+    category: 'material',
+    description: '精心配制的优质饲料，显著提升动物心情和好感度。',
+    sellPrice: 40,
+    edible: false
+  },
+  {
+    id: 'nourishing_feed',
+    name: '滋补饲料',
+    category: 'material',
+    description: '添加滋补成分的饲料，加速动物产出周期。',
+    sellPrice: 50,
+    edible: false
+  },
+  {
+    id: 'vitality_feed',
+    name: '活力饲料',
+    category: 'material',
+    description: '含有草药精华的饲料，喂食后必定治愈疾病。',
+    sellPrice: 60,
+    edible: false
   }
 ]
 
@@ -1084,6 +1123,7 @@ export const ITEMS: ItemDef[] = [
   ...TEA_DRINK_ITEMS,
   ...TOFU_ITEMS,
   ...HERB_PRODUCT_ITEMS,
+  ...FEED_ITEMS,
   ...INCENSE_ITEMS,
 
   // 淘金产出
@@ -1112,22 +1152,72 @@ export const ITEMS: ItemDef[] = [
   { id: 'painted_pottery', name: '彩陶碎片', category: 'artifact', description: '绘有精美纹饰的彩陶碎片。', sellPrice: 200, edible: false },
 
   // ===== 公会商店物品 =====
-  { id: 'combat_tonic', name: '战斗补剂', category: 'food', description: '恢复30点HP。', sellPrice: 100, edible: true, staminaRestore: 0, healthRestore: 30 },
-  { id: 'fortify_brew', name: '强化药水', category: 'food', description: '恢复60点HP。', sellPrice: 250, edible: true, staminaRestore: 0, healthRestore: 60 },
-  { id: 'ironhide_potion', name: '铁壁药剂', category: 'food', description: '恢复全部HP。', sellPrice: 400, edible: true, staminaRestore: 0, healthRestore: 999 },
+  {
+    id: 'combat_tonic',
+    name: '战斗补剂',
+    category: 'food',
+    description: '恢复30点HP。',
+    sellPrice: 100,
+    edible: true,
+    staminaRestore: 0,
+    healthRestore: 30
+  },
+  {
+    id: 'fortify_brew',
+    name: '强化药水',
+    category: 'food',
+    description: '恢复60点HP。',
+    sellPrice: 250,
+    edible: true,
+    staminaRestore: 0,
+    healthRestore: 60
+  },
+  {
+    id: 'ironhide_potion',
+    name: '铁壁药剂',
+    category: 'food',
+    description: '恢复全部HP。',
+    sellPrice: 400,
+    edible: true,
+    staminaRestore: 0,
+    healthRestore: 999
+  },
   { id: 'slayer_charm', name: '猎魔符', category: 'misc', description: '怪物掉落率+20%（当次探索）。', sellPrice: 750, edible: false },
-  { id: 'warriors_feast', name: '勇者盛宴', category: 'food', description: '恢复50体力和50HP。', sellPrice: 500, edible: true, staminaRestore: 50, healthRestore: 50 },
+  {
+    id: 'warriors_feast',
+    name: '勇者盛宴',
+    category: 'food',
+    description: '恢复50体力和50HP。',
+    sellPrice: 500,
+    edible: true,
+    staminaRestore: 50,
+    healthRestore: 50
+  },
   { id: 'monster_lure', name: '怪物诱饵', category: 'misc', description: '本层怪物数量翻倍。', sellPrice: 1000, edible: false },
   { id: 'guild_badge', name: '公会徽章', category: 'misc', description: '攻击力永久+3。', sellPrice: 2500, edible: false },
 
   // ===== 瀚海物品 =====
-  { id: 'hanhai_cactus_seed', name: '仙人掌种子', category: 'seed', description: '来自西域的奇特植物种子。', sellPrice: 250, edible: false },
+  {
+    id: 'hanhai_cactus_seed',
+    name: '仙人掌种子',
+    category: 'seed',
+    description: '来自西域的奇特植物种子。',
+    sellPrice: 250,
+    edible: false
+  },
   { id: 'hanhai_date_seed', name: '红枣种子', category: 'seed', description: '丝绸之路带来的果树种子。', sellPrice: 200, edible: false },
   { id: 'hanhai_spice', name: '西域香料', category: 'material', description: '异域风情的香料，烹饪佳品。', sellPrice: 150, edible: false },
   { id: 'hanhai_silk', name: '丝绸', category: 'material', description: '细腻光滑的上等丝绸。', sellPrice: 400, edible: false },
   { id: 'hanhai_turquoise', name: '绿松石', category: 'gem', description: '西域特产的珍贵宝石。', sellPrice: 300, edible: false },
   { id: 'hanhai_map', name: '藏宝图', category: 'misc', description: '标记着荒原某处宝藏的地图。', sellPrice: 500, edible: false },
-  { id: 'mega_bomb_recipe', name: '巨型炸弹配方', category: 'misc', description: '据说能炸开整层矿洞的秘方。', sellPrice: 2500, edible: false }
+  {
+    id: 'mega_bomb_recipe',
+    name: '巨型炸弹配方',
+    category: 'misc',
+    description: '据说能炸开整层矿洞的秘方。',
+    sellPrice: 2500,
+    edible: false
+  }
 ]
 
 /** 根据ID查找物品 */

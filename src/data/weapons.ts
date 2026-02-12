@@ -331,6 +331,19 @@ export const getEnchantmentById = (id: string): EnchantmentDef | undefined => {
   return ENCHANTMENTS[id]
 }
 
+/** 计算武器卖出价格 */
+export const getWeaponSellPrice = (defId: string, enchantmentId: string | null): number => {
+  const def = WEAPONS[defId]
+  if (!def) return 0
+  const base = def.shopPrice ? Math.floor(def.shopPrice * 0.5) : def.attack * 15
+  // 附魔额外加价
+  if (enchantmentId) {
+    const enchant = ENCHANTMENTS[enchantmentId]
+    if (enchant) return base + 100 + enchant.attackBonus * 20
+  }
+  return base
+}
+
 /** 获取附魔武器的显示名称 */
 export const getWeaponDisplayName = (defId: string, enchantmentId: string | null): string => {
   const weapon = WEAPONS[defId]

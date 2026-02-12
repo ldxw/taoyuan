@@ -291,7 +291,7 @@ export const handleEndDay = () => {
     recoveryMode = 'normal'
   }
 
-  farmStore.dailyUpdate(gameStore.isRainy)
+  const pestResult = farmStore.dailyUpdate(gameStore.isRainy)
   processingStore.dailyUpdate()
 
   // 育种台进度更新
@@ -343,6 +343,26 @@ export const handleEndDay = () => {
     addLog(`乌鸦袭击了你的农场，一株${crowResult.cropName}被吃掉了！放个稻草人保护作物吧。`)
   }
 
+  // 虫害日志
+  if (pestResult.newInfestations > 0) {
+    addLog(
+      `虫害来袭！${pestResult.newInfestations}块地遭到了虫害侵袭。${farmStore.scarecrows > 0 ? '稻草人降低了虫害风险。' : '放置稻草人可以降低虫害概率。'}`
+    )
+  }
+  if (pestResult.pestDeaths > 0) {
+    addLog(`${pestResult.pestDeaths}株作物因虫害持续太久而枯死了！及时除虫可以拯救作物。`)
+  }
+
+  // 杂草日志
+  if (pestResult.newWeeds > 0) {
+    addLog(
+      `杂草蔓延！${pestResult.newWeeds}块地长出了杂草。${farmStore.scarecrows > 0 ? '稻草人抑制了杂草蔓延。' : '放置稻草人可以减少杂草。'}`
+    )
+  }
+  if (pestResult.weedDeaths > 0) {
+    addLog(`${pestResult.weedDeaths}株作物被杂草覆盖窒息而死！及时除草可以拯救作物。`)
+  }
+
   // 巨型作物检查
   const giantCrops = farmStore.checkGiantCrops()
   for (const gc of giantCrops) {
@@ -378,12 +398,21 @@ export const handleEndDay = () => {
   useHanhaiStore().resetDailyBets()
 
   // 动物产出
-  const animalProducts = animalStore.dailyUpdate()
-  if (animalProducts.products.length > 0) {
-    for (const p of animalProducts.products) {
+  const animalResult = animalStore.dailyUpdate()
+  if (animalResult.products.length > 0) {
+    for (const p of animalResult.products) {
       inventoryStore.addItem(p.itemId, 1, p.quality)
     }
-    addLog(`动物们产出了${animalProducts.products.length}件产品。`)
+    addLog(`动物们产出了${animalResult.products.length}件产品。`)
+  }
+  if (animalResult.died.length > 0) {
+    addLog(`${animalResult.died.join('、')}因长期饥饿或病重不治而死亡了……`)
+  }
+  if (animalResult.gotSick.length > 0) {
+    addLog(`${animalResult.gotSick.join('、')}因饥饿而生病了！请尽快喂食。`)
+  }
+  if (animalResult.healed.length > 0) {
+    addLog(`${animalResult.healed.join('、')}吃饱后恢复了健康。`)
   }
 
   // 孵化器更新

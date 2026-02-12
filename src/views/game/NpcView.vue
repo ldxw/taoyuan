@@ -154,18 +154,12 @@
               <Lightbulb :size="14" />
               {{ selectedNpc && npcStore.isTipGivenToday(selectedNpc) ? '今天已提示' : TIP_NPC_LABELS[selectedNpc as TipNpcId] }}
             </button>
-            <!-- 赠帕按钮 -->
-            <button v-if="canStartDating" class="btn text-xs text-danger border-danger/40" @click="handleStartDating">
-              <Heart :size="14" />
-              赠帕
-            </button>
-            <!-- 求婚按钮 -->
-            <button v-if="canPropose" class="btn text-xs text-danger border-danger/40" @click="handlePropose">
-              <Heart :size="14" />
-              求婚
-            </button>
             <!-- 离婚按钮 -->
-            <button v-if="selectedNpcState?.married" class="btn text-xs text-danger border-danger/40" @click="showDivorceConfirm = true">
+            <button
+              v-if="selectedNpcState?.married"
+              class="btn w-full text-xs text-danger border-danger/40"
+              @click="showDivorceConfirm = true"
+            >
               休书
             </button>
           </div>
@@ -174,6 +168,73 @@
           <p v-if="npcStore.weddingCountdown > 0 && npcStore.weddingNpcId === selectedNpc" class="text-xs text-accent mb-3">
             婚礼将在 {{ npcStore.weddingCountdown }} 天后举行！
           </p>
+
+          <!-- 恋爱/求婚面板 -->
+          <div
+            v-if="selectedNpcDef?.marriageable && !selectedNpcState?.married && selectedNpcDef.gender !== playerStore.gender"
+            class="border border-danger/20 rounded-xs p-2 mb-3"
+          >
+            <p class="text-xs text-danger/80 mb-1.5 flex items-center gap-1">
+              <Heart :size="12" />
+              姻缘
+            </p>
+            <template v-if="!selectedNpcState?.dating && !(npcStore.weddingCountdown > 0 && npcStore.weddingNpcId === selectedNpc)">
+              <p v-if="npcStore.npcStates.some(s => s.married)" class="text-[10px] text-muted/50 mb-1">你已有伴侣，无法再赠帕。</p>
+              <template v-else>
+                <div class="flex flex-col gap-0.5 mb-1.5">
+                  <span
+                    class="text-[10px] flex items-center gap-0.5"
+                    :class="(selectedNpcState?.friendship ?? 0) >= 2000 ? 'text-success' : 'text-muted/50'"
+                  >
+                    <CircleCheck v-if="(selectedNpcState?.friendship ?? 0) >= 2000" :size="10" />
+                    <Circle v-else :size="10" />
+                    好感≥2000（8心）
+                    <span class="text-muted/40">— 当前{{ selectedNpcState?.friendship ?? 0 }}</span>
+                  </span>
+                  <span
+                    class="text-[10px] flex items-center gap-0.5"
+                    :class="inventoryStore.hasItem('silk_ribbon') ? 'text-success' : 'text-muted/50'"
+                  >
+                    <CircleCheck v-if="inventoryStore.hasItem('silk_ribbon')" :size="10" />
+                    <Circle v-else :size="10" />
+                    持有丝帕
+                    <span class="text-muted/40">— 绸缎庄有售</span>
+                  </span>
+                </div>
+                <button class="btn w-full text-xs text-danger border-danger/40" :disabled="!canStartDating" @click="handleStartDating">
+                  <Heart :size="14" />
+                  赠帕（开始约会）
+                </button>
+              </template>
+            </template>
+            <template v-else-if="selectedNpcState?.dating">
+              <p class="text-[10px] text-danger/60 mb-1">约会中 ♥</p>
+              <div class="flex flex-col gap-0.5 mb-1.5">
+                <span
+                  class="text-[10px] flex items-center gap-0.5"
+                  :class="(selectedNpcState?.friendship ?? 0) >= 2500 ? 'text-success' : 'text-muted/50'"
+                >
+                  <CircleCheck v-if="(selectedNpcState?.friendship ?? 0) >= 2500" :size="10" />
+                  <Circle v-else :size="10" />
+                  好感≥2500（10心）
+                  <span class="text-muted/40">— 当前{{ selectedNpcState?.friendship ?? 0 }}</span>
+                </span>
+                <span
+                  class="text-[10px] flex items-center gap-0.5"
+                  :class="inventoryStore.hasItem('jade_ring') ? 'text-success' : 'text-muted/50'"
+                >
+                  <CircleCheck v-if="inventoryStore.hasItem('jade_ring')" :size="10" />
+                  <Circle v-else :size="10" />
+                  持有翡翠戒指
+                  <span class="text-muted/40">— 绸缎庄有售</span>
+                </span>
+              </div>
+              <button class="btn w-full text-xs text-danger border-danger/40" :disabled="!canPropose" @click="handlePropose">
+                <Heart :size="14" />
+                求婚
+              </button>
+            </template>
+          </div>
 
           <!-- 离婚确认 -->
           <div v-if="showDivorceConfirm" class="game-panel mb-3 border-danger/40">
@@ -275,7 +336,7 @@
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { MessageCircle, Heart, Gift, Cake, X, Package, Lightbulb } from 'lucide-vue-next'
+  import { MessageCircle, Heart, Gift, Cake, X, Package, Lightbulb, Circle, CircleCheck } from 'lucide-vue-next'
   import { useNpcStore, useInventoryStore, useCookingStore, useGameStore, usePlayerStore } from '@/stores'
   import { NPCS, getNpcById, getItemById, getHeartEventById } from '@/data'
   import { ACTION_TIME_COSTS, isNpcAvailable } from '@/data/timeConstants'

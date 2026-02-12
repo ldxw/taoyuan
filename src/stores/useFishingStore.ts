@@ -35,10 +35,16 @@ const CRAB_POT_LOOT: { itemId: string; weight: number; locationOverride?: Fishin
   { itemId: 'freshwater_shrimp', weight: 25 },
   { itemId: 'crab', weight: 20 },
   { itemId: 'lobster', weight: 10 },
-  { itemId: 'trash', weight: 25 },
+  { itemId: 'trash', weight: 10 },
+  { itemId: 'driftwood', weight: 10 },
+  { itemId: 'broken_cd', weight: 5 },
+  { itemId: 'soggy_newspaper', weight: 8 },
   { itemId: 'cave_shrimp', weight: 25, locationOverride: 'mine', replaces: 'freshwater_shrimp' },
   { itemId: 'swamp_crab', weight: 20, locationOverride: 'swamp', replaces: 'crab' }
 ]
+
+/** 钓鱼垃圾池 */
+const FISHING_JUNK = ['trash', 'driftwood', 'broken_cd', 'soggy_newspaper']
 
 /** 宝箱奖品池 */
 const TREASURE_POOL: { itemId: string | null; weight: number; minQty: number; maxQty: number; money?: number }[] = [
@@ -138,7 +144,7 @@ export const useFishingStore = defineStore('fishing', () => {
   }
 
   /** 开始钓鱼 */
-  const startFishing = (): { success: boolean; message: string } => {
+  const startFishing = (): { success: boolean; message: string; junk?: boolean } => {
     const rodMultiplier = inventoryStore.getToolStaminaMultiplier('fishingRod')
     // 旋转亮片减免体力
     const tackleDef = equippedTackle.value ? getTackleById(equippedTackle.value) : null
@@ -189,6 +195,19 @@ export const useFishingStore = defineStore('fishing', () => {
         equippedTackle.value = null
       }
     }
+
+    // 垃圾判定：基础12%概率钓到垃圾，钓鱼等级每级-1%，使用鱼饵减半
+    const junkBase = 0.12 - skillStore.fishingLevel * 0.01
+    const junkChance = Math.max(0, baitDef ? junkBase * 0.5 : junkBase)
+    if (Math.random() < junkChance) {
+      const junkId = FISHING_JUNK[Math.floor(Math.random() * FISHING_JUNK.length)]!
+      const junkName = getItemById(junkId)?.name ?? junkId
+      inventoryStore.addItem(junkId)
+      currentFish.value = null
+      skillStore.addExp('fishing', 3)
+      return { success: true, junk: true, message: `钓上了${junkName}……(-${staminaCost}体力)` }
+    }
+
     // 随机选一条鱼
     const fish = pickRandomFish(fishPool)
     currentFish.value = fish
@@ -519,7 +538,8 @@ export const useFishingStore = defineStore('fishing', () => {
       }
       // 水手专精：排除垃圾
       if (isMariner) {
-        pool = pool.filter(l => l.itemId !== 'trash')
+        const junkSet = new Set(FISHING_JUNK)
+        pool = pool.filter(l => !junkSet.has(l.itemId))
       }
 
       const totalWeight = pool.reduce((a, b) => a + b.weight, 0)

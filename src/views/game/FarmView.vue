@@ -6,31 +6,103 @@
         <span>田庄 ({{ farmStore.farmSize }}×{{ farmStore.farmSize }})</span>
       </div>
       <div class="text-xs text-muted flex gap-3">
-        <span v-if="farmStore.scarecrows > 0">稻草人 {{ farmStore.scarecrows }}</span>
-        <span v-else class="text-danger/80">无稻草人</span>
-        <span v-if="farmStore.lightningRods > 0">避雷针 {{ farmStore.lightningRods }}</span>
+        <span v-if="farmStore.scarecrows > 0" class="inline-flex items-center gap-0.5">
+          <Bird :size="12" />
+          稻草人 {{ farmStore.scarecrows }}
+        </span>
+        <span v-else class="text-danger/80 inline-flex items-center gap-0.5">
+          <Bird :size="12" />
+          无稻草人
+        </span>
+        <span v-if="farmStore.lightningRods > 0" class="inline-flex items-center gap-0.5">
+          <Zap :size="12" />
+          避雷针 {{ farmStore.lightningRods }}
+        </span>
       </div>
     </div>
 
-    <!-- 批量操作按钮 -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-3">
-      <button class="btn text-xs" :disabled="unwateredCount === 0" @click="doBatchWater">
-        <Droplets :size="12" />
-        一键浇水 ({{ unwateredCount }})
-      </button>
-      <button class="btn text-xs" :disabled="wastelandCount === 0" @click="doBatchTill">
-        <Shovel :size="12" />
-        一键开垦 ({{ wastelandCount }})
-      </button>
-      <button class="btn text-xs" :disabled="harvestableCount === 0" @click="doBatchHarvest">
-        <Wheat :size="12" />
-        一键收获 ({{ harvestableCount }})
-      </button>
-      <button class="btn text-xs" :disabled="tilledEmptyCount === 0 || plantableSeeds.length === 0" @click="showBatchPlant = true">
-        <Sprout :size="12" />
-        一键种植 ({{ tilledEmptyCount }})
+    <!-- 批量操作入口 -->
+    <div class="mb-3">
+      <button class="btn w-full md:w-auto text-xs" @click="showBatchActions = true">
+        <Wrench :size="12" />
+        一键操作
       </button>
     </div>
+
+    <!-- 批量操作弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showBatchActions"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showBatchActions = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showBatchActions = false">
+            <X :size="14" />
+          </button>
+          <p class="text-accent text-sm mb-2">一键操作</p>
+          <div class="flex flex-col gap-1.5">
+            <button class="btn text-xs w-full justify-between" :disabled="unwateredCount === 0" @click="doBatchAction('water')">
+              <span class="flex items-center gap-1">
+                <Droplets :size="12" />
+                一键浇水
+              </span>
+              <span class="text-muted">{{ unwateredCount }} 块</span>
+            </button>
+            <button class="btn text-xs w-full justify-between" :disabled="wastelandCount === 0" @click="doBatchAction('till')">
+              <span class="flex items-center gap-1">
+                <Shovel :size="12" />
+                一键开垦
+              </span>
+              <span class="text-muted">{{ wastelandCount }} 块</span>
+            </button>
+            <button class="btn text-xs w-full justify-between" :disabled="harvestableCount === 0" @click="doBatchAction('harvest')">
+              <span class="flex items-center gap-1">
+                <Wheat :size="12" />
+                一键收获
+              </span>
+              <span class="text-muted">{{ harvestableCount }} 块</span>
+            </button>
+            <button
+              class="btn text-xs w-full justify-between"
+              :disabled="tilledEmptyCount === 0 || plantableSeeds.length === 0"
+              @click="doBatchAction('plant')"
+            >
+              <span class="flex items-center gap-1">
+                <Sprout :size="12" />
+                一键种植
+              </span>
+              <span class="text-muted">{{ tilledEmptyCount }} 块</span>
+            </button>
+            <button
+              class="btn text-xs w-full justify-between"
+              :disabled="fertilizableCount === 0 || fertilizerItems.length === 0"
+              @click="doBatchAction('fertilize')"
+            >
+              <span class="flex items-center gap-1">
+                <CirclePlus :size="12" />
+                一键施肥
+              </span>
+              <span class="text-muted">{{ fertilizableCount }} 块</span>
+            </button>
+            <button class="btn text-xs w-full justify-between" :disabled="infestedCount === 0" @click="doBatchAction('curePest')">
+              <span class="flex items-center gap-1">
+                <Bug :size="12" />
+                一键除虫
+              </span>
+              <span class="text-muted">{{ infestedCount }} 块</span>
+            </button>
+            <button class="btn text-xs w-full justify-between" :disabled="weedyCount === 0" @click="doBatchAction('clearWeed')">
+              <span class="flex items-center gap-1">
+                <Leaf :size="12" />
+                一键除草
+              </span>
+              <span class="text-muted">{{ weedyCount }} 块</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 农场网格 -->
     <div class="border border-accent/20 rounded-xs p-2">
@@ -62,6 +134,13 @@
           />
           <Droplet v-if="hasSprinkler(plot.id)" :size="8" class="absolute top-0 right-0 text-water drop-shadow-sm" />
           <CirclePlus v-if="plot.fertilizer" :size="8" class="absolute bottom-0 left-0 text-success drop-shadow-sm" />
+          <Bug v-if="plot.infested" :size="8" class="absolute top-0 left-0 text-danger drop-shadow-sm" />
+          <Leaf
+            v-if="plot.weedy"
+            :size="8"
+            class="absolute top-0 left-0 text-success drop-shadow-sm"
+            :class="{ 'left-2': plot.infested }"
+          />
         </button>
       </div>
     </div>
@@ -92,6 +171,14 @@
               ·
               <span class="text-water">洒水器</span>
             </template>
+            <template v-if="activePlot.infested">
+              ·
+              <span class="text-danger">虫害({{ activePlot.infestedDays }}天)</span>
+            </template>
+            <template v-if="activePlot.weedy">
+              ·
+              <span class="text-success">杂草({{ activePlot.weedyDays }}天)</span>
+            </template>
           </p>
           <!-- 生长进度条 -->
           <div v-if="activePlot.cropId && activePlot.state !== 'harvestable'" class="flex items-center gap-2 mb-2">
@@ -102,7 +189,9 @@
                 :style="{ width: Math.floor((activePlot.growthDays / (Number(plotCropGrowthDays) || 1)) * 100) + '%' }"
               />
             </div>
-            <span class="text-xs text-muted whitespace-nowrap">{{ activePlot.growthDays }}/{{ plotCropGrowthDays }}天</span>
+            <span class="text-xs text-muted whitespace-nowrap">
+              {{ Number(activePlot.growthDays.toFixed(2)) }}/{{ plotCropGrowthDays }}天
+            </span>
           </div>
           <p v-if="activePlot.giantCropGroup !== null" class="text-xs text-accent mb-2">收获可获得大量作物！</p>
 
@@ -116,6 +205,14 @@
               <Droplets :size="12" />
               浇水
             </button>
+            <button v-if="activePlot.infested" class="btn text-xs w-full justify-center shrink-0 bg-danger! text-text!" @click="doCurePest">
+              <Bug :size="12" />
+              除虫
+            </button>
+            <button v-if="activePlot.weedy" class="btn text-xs w-full justify-center shrink-0 bg-success! text-bg!" @click="doClearWeed">
+              <Leaf :size="12" />
+              除草
+            </button>
             <button
               v-if="activePlot.state === 'harvestable'"
               class="btn text-xs w-full justify-center shrink-0 bg-accent! text-bg!"
@@ -123,6 +220,14 @@
             >
               <Wheat :size="12" />
               收获
+            </button>
+            <button
+              v-if="activePlot.state === 'planted' || activePlot.state === 'growing' || activePlot.state === 'harvestable'"
+              class="btn text-xs w-full justify-center shrink-0"
+              @click="doRemoveCrop"
+            >
+              <Trash2 :size="12" />
+              铲除
             </button>
             <template v-if="activePlot.state === 'tilled' && plantableSeeds.length > 0">
               <p class="text-xs text-muted mt-1 shrink-0">— 种植 —</p>
@@ -145,7 +250,9 @@
                 @click="doPlantGeneticSeed(seed.genetics.id)"
               >
                 <span>{{ getCropName(seed.genetics.cropId) }} G{{ seed.genetics.generation }}</span>
-                <span class="text-muted">{{ getStarText(getStarRating(seed.genetics)) }}</span>
+                <span class="text-muted flex items-center gap-px">
+                  <Star v-for="n in getStarRating(seed.genetics)" :key="n" :size="10" />
+                </span>
               </button>
             </template>
             <!-- 种子空状态 -->
@@ -230,6 +337,38 @@
       </div>
     </Transition>
 
+    <!-- 一键施肥弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showBatchFertilize"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showBatchFertilize = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showBatchFertilize = false">
+            <X :size="14" />
+          </button>
+          <p class="text-accent text-sm mb-2">一键施肥</p>
+          <p class="text-xs text-muted mb-2">可施肥地块 {{ fertilizableCount }} 块，选择肥料：</p>
+          <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <button
+              v-for="f in fertilizerItems"
+              :key="f.itemId"
+              class="btn text-xs w-full justify-between shrink-0"
+              @click="doBatchFertilize(f.type)"
+            >
+              <span :class="f.colorClass">{{ f.name }}</span>
+              <span class="text-muted">×{{ f.count }}</span>
+            </button>
+          </div>
+          <div v-if="fertilizerItems.length === 0" class="flex flex-col items-center py-4">
+            <CirclePlus :size="32" class="text-muted/30" />
+            <p class="text-xs text-muted mt-2">没有可用的肥料</p>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 图例与提示 -->
     <div class="mt-2 border border-accent/10 rounded-xs p-2">
       <div class="flex gap-x-3 gap-y-0.5 flex-wrap text-xs text-muted">
@@ -273,8 +412,18 @@
           <Droplets :size="10" class="text-danger inline" />
           =需浇水
         </span>
+        <span>
+          <Bug :size="10" class="text-danger inline" />
+          =虫害
+        </span>
+        <span>
+          <Leaf :size="10" class="text-success inline" />
+          =杂草
+        </span>
       </div>
       <p v-if="unwateredCount > 0" class="text-xs text-danger mt-1">还有 {{ unwateredCount }} 块地需要浇水</p>
+      <p v-if="infestedCount > 0" class="text-xs text-danger mt-1">有 {{ infestedCount }} 块地遭受虫害</p>
+      <p v-if="weedyCount > 0" class="text-xs text-success mt-1">有 {{ weedyCount }} 块地长了杂草</p>
     </div>
 
     <!-- 出货箱入口 -->
@@ -394,26 +543,39 @@
         </div>
         <span class="text-xs text-muted">{{ farmStore.fruitTrees.length }}/{{ MAX_FRUIT_TREES }}</span>
       </div>
-      <div v-if="farmStore.fruitTrees.length > 0" class="flex flex-col gap-1 mb-2">
-        <div
-          v-for="tree in farmStore.fruitTrees"
-          :key="tree.id"
-          class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
-        >
-          <span class="text-xs" :class="tree.mature ? 'text-accent' : 'text-muted'">{{ getTreeName(tree.type) }}</span>
+      <div v-if="farmStore.fruitTrees.length > 0" class="flex flex-col gap-1.5 mb-2">
+        <div v-for="tree in farmStore.fruitTrees" :key="tree.id" class="border border-accent/10 rounded-xs px-3 py-2">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold" :class="tree.mature ? 'text-accent' : 'text-muted'">{{ getTreeName(tree.type) }}</span>
+            <span v-if="tree.mature" class="text-[10px] text-muted">{{ tree.yearAge }}年</span>
+          </div>
           <template v-if="!tree.mature">
-            <div class="flex items-center gap-2 flex-1 ml-3">
+            <div class="flex items-center gap-2 mb-1.5">
               <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
                 <div
                   class="h-full rounded-xs bg-success transition-all"
                   :style="{ width: Math.floor((tree.growthDays / 28) * 100) + '%' }"
                 />
               </div>
-              <span class="text-xs text-muted whitespace-nowrap">{{ tree.growthDays }}/28天</span>
+              <span class="text-[10px] text-muted whitespace-nowrap">{{ tree.growthDays }}/28天</span>
+            </div>
+            <div class="flex justify-end">
+              <button class="btn text-xs" @click.stop="chopFruitTreeTarget = { id: tree.id, type: tree.type }">
+                <Axe :size="12" />
+                砍伐
+              </button>
             </div>
           </template>
-          <span v-else-if="tree.todayFruit" class="text-xs text-accent">今日已结果</span>
-          <span v-else class="text-xs text-success">已成熟 · {{ getTreeFruitSeason(tree.type) }}产果</span>
+          <template v-else>
+            <div class="flex items-center justify-between">
+              <span v-if="tree.todayFruit" class="text-[10px] text-accent">今日已结果</span>
+              <span v-else class="text-[10px] text-success">{{ getTreeFruitSeason(tree.type) }}产果</span>
+              <button class="btn text-xs" @click.stop="chopFruitTreeTarget = { id: tree.id, type: tree.type }">
+                <Axe :size="12" />
+                砍伐
+              </button>
+            </div>
+          </template>
         </div>
       </div>
       <div v-else class="flex flex-col items-center justify-center py-4 text-muted mb-2">
@@ -429,6 +591,69 @@
       </div>
     </div>
 
+    <!-- 砍伐果树确认弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="chopFruitTreeTarget"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="chopFruitTreeTarget = null"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="chopFruitTreeTarget = null">
+            <X :size="14" />
+          </button>
+          <p class="text-accent text-sm mb-2">砍伐果树</p>
+          <p class="text-xs text-text mb-3">
+            确定要砍掉
+            <span class="text-accent">{{ getTreeName(chopFruitTreeTarget.type) }}</span>
+            吗？砍伐后不可恢复。
+          </p>
+          <div class="flex gap-2">
+            <button class="btn text-xs flex-1" @click="chopFruitTreeTarget = null">取消</button>
+            <button class="btn text-xs flex-1 bg-danger! text-text!" @click="confirmChopFruitTree">
+              <Axe :size="12" />
+              确认砍伐
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 野树伐木确认弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="chopWildTreeTarget"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="chopWildTreeTarget = null"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="chopWildTreeTarget = null">
+            <X :size="14" />
+          </button>
+          <p class="text-accent text-sm mb-2">伐木</p>
+          <p class="text-xs text-text mb-2">
+            确定要对
+            <span class="text-accent">{{ getWildTreeName(chopWildTreeTarget.type) }}</span>
+            伐木吗？
+          </p>
+          <p class="text-xs text-danger mb-3">
+            已伐木 {{ chopWildTreeTarget.chopCount }}/3 次，再伐 {{ 3 - chopWildTreeTarget.chopCount }} 次后树将消失。
+          </p>
+          <div class="flex gap-2">
+            <button class="btn text-xs flex-1" @click="chopWildTreeTarget = null">取消</button>
+            <button
+              class="btn text-xs flex-1"
+              :class="chopWildTreeTarget.chopCount >= 2 ? 'bg-danger! text-text!' : 'bg-accent! text-bg!'"
+              @click="confirmChopWildTree"
+            >
+              <Axe :size="12" />
+              {{ chopWildTreeTarget.chopCount >= 2 ? '确认' : '确认伐木' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 野树区 -->
     <div class="mt-3 border border-accent/20 rounded-xs p-3">
       <div class="flex items-center justify-between mb-2">
@@ -438,64 +663,70 @@
         </div>
         <span class="text-xs text-muted">{{ farmStore.wildTrees.length }}/{{ MAX_WILD_TREES }}</span>
       </div>
-      <div v-if="farmStore.wildTrees.length > 0" class="flex flex-col gap-1 mb-2">
-        <div
-          v-for="tree in farmStore.wildTrees"
-          :key="tree.id"
-          class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
-        >
-          <span class="text-xs" :class="tree.mature ? 'text-accent' : 'text-muted'">{{ getWildTreeName(tree.type) }}</span>
+      <div v-if="farmStore.wildTrees.length > 0" class="flex flex-col gap-1.5 mb-2">
+        <div v-for="tree in farmStore.wildTrees" :key="tree.id" class="border border-accent/10 rounded-xs px-3 py-2">
+          <!-- 第一行：树名 + 状态标签 -->
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold" :class="tree.mature ? 'text-accent' : 'text-muted'">{{ getWildTreeName(tree.type) }}</span>
+              <span v-if="tree.chopCount > 0" class="text-[10px] text-danger">伐{{ tree.chopCount }}/3</span>
+            </div>
+            <span v-if="!tree.mature" class="text-[10px] text-muted">生长中</span>
+            <span v-else-if="tree.hasTapper && tree.tapReady" class="text-[10px] text-accent">可收取</span>
+            <span v-else-if="tree.hasTapper" class="text-[10px] text-muted">采脂中</span>
+            <span v-else class="text-[10px] text-success">已成熟</span>
+          </div>
+          <!-- 第二行：进度/详情 + 操作按钮 -->
           <template v-if="!tree.mature">
-            <div class="flex items-center gap-2 flex-1 ml-3">
+            <div class="flex items-center gap-2 mb-1.5">
               <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
                 <div
                   class="h-full rounded-xs bg-success transition-all"
                   :style="{ width: Math.floor((tree.growthDays / (getWildTreeDef(tree.type)?.growthDays ?? 28)) * 100) + '%' }"
                 />
               </div>
-              <span class="text-xs text-muted whitespace-nowrap">
+              <span class="text-[10px] text-muted whitespace-nowrap">
                 {{ tree.growthDays }}/{{ getWildTreeDef(tree.type)?.growthDays ?? '?' }}天
               </span>
             </div>
           </template>
-          <template v-else-if="!tree.hasTapper">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-success">已成熟</span>
-              <button class="btn text-xs" @click.stop="handleChopTree(tree.id)">
-                <Axe :size="12" />
-                伐木
-              </button>
-              <button v-if="hasTapper" class="btn text-xs" @click.stop="handleAttachTapper(tree.id)">
-                <Wrench :size="12" />
-                装采脂器
-              </button>
-              <span v-else class="text-xs text-muted">需制造采脂器</span>
-            </div>
-          </template>
-          <template v-else-if="tree.tapReady">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-accent">可收取</span>
-              <button class="btn text-xs bg-accent! text-bg!" @click.stop="handleCollectTapProduct(tree.id)">
-                <Gift :size="12" />
-                收取
-              </button>
-              <button class="btn text-xs" @click.stop="handleChopTree(tree.id)">
-                <Axe :size="12" />
-                伐木
-              </button>
-            </div>
-          </template>
-          <template v-else>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-muted">
-                采脂中 {{ tree.tapDaysElapsed }}/{{ getWildTreeDef(tree.type)?.tapCycleDays ?? '?' }}天
+          <template v-else-if="tree.hasTapper">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
+                <div
+                  class="h-full rounded-xs transition-all"
+                  :class="tree.tapReady ? 'bg-accent' : 'bg-success'"
+                  :style="{
+                    width: tree.tapReady
+                      ? '100%'
+                      : Math.floor((tree.tapDaysElapsed / (getWildTreeDef(tree.type)?.tapCycleDays ?? 7)) * 100) + '%'
+                  }"
+                />
+              </div>
+              <span class="text-[10px] text-muted whitespace-nowrap">
+                {{ tree.tapReady ? '已完成' : `${tree.tapDaysElapsed}/${getWildTreeDef(tree.type)?.tapCycleDays ?? '?'}天` }}
               </span>
-              <button class="btn text-xs" @click.stop="handleChopTree(tree.id)">
-                <Axe :size="12" />
-                伐木
-              </button>
             </div>
           </template>
+          <div class="flex items-center justify-end gap-1.5">
+            <button
+              v-if="tree.mature && tree.hasTapper && tree.tapReady"
+              class="btn text-xs bg-accent! text-bg!"
+              @click.stop="handleCollectTapProduct(tree.id)"
+            >
+              <Gift :size="12" />
+              收取
+            </button>
+            <button v-if="tree.mature && !tree.hasTapper && hasTapper" class="btn text-xs" @click.stop="handleAttachTapper(tree.id)">
+              <Wrench :size="12" />
+              装采脂器
+            </button>
+            <span v-if="tree.mature && !tree.hasTapper && !hasTapper" class="text-[10px] text-muted">需制造采脂器</span>
+            <button v-if="tree.mature" class="btn text-xs" @click.stop="handleChopTree(tree.id)">
+              <Axe :size="12" />
+              伐木
+            </button>
+          </div>
         </div>
       </div>
       <div v-else class="flex flex-col items-center justify-center py-4 text-muted mb-2">
@@ -645,7 +876,13 @@
     Package,
     Warehouse,
     Store,
-    Axe
+    Axe,
+    Trash2,
+    Bug,
+    Leaf,
+    Star,
+    Bird,
+    Zap
   } from 'lucide-vue-next'
   import {
     useFarmStore,
@@ -659,7 +896,7 @@
     SEASON_NAMES
   } from '@/stores'
   import { getCropById, getCropsBySeason, getItemById } from '@/data'
-  import { getStarRating, getStarText } from '@/data/breeding'
+  import { getStarRating } from '@/data/breeding'
   import { FRUIT_TREE_DEFS, MAX_FRUIT_TREES } from '@/data/fruitTrees'
   import { WILD_TREE_DEFS, MAX_WILD_TREES, getWildTreeDef } from '@/data/wildTrees'
   import { CROPS } from '@/data/crops'
@@ -675,6 +912,12 @@
     handleBatchTill,
     handleBatchHarvest,
     handleBatchPlant,
+    handleBatchFertilize,
+    handleRemoveCrop,
+    handleCurePest,
+    handleBatchCurePest,
+    handleClearWeed,
+    handleBatchClearWeed,
     QUALITY_NAMES
   } from '@/composables/useFarmActions'
   import type { SprinklerType, FertilizerType, FruitTreeType, WildTreeType } from '@/types'
@@ -693,6 +936,10 @@
 
   const showShippingBox = ref(false)
   const showBatchPlant = ref(false)
+  const showBatchFertilize = ref(false)
+  const showBatchActions = ref(false)
+  const chopFruitTreeTarget = ref<{ id: number; type: string } | null>(null)
+  const chopWildTreeTarget = ref<{ id: number; type: string; chopCount: number } | null>(null)
 
   const goToShop = () => {
     if (!isWanwupuOpen.value) {
@@ -702,6 +949,8 @@
     activePlotId.value = null
     activeGhPlotId.value = null
     showBatchPlant.value = false
+    showBatchFertilize.value = false
+    showBatchActions.value = false
     navigateToPanel('shop')
   }
 
@@ -867,26 +1116,66 @@
   const isSprinklerCovered = (plotId: number): boolean => sprinklerCoverage.value.has(plotId)
 
   const needsWater = (plot: (typeof farmStore.plots)[number]): boolean => {
-    return (plot.state === 'planted' || plot.state === 'growing') && !plot.watered
+    return (plot.state === 'planted' || plot.state === 'growing') && !plot.watered && !sprinklerCoverage.value.has(plot.id)
   }
 
   const unwateredCount = computed(() => farmStore.plots.filter(needsWater).length)
   const wastelandCount = computed(() => farmStore.plots.filter(p => p.state === 'wasteland').length)
   const harvestableCount = computed(() => farmStore.plots.filter(p => p.state === 'harvestable' && p.giantCropGroup === null).length)
   const tilledEmptyCount = computed(() => farmStore.plots.filter(p => p.state === 'tilled').length)
+  const fertilizableCount = computed(() => farmStore.plots.filter(p => p.state !== 'wasteland' && !p.fertilizer).length)
+  const infestedCount = computed(() => farmStore.plots.filter(p => p.infested).length)
+  const weedyCount = computed(() => farmStore.plots.filter(p => p.weedy).length)
 
-  const doBatchWater = () => handleBatchWater()
-  const doBatchTill = () => handleBatchTill()
-  const doBatchHarvest = () => handleBatchHarvest()
+  const doBatchAction = (action: 'water' | 'till' | 'harvest' | 'plant' | 'fertilize' | 'curePest' | 'clearWeed') => {
+    showBatchActions.value = false
+    if (action === 'water') handleBatchWater()
+    else if (action === 'till') handleBatchTill()
+    else if (action === 'harvest') handleBatchHarvest()
+    else if (action === 'plant') showBatchPlant.value = true
+    else if (action === 'fertilize') showBatchFertilize.value = true
+    else if (action === 'curePest') handleBatchCurePest()
+    else if (action === 'clearWeed') handleBatchClearWeed()
+  }
   const doBatchPlant = (cropId: string) => {
     handleBatchPlant(cropId)
     showBatchPlant.value = false
+  }
+  const doBatchFertilize = (type: FertilizerType) => {
+    handleBatchFertilize(type)
+    showBatchFertilize.value = false
+  }
+
+  const doRemoveCrop = () => {
+    if (activePlotId.value === null) return
+    handleRemoveCrop(activePlotId.value)
+    activePlotId.value = null
+  }
+
+  const doCurePest = () => {
+    if (activePlotId.value === null) return
+    handleCurePest(activePlotId.value)
+    activePlotId.value = null
+  }
+
+  const doClearWeed = () => {
+    if (activePlotId.value === null) return
+    handleClearWeed(activePlotId.value)
+    activePlotId.value = null
   }
 
   const getPlotDisplay = (plot: (typeof farmStore.plots)[number]): { text: string; color: string; bg: string } => {
     // 巨型作物特殊显示
     if (plot.giantCropGroup !== null) {
       return { text: '巨', color: 'text-accent', bg: 'bg-accent/10' }
+    }
+    // 虫害显示
+    if (plot.infested) {
+      return { text: '虫', color: 'text-danger', bg: 'bg-danger/10' }
+    }
+    // 杂草显示
+    if (plot.weedy) {
+      return { text: '草', color: 'text-success/70', bg: 'bg-success/10' }
     }
     switch (plot.state) {
       case 'wasteland':
@@ -931,6 +1220,8 @@
       const fertDef = getFertilizerById(plot.fertilizer)
       tip += ` [${fertDef?.name ?? plot.fertilizer}]`
     }
+    if (plot.infested) tip += ` [虫害${plot.infestedDays}天]`
+    if (plot.weedy) tip += ` [杂草${plot.weedyDays}天]`
     return tip
   }
 
@@ -1087,6 +1378,38 @@
     }
   }
 
+  const confirmChopFruitTree = () => {
+    const target = chopFruitTreeTarget.value
+    if (!target) return
+    chopFruitTreeTarget.value = null
+    if (gameStore.isPastBedtime) {
+      addLog('太晚了，没法砍伐了。')
+      return
+    }
+    if (!inventoryStore.isToolAvailable('axe')) {
+      addLog('斧头正在升级中，无法砍伐。')
+      return
+    }
+    const playerStore = usePlayerStore()
+    const skillStore = useSkillStore()
+    const cost = Math.max(
+      1,
+      Math.floor(5 * inventoryStore.getToolStaminaMultiplier('axe') * (1 - skillStore.getStaminaReduction('foraging')))
+    )
+    if (!playerStore.consumeStamina(cost)) {
+      addLog('体力不足，无法砍伐。')
+      return
+    }
+    const treeName = getTreeName(target.type)
+    const woodQty = farmStore.removeFruitTree(target.id)
+    if (woodQty > 0) {
+      inventoryStore.addItem('wood', woodQty)
+      addLog(`砍掉了${treeName}，获得${woodQty}个木材。（体力-${cost}）`)
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.chopTree)
+      if (tr.message) addLog(tr.message)
+    }
+  }
+
   // === 野树 ===
 
   const getWildTreeName = (type: string): string => {
@@ -1132,7 +1455,16 @@
     }
   }
 
-  const handleChopTree = (_treeId: number) => {
+  const handleChopTree = (treeId: number) => {
+    const tree = farmStore.wildTrees.find(t => t.id === treeId)
+    if (!tree) return
+    chopWildTreeTarget.value = { id: tree.id, type: tree.type, chopCount: tree.chopCount }
+  }
+
+  const confirmChopWildTree = () => {
+    const target = chopWildTreeTarget.value
+    if (!target) return
+    chopWildTreeTarget.value = null
     if (gameStore.isPastBedtime) {
       addLog('太晚了，没法伐木了。')
       return
@@ -1155,7 +1487,13 @@
     const hasLumberjack = skillStore.getSkill('foraging').perk5 === 'lumberjack' || skillStore.getSkill('foraging').perk10 === 'forester'
     const qty = baseQty + (hasLumberjack ? 2 : Math.random() < 0.5 ? 1 : 0)
     inventoryStore.addItem('wood', qty)
-    addLog(`伐木获得了${qty}个木材。（体力-${cost}）`)
+    const { removed } = farmStore.chopWildTree(target.id)
+    const treeName = getWildTreeName(target.type)
+    if (removed) {
+      addLog(`伐木获得了${qty}个木材，${treeName}已被砍倒消失了。（体力-${cost}）`)
+    } else {
+      addLog(`伐木获得了${qty}个木材。（体力-${cost}）`)
+    }
     const tr = gameStore.advanceTime(ACTION_TIME_COSTS.chopTree)
     if (tr.message) addLog(tr.message)
   }

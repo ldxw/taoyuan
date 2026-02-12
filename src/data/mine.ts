@@ -253,10 +253,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   crystal_golem: {
     id: 'crystal_golem',
     name: '水晶魔像',
-    hp: 65,
-    attack: 12,
-    defense: 6,
-    expReward: 35,
+    hp: 110,
+    attack: 18,
+    defense: 10,
+    expReward: 45,
     drops: [
       { itemId: 'crystal_ore', chance: 0.55 },
       { itemId: 'moonstone', chance: 0.15 }
@@ -266,10 +266,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   prism_spider: {
     id: 'prism_spider',
     name: '棱镜蛛',
-    hp: 45,
-    attack: 14,
-    defense: 3,
-    expReward: 40,
+    hp: 75,
+    attack: 22,
+    defense: 5,
+    expReward: 50,
     drops: [
       { itemId: 'crystal_ore', chance: 0.5 },
       { itemId: 'moonstone', chance: 0.2 }
@@ -280,10 +280,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   shadow_lurker: {
     id: 'shadow_lurker',
     name: '暗影潜伏者',
-    hp: 80,
-    attack: 16,
-    defense: 5,
-    expReward: 50,
+    hp: 150,
+    attack: 28,
+    defense: 10,
+    expReward: 65,
     drops: [
       { itemId: 'shadow_ore', chance: 0.55 },
       { itemId: 'obsidian', chance: 0.15 }
@@ -293,10 +293,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   void_wraith: {
     id: 'void_wraith',
     name: '虚空幽魂',
-    hp: 55,
-    attack: 20,
-    defense: 2,
-    expReward: 55,
+    hp: 100,
+    attack: 35,
+    defense: 4,
+    expReward: 70,
     drops: [
       { itemId: 'shadow_ore', chance: 0.5 },
       { itemId: 'obsidian', chance: 0.2 }
@@ -307,10 +307,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   abyss_serpent: {
     id: 'abyss_serpent',
     name: '深渊巨蟒',
-    hp: 100,
-    attack: 18,
-    defense: 7,
-    expReward: 65,
+    hp: 200,
+    attack: 35,
+    defense: 14,
+    expReward: 85,
     drops: [
       { itemId: 'void_ore', chance: 0.55 },
       { itemId: 'dragon_jade', chance: 0.15 }
@@ -320,10 +320,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
   bone_dragon: {
     id: 'bone_dragon',
     name: '骨龙',
-    hp: 120,
-    attack: 22,
-    defense: 8,
-    expReward: 80,
+    hp: 250,
+    attack: 40,
+    defense: 16,
+    expReward: 100,
     drops: [
       { itemId: 'void_ore', chance: 0.6 },
       { itemId: 'dragon_jade', chance: 0.25 }
@@ -337,10 +337,10 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
   iridium_golem: {
     id: 'iridium_golem',
     name: '铱金魔像',
-    hp: 100,
-    attack: 18,
-    defense: 10,
-    expReward: 70,
+    hp: 400,
+    attack: 55,
+    defense: 30,
+    expReward: 150,
     drops: [
       { itemId: 'iridium_ore', chance: 0.6 },
       { itemId: 'prismatic_shard', chance: 0.03 }
@@ -350,10 +350,10 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
   skull_serpent: {
     id: 'skull_serpent',
     name: '骷髅飞蛇',
-    hp: 70,
-    attack: 22,
-    defense: 4,
-    expReward: 60,
+    hp: 300,
+    attack: 65,
+    defense: 14,
+    expReward: 130,
     drops: [
       { itemId: 'iridium_ore', chance: 0.5 },
       { itemId: 'shadow_ore', chance: 0.2 }
@@ -363,10 +363,10 @@ export const SKULL_CAVERN_MONSTERS: Record<string, MonsterDef> = {
   ancient_mummy: {
     id: 'ancient_mummy',
     name: '远古木乃伊',
-    hp: 130,
-    attack: 16,
-    defense: 12,
-    expReward: 80,
+    hp: 550,
+    attack: 45,
+    defense: 35,
+    expReward: 180,
     drops: [
       { itemId: 'iridium_ore', chance: 0.65 },
       { itemId: 'prismatic_shard', chance: 0.05 }
@@ -431,10 +431,10 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
   80: {
     id: 'crystal_king',
     name: '水晶之王',
-    hp: 250,
-    attack: 20,
-    defense: 10,
-    expReward: 180,
+    hp: 400,
+    attack: 32,
+    defense: 16,
+    expReward: 220,
     drops: [
       { itemId: 'crystal_ore', chance: 1.0 },
       { itemId: 'moonstone', chance: 1.0 }
@@ -444,10 +444,10 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
   100: {
     id: 'shadow_sovereign',
     name: '暗影君主',
-    hp: 350,
-    attack: 25,
-    defense: 12,
-    expReward: 250,
+    hp: 600,
+    attack: 42,
+    defense: 20,
+    expReward: 350,
     drops: [
       { itemId: 'shadow_ore', chance: 1.0 },
       { itemId: 'obsidian', chance: 1.0 }
@@ -457,10 +457,10 @@ export const BOSS_MONSTERS: Record<number, MonsterDef> = {
   120: {
     id: 'abyss_dragon',
     name: '深渊龙王',
-    hp: 500,
-    attack: 30,
-    defense: 15,
-    expReward: 400,
+    hp: 900,
+    attack: 55,
+    defense: 25,
+    expReward: 500,
     drops: [
       { itemId: 'void_ore', chance: 1.0 },
       { itemId: 'dragon_jade', chance: 1.0 }
@@ -481,12 +481,12 @@ export const BOSS_MONEY_REWARDS: Record<number, number> = {
 
 /** BOSS 额外掉落矿石 */
 export const BOSS_ORE_REWARDS: Record<number, { itemId: string; quantity: number }[]> = {
-  20: [{ itemId: 'copper_ore', quantity: 5 }],
-  40: [{ itemId: 'iron_ore', quantity: 5 }],
-  60: [{ itemId: 'gold_ore', quantity: 5 }],
-  80: [{ itemId: 'crystal_ore', quantity: 5 }],
-  100: [{ itemId: 'shadow_ore', quantity: 5 }],
-  120: [{ itemId: 'void_ore', quantity: 8 }]
+  20: [{ itemId: 'copper_ore', quantity: 3 }],
+  40: [{ itemId: 'iron_ore', quantity: 3 }],
+  60: [{ itemId: 'gold_ore', quantity: 3 }],
+  80: [{ itemId: 'crystal_ore', quantity: 3 }],
+  100: [{ itemId: 'shadow_ore', quantity: 3 }],
+  120: [{ itemId: 'void_ore', quantity: 5 }]
 }
 
 /** 获取弱化版 BOSS（重进时降低 30% 属性） */
@@ -709,7 +709,7 @@ export const getFloorDistribution = (specialType: FloorSpecialType): FloorTileDi
   switch (specialType) {
     case 'mushroom':
       return {
-        oreCount: [2, 3],
+        oreCount: [1, 2],
         monsterCount: [1, 2],
         trapCount: [0, 1],
         mushroomCount: [6, 8],
@@ -717,7 +717,7 @@ export const getFloorDistribution = (specialType: FloorSpecialType): FloorTileDi
       }
     case 'treasure':
       return {
-        oreCount: [4, 5],
+        oreCount: [2, 3],
         monsterCount: [2, 3],
         trapCount: [1, 1],
         treasureCount: [1, 2],
@@ -725,21 +725,21 @@ export const getFloorDistribution = (specialType: FloorSpecialType): FloorTileDi
       }
     case 'dark':
       return {
-        oreCount: [4, 5],
+        oreCount: [2, 3],
         monsterCount: [2, 2],
         trapCount: [4, 5],
         stairsHiddenUntilClear: false
       }
     case 'infested':
       return {
-        oreCount: [2, 3],
+        oreCount: [1, 2],
         monsterCount: [8, 10],
         trapCount: [0, 0],
         stairsHiddenUntilClear: true
       }
     case 'boss':
       return {
-        oreCount: [3, 4],
+        oreCount: [1, 2],
         monsterCount: [0, 0],
         trapCount: [0, 1],
         bossCount: [1, 1],
@@ -748,7 +748,7 @@ export const getFloorDistribution = (specialType: FloorSpecialType): FloorTileDi
     default:
       // 普通层
       return {
-        oreCount: [6, 8],
+        oreCount: [3, 4],
         monsterCount: [3, 4],
         trapCount: [1, 2],
         stairsHiddenUntilClear: false

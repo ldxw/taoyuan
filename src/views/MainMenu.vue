@@ -2,7 +2,7 @@
   <div
     class="flex min-h-screen flex-col items-center justify-center gap-8 px-4"
     @click.once="startBgm"
-    :class="{ 'py-7': isWebView }"
+    :class="{ 'py-10': isWebView }"
     @click="slotMenuOpen = null"
   >
     <!-- 标题 -->
@@ -427,7 +427,11 @@
           daysOwned: 0,
           daysSinceProduct: 0,
           wasFed: false,
-          wasPetted: false
+          fedWith: null,
+          wasPetted: false,
+          hunger: 0,
+          sick: false,
+          sickDays: 0
         },
         {
           id: 'chicken_init_2',
@@ -438,7 +442,11 @@
           daysOwned: 0,
           daysSinceProduct: 0,
           wasFed: false,
-          wasPetted: false
+          fedWith: null,
+          wasPetted: false,
+          hunger: 0,
+          sick: false,
+          sickDays: 0
         }
       )
     }

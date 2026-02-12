@@ -960,7 +960,7 @@ export const PROCESSING_RECIPES: ProcessingRecipeDef[] = [
     inputItemId: 'trash',
     inputQuantity: 3,
     outputItemId: 'firewood',
-    outputQuantity: 3,
+    outputQuantity: 5,
     processingDays: 1,
     description: '将垃圾回收转化为柴火。'
   },
@@ -971,7 +971,7 @@ export const PROCESSING_RECIPES: ProcessingRecipeDef[] = [
     inputItemId: 'trash',
     inputQuantity: 5,
     outputItemId: 'copper_ore',
-    outputQuantity: 2,
+    outputQuantity: 3,
     processingDays: 1,
     description: '将垃圾回收提炼出铜矿。'
   },
@@ -982,7 +982,7 @@ export const PROCESSING_RECIPES: ProcessingRecipeDef[] = [
     inputItemId: 'trash',
     inputQuantity: 5,
     outputItemId: 'iron_ore',
-    outputQuantity: 1,
+    outputQuantity: 2,
     processingDays: 1,
     description: '将垃圾回收提炼出铁矿。'
   },
@@ -991,11 +991,44 @@ export const PROCESSING_RECIPES: ProcessingRecipeDef[] = [
     machineType: 'recycler',
     name: '回收石英',
     inputItemId: 'trash',
-    inputQuantity: 10,
+    inputQuantity: 8,
     outputItemId: 'quartz',
     outputQuantity: 1,
     processingDays: 2,
-    description: '将大量垃圾回收提炼出石英。'
+    description: '将垃圾回收提炼出石英。'
+  },
+  {
+    id: 'recycle_driftwood',
+    machineType: 'recycler',
+    name: '浮木回收',
+    inputItemId: 'driftwood',
+    inputQuantity: 5,
+    outputItemId: 'wood',
+    outputQuantity: 10,
+    processingDays: 1,
+    description: '将浮木处理为可用木材。'
+  },
+  {
+    id: 'recycle_cd',
+    machineType: 'recycler',
+    name: '碟片提炼',
+    inputItemId: 'broken_cd',
+    inputQuantity: 3,
+    outputItemId: 'copper_ore',
+    outputQuantity: 3,
+    processingDays: 1,
+    description: '从碎碟片中提炼金属。'
+  },
+  {
+    id: 'recycle_newspaper',
+    machineType: 'recycler',
+    name: '报纸回收',
+    inputItemId: 'soggy_newspaper',
+    inputQuantity: 5,
+    outputItemId: 'firewood',
+    outputQuantity: 3,
+    processingDays: 1,
+    description: '将湿报纸晒干用作燃料。'
   },
   // 乳酪机
   {
@@ -1313,6 +1346,51 @@ export const PROCESSING_RECIPES: ProcessingRecipeDef[] = [
     outputQuantity: 1,
     processingDays: 2,
     description: '将鹿茸研磨成粉。'
+  },
+  {
+    id: 'grind_animal_medicine',
+    machineType: 'herb_grinder',
+    name: '兽药',
+    inputItemId: 'herb',
+    inputQuantity: 2,
+    outputItemId: 'animal_medicine',
+    outputQuantity: 1,
+    processingDays: 1,
+    description: '将草药研磨成治疗牲畜的药物。'
+  },
+  // 特殊饲料
+  {
+    id: 'mill_premium_feed',
+    machineType: 'mill',
+    name: '精饲料',
+    inputItemId: 'corn',
+    inputQuantity: 3,
+    outputItemId: 'premium_feed',
+    outputQuantity: 2,
+    processingDays: 1,
+    description: '将玉米配制成精饲料。'
+  },
+  {
+    id: 'mill_nourishing_feed',
+    machineType: 'mill',
+    name: '滋补饲料',
+    inputItemId: 'rice',
+    inputQuantity: 3,
+    outputItemId: 'nourishing_feed',
+    outputQuantity: 2,
+    processingDays: 1,
+    description: '将稻米配制成滋补饲料。'
+  },
+  {
+    id: 'grind_vitality_feed',
+    machineType: 'herb_grinder',
+    name: '活力饲料',
+    inputItemId: 'herb',
+    inputQuantity: 3,
+    outputItemId: 'vitality_feed',
+    outputQuantity: 1,
+    processingDays: 2,
+    description: '将草药研磨成活力饲料。'
   },
   // 制香坊
   {
@@ -1677,11 +1755,11 @@ export const BOMBS: BombDef[] = [
     oreMultiplier: 3,
     clearsMonster: false,
     craftCost: [
-      { itemId: 'copper_ore', quantity: 3 },
-      { itemId: 'firewood', quantity: 5 }
+      { itemId: 'copper_ore', quantity: 12 },
+      { itemId: 'firewood', quantity: 15 }
     ],
-    craftMoney: 0,
-    shopPrice: 50
+    craftMoney: 100,
+    shopPrice: 150
   },
   {
     id: 'bomb',
@@ -1690,12 +1768,12 @@ export const BOMBS: BombDef[] = [
     oreMultiplier: 5,
     clearsMonster: true,
     craftCost: [
-      { itemId: 'iron_ore', quantity: 3 },
-      { itemId: 'firewood', quantity: 8 },
-      { itemId: 'quartz', quantity: 1 }
+      { itemId: 'iron_ore', quantity: 12 },
+      { itemId: 'firewood', quantity: 18 },
+      { itemId: 'quartz', quantity: 5 }
     ],
-    craftMoney: 0,
-    shopPrice: 150
+    craftMoney: 250,
+    shopPrice: 500
   },
   {
     id: 'mega_bomb',
@@ -1704,13 +1782,13 @@ export const BOMBS: BombDef[] = [
     oreMultiplier: 8,
     clearsMonster: true,
     craftCost: [
-      { itemId: 'gold_ore', quantity: 5 },
-      { itemId: 'iron_ore', quantity: 5 },
-      { itemId: 'firewood', quantity: 10 },
-      { itemId: 'ruby', quantity: 1 }
+      { itemId: 'gold_ore', quantity: 18 },
+      { itemId: 'iron_ore', quantity: 15 },
+      { itemId: 'firewood', quantity: 25 },
+      { itemId: 'ruby', quantity: 3 }
     ],
-    craftMoney: 0,
-    shopPrice: 500
+    craftMoney: 500,
+    shopPrice: 1500
   }
 ]
 

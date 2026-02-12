@@ -66,7 +66,7 @@ export const ACTION_TIME_COSTS = {
   water: 0.08,
   harvest: 0.17,
   // 钓鱼
-  fishStart: 2,
+  fishStart: 1,
   // 挖矿
   mineOre: 0.5,
   combat: 0.5,
@@ -103,7 +103,7 @@ export const ACTION_TIME_COSTS = {
   batchTill: 0.25,
   batchHarvest: 0.5,
   // 淘金
-  pan: 0.5,
+  pan: 1,
   // UI
   checkInventory: 0,
   checkSkills: 0,

@@ -85,7 +85,9 @@
           <Warehouse :size="14" class="inline" />
           仓库
         </p>
-        <span v-if="warehouseStore.unlocked" class="text-xs text-muted">{{ warehouseStore.items.length }}/{{ warehouseStore.capacity }}</span>
+        <span v-if="warehouseStore.unlocked" class="text-xs text-muted">
+          {{ warehouseStore.items.length }}/{{ warehouseStore.capacity }}
+        </span>
       </div>
 
       <!-- 未解锁 -->
@@ -125,7 +127,7 @@
         </div>
 
         <!-- 存入按钮 -->
-        <button v-if="depositableItems.length > 0" class="btn text-xs" @click="showDepositModal = true">
+        <button v-if="depositableItems.length > 0" class="btn w-full text-xs" @click="showDepositModal = true">
           <ArrowDown :size="12" />
           存入物品
         </button>

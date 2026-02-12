@@ -49,77 +49,108 @@
       </div>
     </div>
 
-    <!-- 武器装备 -->
+    <!-- 装备槽位 -->
     <div class="border border-accent/20 rounded-xs p-2 mb-3">
-      <p class="text-xs text-muted mb-1.5">武器</p>
-      <div class="flex flex-col gap-1">
+      <p class="text-xs text-muted mb-1.5">装备</p>
+      <div class="flex gap-1">
         <div
-          v-for="(weapon, index) in inventoryStore.ownedWeapons"
-          :key="index"
-          class="flex items-center justify-between border rounded-xs px-2 py-1"
-          :class="index === inventoryStore.equippedWeaponIndex ? 'border-accent/30' : 'border-accent/10'"
+          class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center cursor-pointer hover:bg-accent/5"
+          @click="activeSlot = 'weapon'"
         >
-          <div class="min-w-0">
-            <span class="text-xs" :class="index === inventoryStore.equippedWeaponIndex ? 'text-accent' : ''">
-              {{ getWeaponDisplayName(weapon.defId, weapon.enchantmentId) }}
-            </span>
-            <p class="text-[10px] text-muted truncate">
-              {{ getWeaponTypeName(weapon.defId) }} · 攻击{{ getWeaponStats(weapon).attack }} · 暴击{{
-                Math.round(getWeaponStats(weapon).critRate * 100)
-              }}%
-            </p>
-            <p v-if="weapon.enchantmentId" class="text-[10px] text-success truncate">{{ getEnchantDesc(weapon.enchantmentId) }}</p>
-          </div>
-          <div class="shrink-0 ml-2">
-            <span v-if="index === inventoryStore.equippedWeaponIndex" class="text-xs text-accent">装备中</span>
-            <button v-else class="btn text-xs py-0 px-1.5" @click="handleEquip(index)">装备</button>
-          </div>
+          <p class="text-[10px] text-muted">武器</p>
+          <p class="text-xs text-accent truncate">{{ equippedWeaponName }}</p>
+        </div>
+        <div
+          class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center cursor-pointer hover:bg-accent/5"
+          @click="activeSlot = 'ring1'"
+        >
+          <p class="text-[10px] text-muted">戒指1</p>
+          <p class="text-xs truncate" :class="equippedRing1 ? 'text-accent' : 'text-muted/40'">
+            {{ equippedRing1?.name ?? '空' }}
+          </p>
+        </div>
+        <div
+          class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center cursor-pointer hover:bg-accent/5"
+          @click="activeSlot = 'ring2'"
+        >
+          <p class="text-[10px] text-muted">戒指2</p>
+          <p class="text-xs truncate" :class="equippedRing2 ? 'text-accent' : 'text-muted/40'">
+            {{ equippedRing2?.name ?? '空' }}
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- 戒指装备 -->
-    <template v-if="inventoryStore.ownedRings.length > 0 || equippedRing1 || equippedRing2">
-      <div class="border border-accent/20 rounded-xs p-2 mb-3">
-        <p class="text-xs text-muted mb-1.5">戒指</p>
-        <!-- 槽位 -->
-        <div class="flex gap-1 mb-1.5">
-          <div class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center">
-            <p class="text-[10px] text-muted">槽位1</p>
-            <p class="text-xs" :class="equippedRing1 ? 'text-accent' : 'text-muted/40'">
-              {{ equippedRing1?.name ?? '空' }}
-            </p>
-          </div>
-          <div class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center">
-            <p class="text-[10px] text-muted">槽位2</p>
-            <p class="text-xs" :class="equippedRing2 ? 'text-accent' : 'text-muted/40'">
-              {{ equippedRing2?.name ?? '空' }}
-            </p>
-          </div>
-        </div>
-        <!-- 戒指列表 -->
-        <div
-          v-for="(ring, index) in ownedRingList"
-          :key="index"
-          class="flex items-center justify-between border rounded-xs px-2 py-1 mt-1"
-          :class="isRingEquipped(index) ? 'border-accent/30' : 'border-accent/10'"
-        >
-          <div class="min-w-0">
-            <span class="text-xs" :class="isRingEquipped(index) ? 'text-accent' : ''">{{ ring.name }}</span>
-            <p class="text-[10px] text-muted truncate">{{ ring.effectText }}</p>
-          </div>
-          <div class="flex gap-1 shrink-0 ml-2">
-            <template v-if="isRingEquipped(index)">
-              <button class="btn text-xs py-0 px-1.5" @click="handleUnequipRingByIndex(index)">卸下</button>
-            </template>
-            <template v-else>
-              <button class="btn text-xs py-0 px-1.5" @click="handleEquipRing(index, 0)">槽1</button>
-              <button class="btn text-xs py-0 px-1.5" @click="handleEquipRing(index, 1)">槽2</button>
-            </template>
-          </div>
+    <!-- 装备选择弹窗 -->
+    <Transition name="panel-fade">
+      <div v-if="activeSlot" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" @click.self="activeSlot = null">
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="activeSlot = null">
+            <X :size="14" />
+          </button>
+
+          <!-- 武器弹窗 -->
+          <template v-if="activeSlot === 'weapon'">
+            <p class="text-sm text-accent mb-2">选择武器</p>
+            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+              <div
+                v-for="(weapon, index) in inventoryStore.ownedWeapons"
+                :key="index"
+                class="flex items-center justify-between border rounded-xs px-2 py-1.5 cursor-pointer hover:bg-accent/5"
+                :class="index === inventoryStore.equippedWeaponIndex ? 'border-accent/30' : 'border-accent/10'"
+                @click="handleEquipWeapon(index)"
+              >
+                <div class="min-w-0">
+                  <span class="text-xs" :class="index === inventoryStore.equippedWeaponIndex ? 'text-accent' : ''">
+                    {{ getWeaponDisplayName(weapon.defId, weapon.enchantmentId) }}
+                  </span>
+                  <p class="text-[10px] text-muted truncate">
+                    攻{{ getWeaponStats(weapon).attack }} · 暴击{{ Math.round(getWeaponStats(weapon).critRate * 100) }}%
+                    <template v-if="weapon.enchantmentId">· {{ getEnchantName(weapon.enchantmentId) }}</template>
+                  </p>
+                </div>
+                <span v-if="index === inventoryStore.equippedWeaponIndex" class="text-[10px] text-accent shrink-0 ml-1">当前</span>
+              </div>
+            </div>
+          </template>
+
+          <!-- 戒指弹窗 -->
+          <template v-else>
+            <p class="text-sm text-accent mb-2">选择{{ activeSlot === 'ring1' ? '戒指1' : '戒指2' }}</p>
+            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+              <!-- 卸下按钮 -->
+              <div
+                v-if="(activeSlot === 'ring1' ? inventoryStore.equippedRingSlot1 : inventoryStore.equippedRingSlot2) >= 0"
+                class="flex items-center border border-danger/20 rounded-xs px-2 py-1.5 cursor-pointer hover:bg-danger/5"
+                @click="handleUnequipRingFromPopup"
+              >
+                <span class="text-xs text-danger">卸下当前戒指</span>
+              </div>
+              <!-- 戒指列表 -->
+              <template v-if="inventoryStore.ownedRings.length > 0">
+                <div
+                  v-for="(ring, idx) in ownedRingList"
+                  :key="idx"
+                  class="flex items-center justify-between border rounded-xs px-2 py-1.5 cursor-pointer hover:bg-accent/5"
+                  :class="isRingInCurrentSlot(idx) ? 'border-accent/30' : 'border-accent/10'"
+                  @click="handleEquipRingFromPopup(idx)"
+                >
+                  <div class="min-w-0">
+                    <span class="text-xs" :class="isRingInCurrentSlot(idx) ? 'text-accent' : ''">{{ ring.name }}</span>
+                    <p class="text-[10px] text-muted truncate">{{ ring.effectText }}</p>
+                  </div>
+                  <span v-if="isRingInCurrentSlot(idx)" class="text-[10px] text-accent shrink-0 ml-1">当前</span>
+                  <span v-else-if="isRingInOtherSlot(idx)" class="text-[10px] text-muted shrink-0 ml-1">
+                    在{{ activeSlot === 'ring1' ? '槽2' : '槽1' }}
+                  </span>
+                </div>
+              </template>
+              <p v-else class="text-xs text-muted/40 text-center py-2">暂无戒指</p>
+            </div>
+          </template>
         </div>
       </div>
-    </template>
+    </Transition>
 
     <!-- 工具一览 -->
     <div class="border border-accent/20 rounded-xs p-2 mb-3">
@@ -189,11 +220,11 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
-  import { User } from 'lucide-vue-next'
+  import { ref, computed } from 'vue'
+  import { User, X } from 'lucide-vue-next'
   import { usePlayerStore, useInventoryStore, useSkillStore, useWalletStore, useNpcStore, useGameStore, SEASON_NAMES } from '@/stores'
   import { TOOL_NAMES, TIER_NAMES, getNpcById } from '@/data'
-  import { getWeaponById, getEnchantmentById, getWeaponDisplayName, WEAPON_TYPE_NAMES } from '@/data/weapons'
+  import { getWeaponById, getEnchantmentById, getWeaponDisplayName } from '@/data/weapons'
   import { getRingById } from '@/data/rings'
   import type { RingEffectType } from '@/types'
   import { WALLET_ITEMS } from '@/data/wallet'
@@ -211,11 +242,17 @@
   // === 身份 ===
   const genderLabel = computed(() => (playerStore.gender === 'male' ? '男' : '女'))
 
+  // === 装备槽位 ===
+
+  const activeSlot = ref<'weapon' | 'ring1' | 'ring2' | null>(null)
+
   // === 武器 ===
-  const getWeaponTypeName = (defId: string): string => {
-    const def = getWeaponById(defId)
-    return def ? WEAPON_TYPE_NAMES[def.type] : '未知'
-  }
+
+  const equippedWeaponName = computed(() => {
+    const weapon = inventoryStore.ownedWeapons[inventoryStore.equippedWeaponIndex]
+    if (!weapon) return '无'
+    return getWeaponDisplayName(weapon.defId, weapon.enchantmentId)
+  })
 
   const getWeaponStats = (weapon: OwnedWeapon): { attack: number; critRate: number } => {
     const def = getWeaponById(weapon.defId)
@@ -232,12 +269,11 @@
     return { attack, critRate }
   }
 
-  const getEnchantDesc = (enchantmentId: string): string => {
-    const enchant = getEnchantmentById(enchantmentId)
-    return enchant ? `${enchant.name} - ${enchant.description}` : ''
+  const getEnchantName = (enchantmentId: string): string => {
+    return getEnchantmentById(enchantmentId)?.name ?? ''
   }
 
-  const handleEquip = (index: number) => {
+  const handleEquipWeapon = (index: number) => {
     if (inventoryStore.equipWeapon(index)) {
       const weapon = inventoryStore.ownedWeapons[index]!
       const name = getWeaponDisplayName(weapon.defId, weapon.enchantmentId)
@@ -301,28 +337,33 @@
     }))
   )
 
-  const handleEquipRing = (ringIndex: number, slot: 0 | 1) => {
+  const handleEquipRingFromPopup = (ringIndex: number) => {
+    const slot: 0 | 1 = activeSlot.value === 'ring1' ? 0 : 1
     if (inventoryStore.equipRing(ringIndex, slot)) {
       const def = getRingById(inventoryStore.ownedRings[ringIndex]!.defId)
       addLog(`将${def?.name ?? '戒指'}装备到槽位${slot + 1}。`)
+      activeSlot.value = null
     }
   }
 
-  const handleUnequipRing = (slot: 0 | 1) => {
+  const handleUnequipRingFromPopup = () => {
+    const slot: 0 | 1 = activeSlot.value === 'ring1' ? 0 : 1
     const idx = slot === 0 ? inventoryStore.equippedRingSlot1 : inventoryStore.equippedRingSlot2
     const def = idx >= 0 ? getRingById(inventoryStore.ownedRings[idx]!.defId) : null
     if (inventoryStore.unequipRing(slot)) {
       addLog(`卸下了${def?.name ?? '戒指'}。`)
+      activeSlot.value = null
     }
   }
 
-  const isRingEquipped = (idx: number): boolean => {
-    return inventoryStore.equippedRingSlot1 === idx || inventoryStore.equippedRingSlot2 === idx
+  const isRingInCurrentSlot = (idx: number): boolean => {
+    if (activeSlot.value === 'ring1') return inventoryStore.equippedRingSlot1 === idx
+    return inventoryStore.equippedRingSlot2 === idx
   }
 
-  const handleUnequipRingByIndex = (idx: number) => {
-    if (inventoryStore.equippedRingSlot1 === idx) handleUnequipRing(0)
-    else if (inventoryStore.equippedRingSlot2 === idx) handleUnequipRing(1)
+  const isRingInOtherSlot = (idx: number): boolean => {
+    if (activeSlot.value === 'ring1') return inventoryStore.equippedRingSlot2 === idx
+    return inventoryStore.equippedRingSlot1 === idx
   }
 
   // === 技能 ===

@@ -1,5 +1,25 @@
 /** 加工机器类型 */
-export type MachineType = 'wine_workshop' | 'sauce_jar' | 'bee_house' | 'oil_press' | 'mayo_maker' | 'seed_maker' | 'crystal_duplicator' | 'smoker' | 'dehydrator' | 'recycler' | 'cheese_press' | 'loom' | 'furnace' | 'charcoal_kiln' | 'mill' | 'worm_bin' | 'tea_maker' | 'tofu_press' | 'herb_grinder' | 'incense_maker'
+export type MachineType =
+  | 'wine_workshop'
+  | 'sauce_jar'
+  | 'bee_house'
+  | 'oil_press'
+  | 'mayo_maker'
+  | 'seed_maker'
+  | 'crystal_duplicator'
+  | 'smoker'
+  | 'dehydrator'
+  | 'recycler'
+  | 'cheese_press'
+  | 'loom'
+  | 'furnace'
+  | 'charcoal_kiln'
+  | 'mill'
+  | 'worm_bin'
+  | 'tea_maker'
+  | 'tofu_press'
+  | 'herb_grinder'
+  | 'incense_maker'
 
 /** 加工机器定义 */
 export interface ProcessingMachineDef {
@@ -158,6 +178,8 @@ export interface PlantedWildTree {
   hasTapper: boolean
   tapDaysElapsed: number
   tapReady: boolean
+  /** 已伐木次数（>=3 时树消失） */
+  chopCount: number
 }
 
 /** 蟹笼状态 */

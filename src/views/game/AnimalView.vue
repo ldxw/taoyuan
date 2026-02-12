@@ -19,10 +19,7 @@
         <div class="flex items-center gap-1">
           <span class="text-[10px] text-muted w-6">好感</span>
           <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
-            <div
-              class="h-full rounded-xs bg-danger transition-all"
-              :style="{ width: Math.floor(animalStore.pet.friendship / 10) + '%' }"
-            />
+            <div class="h-full rounded-xs bg-danger transition-all" :style="{ width: Math.floor(animalStore.pet.friendship / 10) + '%' }" />
           </div>
           <span class="text-[10px] text-muted">{{ animalStore.pet.friendship }}/1000</span>
         </div>
@@ -41,7 +38,7 @@
         <span class="text-sm text-accent">{{ getBuildingDisplayName(bDef.type) }}</span>
         <div v-if="isBuildingBuilt(bDef.type)" class="flex items-center gap-2">
           <span class="text-xs text-muted">{{ getAnimalsInBuilding(bDef.type).length }}/{{ getBuildingCapacity(bDef.type) }}</span>
-          <button v-if="getBuildingLevel(bDef.type) < 3" class="btn text-xs" @click="handleUpgradeBuilding(bDef.type)">
+          <button v-if="getBuildingLevel(bDef.type) < 3" class="btn text-xs" @click="openUpgradeModal(bDef.type)">
             <ArrowUp :size="14" />
             升级
           </button>
@@ -104,7 +101,7 @@
         </div>
 
         <!-- 购买动物按钮 -->
-        <button class="btn text-xs mb-3" @click="buyListBuilding = bDef.type">
+        <button class="btn w-full md:w-auto text-xs mb-3" @click="buyListBuilding = bDef.type">
           <ShoppingCart :size="14" />
           购买动物
         </button>
@@ -114,10 +111,16 @@
           <div v-for="animal in getAnimalsInBuilding(bDef.type)" :key="animal.id" class="border border-accent/10 rounded-xs p-2">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-accent">{{ animal.name }}</span>
-              <button class="btn text-xs py-0 px-1" :disabled="animal.wasPetted" @click="handlePetAnimal(animal.id)">
-                <Hand :size="14" />
-                {{ animal.wasPetted ? '已摸' : '抚摸' }}
-              </button>
+              <div class="flex items-center gap-1">
+                <button class="btn text-xs py-0 px-1" :disabled="animal.wasPetted" @click="handlePetAnimal(animal.id)">
+                  <Hand :size="14" />
+                  {{ animal.wasPetted ? '已摸' : '抚摸' }}
+                </button>
+                <button class="btn text-xs py-0 px-1" @click="sellTarget = { id: animal.id, name: animal.name, type: animal.type }">
+                  <Coins :size="14" />
+                  出售
+                </button>
+              </div>
             </div>
             <div class="space-y-0.5">
               <div class="flex items-center gap-1">
@@ -137,6 +140,20 @@
                 </div>
                 <span class="text-[10px] text-muted w-6">{{ getMoodText(animal.mood) }}</span>
               </div>
+              <div v-if="animal.hunger > 0" class="flex items-center gap-1">
+                <span class="text-[10px] text-muted w-6">饥饿</span>
+                <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
+                  <div class="h-full rounded-xs bg-danger transition-all" :style="{ width: Math.floor((animal.hunger / 7) * 100) + '%' }" />
+                </div>
+                <span class="text-[10px] text-danger w-6">{{ animal.hunger }}天</span>
+              </div>
+            </div>
+            <div v-if="animal.sick" class="flex items-center justify-between mt-0.5">
+              <p class="text-[10px] text-danger">生病中({{ animal.sickDays }}/5天)</p>
+              <button class="btn text-xs py-0 px-1" :disabled="medicineCount <= 0" @click="handleHealAnimal(animal.id, animal.name)">
+                <Syringe :size="14" />
+                治疗
+              </button>
             </div>
           </div>
         </div>
@@ -167,14 +184,23 @@
         <div v-if="animalStore.getHorse" class="border border-accent/10 rounded-xs p-2">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-accent">{{ animalStore.getHorse.name }}</span>
-            <button
-              class="btn text-xs py-0 px-1"
-              :disabled="animalStore.getHorse.wasPetted"
-              @click="handlePetAnimal(animalStore.getHorse.id)"
-            >
-              <Hand :size="14" />
-              {{ animalStore.getHorse.wasPetted ? '已摸' : '抚摸' }}
-            </button>
+            <div class="flex items-center gap-1">
+              <button
+                class="btn text-xs py-0 px-1"
+                :disabled="animalStore.getHorse.wasPetted"
+                @click="handlePetAnimal(animalStore.getHorse.id)"
+              >
+                <Hand :size="14" />
+                {{ animalStore.getHorse.wasPetted ? '已摸' : '抚摸' }}
+              </button>
+              <button
+                class="btn text-xs py-0 px-1"
+                @click="sellTarget = { id: animalStore.getHorse!.id, name: animalStore.getHorse!.name, type: animalStore.getHorse!.type }"
+              >
+                <Coins :size="14" />
+                出售
+              </button>
+            </div>
           </div>
           <div class="space-y-0.5">
             <div class="flex items-center gap-1">
@@ -197,6 +223,27 @@
               </div>
               <span class="text-[10px] text-muted w-6">{{ getMoodText(animalStore.getHorse.mood) }}</span>
             </div>
+            <div v-if="animalStore.getHorse.hunger > 0" class="flex items-center gap-1">
+              <span class="text-[10px] text-muted w-6">饥饿</span>
+              <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
+                <div
+                  class="h-full rounded-xs bg-danger transition-all"
+                  :style="{ width: Math.floor((animalStore.getHorse.hunger / 7) * 100) + '%' }"
+                />
+              </div>
+              <span class="text-[10px] text-danger w-6">{{ animalStore.getHorse.hunger }}天</span>
+            </div>
+          </div>
+          <div v-if="animalStore.getHorse.sick" class="flex items-center justify-between mt-0.5">
+            <p class="text-[10px] text-danger">生病中({{ animalStore.getHorse.sickDays }}/5天)</p>
+            <button
+              class="btn text-xs py-0 px-1"
+              :disabled="medicineCount <= 0"
+              @click="handleHealAnimal(animalStore.getHorse!.id, animalStore.getHorse!.name)"
+            >
+              <Syringe :size="14" />
+              治疗
+            </button>
           </div>
           <p class="text-xs text-success mt-1">骑马出行，旅行时间减少30%。</p>
         </div>
@@ -240,11 +287,31 @@
         饲养管理
       </h3>
 
+      <!-- 饲料选择 -->
+      <div class="mb-3">
+        <p class="text-xs text-muted mb-1">饲料选择</p>
+        <div class="flex flex-col gap-1">
+          <div
+            v-for="feed in feedCounts"
+            :key="feed.id"
+            class="flex items-center justify-between border rounded-xs px-3 py-1.5 cursor-pointer"
+            :class="selectedFeed === feed.id ? 'border-accent bg-accent/10' : 'border-accent/20 hover:bg-accent/5'"
+            @click="selectedFeed = feed.id"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-xs" :class="selectedFeed === feed.id ? 'text-accent' : ''">{{ feed.name }}</span>
+              <span class="text-[10px] text-muted">{{ feed.description }}</span>
+            </div>
+            <span class="text-xs text-muted">{{ feed.count }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 喂食 -->
       <div class="mb-3">
         <div class="flex items-center justify-between mb-1">
           <p class="text-xs text-muted">喂食</p>
-          <span class="text-xs text-muted">干草库存：{{ hayCount }}</span>
+          <span class="text-xs text-muted">{{ selectedFeedName }}库存：{{ selectedFeedCount }}</span>
         </div>
         <div class="flex flex-col gap-1">
           <div
@@ -253,15 +320,15 @@
             @click="unfedCount > 0 && handleFeedAll()"
           >
             <span class="text-xs">喂食全部</span>
-            <span class="text-xs text-muted">需干草×{{ unfedCount }}</span>
+            <span class="text-xs text-muted">需{{ selectedFeedName }}&times;{{ unfedCount }}</span>
           </div>
           <div
             class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5"
-            :class="playerStore.money >= HAY_PRICE ? 'cursor-pointer hover:bg-accent/5' : 'opacity-50'"
-            @click="playerStore.money >= HAY_PRICE && handleBuyHay()"
+            :class="playerStore.money >= selectedFeedPrice ? 'cursor-pointer hover:bg-accent/5' : 'opacity-50'"
+            @click="playerStore.money >= selectedFeedPrice && handleBuyFeed()"
           >
-            <span class="text-xs">购买干草</span>
-            <span class="text-xs text-accent">{{ HAY_PRICE }}文</span>
+            <span class="text-xs">购买{{ selectedFeedName }}</span>
+            <span class="text-xs text-accent">{{ selectedFeedPrice }}文</span>
           </div>
         </div>
       </div>
@@ -276,6 +343,22 @@
         >
           <span class="text-xs">放牧全部动物</span>
           <span v-if="grazeDisabledReason" class="text-xs text-muted">{{ grazeDisabledReason }}</span>
+        </div>
+      </div>
+
+      <!-- 治疗 -->
+      <div v-if="sickCount > 0" class="mt-3">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-xs text-muted">治疗</p>
+          <span class="text-xs text-muted">兽药库存：{{ medicineCount }}</span>
+        </div>
+        <div
+          class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5"
+          :class="medicineCount > 0 ? 'cursor-pointer hover:bg-accent/5' : 'opacity-50'"
+          @click="medicineCount > 0 && handleHealAll()"
+        >
+          <span class="text-xs">治疗全部生病动物</span>
+          <span class="text-xs text-muted">需兽药×{{ sickCount }}</span>
         </div>
       </div>
     </div>
@@ -333,14 +416,109 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 出售动物确认弹窗 -->
+    <Transition name="panel-fade">
+      <div v-if="sellTarget" class="fixed inset-0 bg-black/60 flex items-center justify-center z-60 p-4" @click.self="sellTarget = null">
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="sellTarget = null">
+            <X :size="14" />
+          </button>
+          <p class="text-accent text-sm mb-2">出售动物</p>
+          <p class="text-xs text-text mb-1">
+            确定要卖掉
+            <span class="text-accent">{{ sellTarget.name }}</span>
+            吗？
+          </p>
+          <p class="text-xs text-muted mb-3">
+            出售后不可恢复，将获得
+            <span class="text-accent">{{ sellTargetRefund }}文</span>
+            （原价一半）。
+          </p>
+          <div class="flex gap-2">
+            <button class="btn text-xs flex-1" @click="sellTarget = null">取消</button>
+            <button class="btn text-xs flex-1 bg-danger! text-text!" @click="confirmSellAnimal">
+              <Coins :size="12" />
+              确认出售
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 升级畜舍弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="upgradeModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="upgradeModal = null"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="upgradeModal = null">
+            <X :size="14" />
+          </button>
+
+          <p class="text-sm text-accent mb-2">升级畜舍</p>
+
+          <!-- 当前等级信息 -->
+          <div class="border border-accent/10 rounded-xs p-2 mb-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-muted">当前</span>
+              <span class="text-xs">{{ upgradeModal.currentName }}（Lv.{{ upgradeModal.currentLevel }}）</span>
+            </div>
+            <div class="flex items-center justify-between mt-0.5">
+              <span class="text-xs text-muted">容量</span>
+              <span class="text-xs">{{ upgradeModal.currentCapacity }}只</span>
+            </div>
+          </div>
+
+          <!-- 升级目标 -->
+          <div class="border border-accent/10 rounded-xs p-2 mb-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-muted">升级为</span>
+              <span class="text-xs text-accent">{{ upgradeModal.targetName }}（Lv.{{ upgradeModal.targetLevel }}）</span>
+            </div>
+            <div class="flex items-center justify-between mt-0.5">
+              <span class="text-xs text-muted">容量</span>
+              <span class="text-xs text-accent">{{ upgradeModal.targetCapacity }}只</span>
+            </div>
+          </div>
+
+          <!-- 所需资源 -->
+          <div class="border border-accent/10 rounded-xs p-2 mb-3">
+            <p class="text-xs text-muted mb-1">所需资源</p>
+            <div class="flex items-center justify-between mt-0.5">
+              <span class="text-xs">金钱</span>
+              <span class="text-xs" :class="playerStore.money >= upgradeModal.cost ? 'text-success' : 'text-danger'">
+                {{ playerStore.money }} / {{ upgradeModal.cost }}文
+              </span>
+            </div>
+            <div v-for="mat in upgradeModal.materials" :key="mat.itemId" class="flex items-center justify-between mt-0.5">
+              <span class="text-xs">{{ mat.name }}</span>
+              <span class="text-xs" :class="mat.have >= mat.need ? 'text-success' : 'text-danger'">{{ mat.have }} / {{ mat.need }}</span>
+            </div>
+          </div>
+
+          <button
+            class="btn text-xs w-full justify-center"
+            :class="canConfirmUpgrade ? 'bg-accent! text-bg!' : 'opacity-50'"
+            :disabled="!canConfirmUpgrade"
+            @click="confirmUpgradeBuilding"
+          >
+            <ArrowUp :size="12" />
+            确认升级
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { Hammer, ShoppingCart, Hand, Apple, Home, ArrowUp, Egg, X } from 'lucide-vue-next'
+  import { Hammer, ShoppingCart, Hand, Apple, Home, ArrowUp, Egg, X, Coins, Syringe } from 'lucide-vue-next'
   import { useAnimalStore, useInventoryStore, usePlayerStore, useGameStore } from '@/stores'
-  import { ANIMAL_BUILDINGS, ANIMAL_DEFS, HAY_ITEM_ID, HAY_PRICE, getItemById, getBuildingUpgrade, INCUBATION_MAP } from '@/data'
+  import { ANIMAL_BUILDINGS, ANIMAL_DEFS, HAY_ITEM_ID, getItemById, getBuildingUpgrade, INCUBATION_MAP, FEED_DEFS } from '@/data'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import type { AnimalBuildingType, AnimalType, AnimalDef } from '@/types'
   import { addLog } from '@/composables/useGameLog'
@@ -391,6 +569,25 @@
     buyModal.value = null
   }
 
+  // === 出售确认弹窗 ===
+
+  const sellTarget = ref<{ id: string; name: string; type: AnimalType } | null>(null)
+
+  const sellTargetRefund = computed(() => {
+    if (!sellTarget.value) return 0
+    const def = ANIMAL_DEFS.find(d => d.type === sellTarget.value!.type)
+    return Math.floor((def?.cost ?? 0) / 2)
+  })
+
+  const confirmSellAnimal = () => {
+    if (!sellTarget.value) return
+    const result = animalStore.sellAnimal(sellTarget.value.id)
+    sellTarget.value = null
+    if (result.success) {
+      addLog(`卖掉了${result.name}，获得${result.refund}文。`)
+    }
+  }
+
   // === 数据计算 ===
 
   /** 只显示鸡舍和牲口棚（马厩单独渲染） */
@@ -399,11 +596,34 @@
   /** 马厩建筑定义 */
   const stableDef = computed(() => ANIMAL_BUILDINGS.find(b => b.type === 'stable'))
 
-  /** 干草库存数量 */
-  const hayCount = computed(() => inventoryStore.getItemCount(HAY_ITEM_ID))
+  /** 当前选择的饲料类型 */
+  const selectedFeed = ref<string>(HAY_ITEM_ID)
+
+  /** 各类饲料库存数量 */
+  const feedCounts = computed(() =>
+    FEED_DEFS.map(f => ({
+      ...f,
+      count: inventoryStore.getItemCount(f.id)
+    }))
+  )
+
+  /** 当前选中饲料的名称 */
+  const selectedFeedName = computed(() => FEED_DEFS.find(f => f.id === selectedFeed.value)?.name ?? '干草')
+
+  /** 当前选中饲料的库存 */
+  const selectedFeedCount = computed(() => inventoryStore.getItemCount(selectedFeed.value))
+
+  /** 当前选中饲料的价格 */
+  const selectedFeedPrice = computed(() => FEED_DEFS.find(f => f.id === selectedFeed.value)?.price ?? 50)
 
   /** 未喂食动物数量 */
   const unfedCount = computed(() => animalStore.animals.filter(a => !a.wasFed).length)
+
+  /** 兽药库存数量 */
+  const medicineCount = computed(() => inventoryStore.getItemCount('animal_medicine'))
+
+  /** 生病动物数量 */
+  const sickCount = computed(() => animalStore.animals.filter(a => a.sick).length)
 
   /** 可在鸡舍孵化的蛋列表 */
   const coopIncubatableEggs = computed(() => {
@@ -513,21 +733,68 @@
     return ''
   })
 
-  // === 操作处理 ===
+  // === 升级弹窗 ===
 
-  const handleUpgradeBuilding = (type: AnimalBuildingType) => {
+  interface UpgradeModalData {
+    buildingType: AnimalBuildingType
+    currentName: string
+    currentLevel: number
+    currentCapacity: number
+    targetName: string
+    targetLevel: number
+    targetCapacity: number
+    cost: number
+    materials: { itemId: string; name: string; need: number; have: number }[]
+  }
+
+  const upgradeModal = ref<UpgradeModalData | null>(null)
+
+  const openUpgradeModal = (type: AnimalBuildingType) => {
     const level = getBuildingLevel(type)
     const upgrade = getBuildingUpgrade(type, level + 1)
+    if (!upgrade) return
+    upgradeModal.value = {
+      buildingType: type,
+      currentName: getBuildingDisplayName(type),
+      currentLevel: level,
+      currentCapacity: level * 4,
+      targetName: upgrade.name,
+      targetLevel: upgrade.level,
+      targetCapacity: upgrade.capacity,
+      cost: upgrade.cost,
+      materials: upgrade.materialCost.map(m => ({
+        itemId: m.itemId,
+        name: getItemName(m.itemId),
+        need: m.quantity,
+        have: inventoryStore.getItemCount(m.itemId)
+      }))
+    }
+  }
+
+  const canConfirmUpgrade = computed(() => {
+    if (!upgradeModal.value) return false
+    if (playerStore.money < upgradeModal.value.cost) return false
+    return upgradeModal.value.materials.every(m => inventoryStore.getItemCount(m.itemId) >= m.need)
+  })
+
+  const confirmUpgradeBuilding = () => {
+    if (!upgradeModal.value) return
+    const type = upgradeModal.value.buildingType
+    const targetName = upgradeModal.value.targetName
+    const targetCapacity = upgradeModal.value.targetCapacity
+    upgradeModal.value = null
     const success = animalStore.upgradeBuilding(type)
     if (success) {
-      addLog(`成功升级为${upgrade?.name ?? '高级畜舍'}！容量增至${(level + 1) * 4}。`)
+      addLog(`成功升级为${targetName}！容量增至${targetCapacity}。`)
       const tr = gameStore.advanceTime(2)
       if (tr.message) addLog(tr.message)
       if (tr.passedOut) handleEndDay()
     } else {
-      addLog(`升级失败，请检查金币和材料是否充足。`)
+      addLog('升级失败，请检查金币和材料是否充足。')
     }
   }
+
+  // === 操作处理 ===
 
   const handleBuildBuilding = (type: AnimalBuildingType) => {
     const success = animalStore.buildBuilding(type)
@@ -591,14 +858,15 @@
   }
 
   const handleFeedAll = () => {
-    const result = animalStore.feedAll()
+    const result = animalStore.feedAll(selectedFeed.value)
+    const feedName = selectedFeedName.value
     if (result.fedCount > 0) {
-      addLog(`喂食了${result.fedCount}只动物。`)
+      addLog(`用${feedName}喂食了${result.fedCount}只动物。`)
     }
-    if (result.noHayCount > 0) {
-      addLog(`干草不足，${result.noHayCount}只动物未能喂食。`)
+    if (result.noFeedCount > 0) {
+      addLog(`${feedName}不足，${result.noFeedCount}只动物未能喂食。`)
     }
-    if (result.fedCount === 0 && result.noHayCount === 0) {
+    if (result.fedCount === 0 && result.noFeedCount === 0) {
       addLog('所有动物今天都已喂过了。')
     }
     if (result.fedCount > 0) {
@@ -608,13 +876,15 @@
     }
   }
 
-  const handleBuyHay = () => {
-    if (!playerStore.spendMoney(HAY_PRICE)) {
-      addLog('金币不足，无法购买干草。')
+  const handleBuyFeed = () => {
+    const feed = FEED_DEFS.find(f => f.id === selectedFeed.value)
+    if (!feed) return
+    if (!playerStore.spendMoney(feed.price)) {
+      addLog(`金币不足，无法购买${feed.name}。`)
       return
     }
-    inventoryStore.addItem(HAY_ITEM_ID)
-    addLog(`购买了1份干草，花费${HAY_PRICE}文。`)
+    inventoryStore.addItem(selectedFeed.value)
+    addLog(`购买了1份${feed.name}，花费${feed.price}文。`)
   }
 
   const handleGraze = () => {
@@ -625,5 +895,17 @@
       if (tr.message) addLog(tr.message)
       if (tr.passedOut) handleEndDay()
     }
+  }
+
+  const handleHealAnimal = (animalId: string, animalName: string) => {
+    const success = animalStore.healAnimal(animalId)
+    if (success) addLog(`用兽药治好了${animalName}。`)
+    else addLog('治疗失败，请检查是否有兽药。')
+  }
+
+  const handleHealAll = () => {
+    const result = animalStore.healAllSick()
+    if (result.healedCount > 0) addLog(`用兽药治疗了${result.healedCount}只动物。`)
+    if (result.noMedicineCount > 0) addLog(`兽药不足，${result.noMedicineCount}只动物未能治疗。`)
   }
 </script>

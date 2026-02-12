@@ -1153,7 +1153,7 @@
         const def = getItemById(inv.itemId)
         return { ...inv, def }
       })
-      .filter(item => item.def && item.def.category !== 'seed')
+      .filter(item => item.def)
   })
 </script>
 

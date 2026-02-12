@@ -29,11 +29,7 @@
       <div class="mb-3">
         <div class="flex items-center justify-between mb-1.5">
           <p class="text-xs text-muted">— 育种台 {{ breedingStore.stationCount }}/{{ MAX_BREEDING_STATIONS }} —</p>
-          <button
-            v-if="breedingStore.stationCount < MAX_BREEDING_STATIONS"
-            class="btn text-xs"
-            @click="showCraftModal = true"
-          >
+          <button v-if="breedingStore.stationCount < MAX_BREEDING_STATIONS" class="btn text-xs" @click="showCraftModal = true">
             <Plus :size="12" />
             建造
           </button>
@@ -114,7 +110,9 @@
           >
             <p class="text-xs truncate" :class="seedStarColor(seed.genetics)">{{ getCropName(seed.genetics.cropId) }}</p>
             <p class="text-xs text-muted">G{{ seed.genetics.generation }}</p>
-            <p class="text-xs" :class="seedStarColor(seed.genetics)">{{ getStarText(getStarRating(seed.genetics)) }}</p>
+            <p class="text-xs flex items-center justify-center gap-px" :class="seedStarColor(seed.genetics)">
+              <Star v-for="n in getStarRating(seed.genetics)" :key="n" :size="10" />
+            </p>
           </button>
         </div>
       </div>
@@ -122,6 +120,21 @@
 
     <!-- ===== 图鉴 Tab ===== -->
     <template v-if="tab === 'compendium'">
+      <!-- 说明提示 -->
+      <div v-if="totalDiscovered === 0" class="border border-accent/10 rounded-xs p-2 mb-2">
+        <p class="text-xs text-muted leading-relaxed">
+          图鉴收录通过
+          <span class="text-accent">异种杂交</span>
+          发现的新品种。将两种
+          <span class="text-accent">不同作物</span>
+          的育种种子放入育种台，当父本平均属性达标时即可发现杂交品种。
+        </p>
+        <p class="text-xs text-muted mt-1 leading-relaxed">
+          提示：先通过
+          <span class="text-accent">同种培育</span>
+          提升种子的甜度和产量属性，再尝试异种杂交。
+        </p>
+      </div>
       <!-- 阶层筛选 -->
       <div class="flex gap-1 mb-2 flex-wrap">
         <button
@@ -175,7 +188,11 @@
 
     <!-- 建造确认弹窗 -->
     <Transition name="panel-fade">
-      <div v-if="showCraftModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" @click.self="showCraftModal = false">
+      <div
+        v-if="showCraftModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showCraftModal = false"
+      >
         <div class="game-panel max-w-xs w-full relative">
           <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showCraftModal = false">
             <X :size="14" />
@@ -187,9 +204,7 @@
             <p class="text-xs text-muted mb-1">所需材料</p>
             <div v-for="mat in craftMaterials" :key="mat.itemId" class="flex items-center justify-between mt-0.5">
               <span class="text-xs">{{ mat.name }}</span>
-              <span class="text-xs" :class="mat.enough ? 'text-success' : 'text-danger'">
-                {{ mat.owned }}/{{ mat.required }}
-              </span>
+              <span class="text-xs" :class="mat.enough ? 'text-success' : 'text-danger'">{{ mat.owned }}/{{ mat.required }}</span>
             </div>
           </div>
 
@@ -228,8 +243,9 @@
           </button>
 
           <p class="text-sm text-accent mb-2">{{ getCropName(detailSeed.genetics.cropId) }} · G{{ detailSeed.genetics.generation }}</p>
-          <p class="text-xs mb-2" :class="seedStarColor(detailSeed.genetics)">
-            {{ getStarText(getStarRating(detailSeed.genetics)) }} （总{{ getTotalStats(detailSeed.genetics) }}）
+          <p class="text-xs mb-2 flex items-center gap-1" :class="seedStarColor(detailSeed.genetics)">
+            <span class="flex items-center gap-px"><Star v-for="n in getStarRating(detailSeed.genetics)" :key="n" :size="10" /></span>
+            <span>（总{{ getTotalStats(detailSeed.genetics) }}）</span>
           </p>
 
           <!-- 属性条 -->
@@ -342,8 +358,39 @@
               @click="toggleSeedSelect(seed.genetics.id)"
             >
               <span :class="seedStarColor(seed.genetics)">{{ getCropName(seed.genetics.cropId) }} G{{ seed.genetics.generation }}</span>
-              <span class="text-muted">{{ getStarText(getStarRating(seed.genetics)) }} {{ getTotalStats(seed.genetics) }}</span>
+              <span class="text-muted flex items-center gap-1"><span class="flex items-center gap-px"><Star v-for="n in getStarRating(seed.genetics)" :key="n" :size="10" /></span> {{ getTotalStats(seed.genetics) }}</span>
             </button>
+          </div>
+
+          <!-- 杂交配方提示 -->
+          <div
+            v-if="crossBreedHint"
+            class="border rounded-xs p-2 mb-3"
+            :class="crossBreedHint.type === 'recipe' && crossBreedHint.canSucceed ? 'border-success/30' : 'border-accent/10'"
+          >
+            <template v-if="crossBreedHint.type === 'same'">
+              <p class="text-xs text-muted">同种培育：提升后代属性，不会产生新品种。</p>
+            </template>
+            <template v-else-if="crossBreedHint.type === 'no_recipe'">
+              <p class="text-xs text-muted">这两个品种没有已知的杂交配方。</p>
+            </template>
+            <template v-else-if="crossBreedHint.type === 'recipe'">
+              <p class="text-xs text-accent mb-1">可杂交：{{ crossBreedHint.name }}</p>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-muted">甜度</span>
+                <span class="text-xs" :class="crossBreedHint.sweetOk ? 'text-success' : 'text-danger'">
+                  {{ crossBreedHint.avgSweet }} / {{ crossBreedHint.minSweet }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between mt-0.5">
+                <span class="text-xs text-muted">产量</span>
+                <span class="text-xs" :class="crossBreedHint.yieldOk ? 'text-success' : 'text-danger'">
+                  {{ crossBreedHint.avgYield }} / {{ crossBreedHint.minYield }}
+                </span>
+              </div>
+              <p v-if="!crossBreedHint.canSucceed" class="text-xs text-danger mt-1">属性未达标，杂交将失败。请先同种培育提升属性。</p>
+              <p v-else class="text-xs text-success mt-1">属性达标，可以杂交成功！</p>
+            </template>
           </div>
 
           <button
@@ -363,7 +410,7 @@
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { FlaskConical, Plus, Check, X, Dna, Trash2, Sprout, PackageOpen } from 'lucide-vue-next'
+  import { FlaskConical, Plus, Check, X, Dna, Trash2, Sprout, PackageOpen, Star } from 'lucide-vue-next'
   import { useBreedingStore, usePlayerStore, useInventoryStore, useGameStore } from '@/stores'
   import { getCropById } from '@/data/crops'
   import { getItemById } from '@/data/items'
@@ -372,10 +419,10 @@
     MAX_BREEDING_STATIONS,
     BREEDING_STATION_COST,
     getStarRating,
-    getStarText,
     getTotalStats,
     HYBRID_DEFS,
-    getHybridTier
+    getHybridTier,
+    findPossibleHybrid
   } from '@/data/breeding'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { addLog } from '@/composables/useGameLog'
@@ -523,6 +570,34 @@
       selectedSeedIds.value.push(id)
     }
   }
+
+  /** 选中两颗种子时，检查是否存在杂交配方并显示属性要求 */
+  const crossBreedHint = computed(() => {
+    if (selectedSeedIds.value.length !== 2) return null
+    const seedA = breedingStore.breedingBox.find(s => s.genetics.id === selectedSeedIds.value[0])
+    const seedB = breedingStore.breedingBox.find(s => s.genetics.id === selectedSeedIds.value[1])
+    if (!seedA || !seedB) return null
+    const a = seedA.genetics
+    const b = seedB.genetics
+    if (a.cropId === b.cropId) return { type: 'same' as const }
+    const hybrid = findPossibleHybrid(a.cropId, b.cropId)
+    if (!hybrid) return { type: 'no_recipe' as const }
+    const avgSweet = Math.round((a.sweetness + b.sweetness) / 2)
+    const avgYield = Math.round((a.yield + b.yield) / 2)
+    const sweetOk = avgSweet >= hybrid.minSweetness
+    const yieldOk = avgYield >= hybrid.minYield
+    return {
+      type: 'recipe' as const,
+      name: hybrid.name,
+      avgSweet,
+      avgYield,
+      minSweet: hybrid.minSweetness,
+      minYield: hybrid.minYield,
+      sweetOk,
+      yieldOk,
+      canSucceed: sweetOk && yieldOk
+    }
+  })
 
   const handleStartBreeding = () => {
     if (breedingSelectSlot.value === null || selectedSeedIds.value.length !== 2) return

@@ -14,9 +14,17 @@
       <Tent :size="48" class="text-accent/30" />
       <p class="text-sm text-muted">商路尚未开通</p>
       <p class="text-xs text-muted/60 text-center max-w-60">需要击败矿洞第120层BOSS并支付{{ HANHAI_UNLOCK_COST }}文修路费</p>
-      <button v-if="canUnlock" class="btn text-xs bg-accent! text-bg!" @click="handleUnlock">开通商路 ({{ HANHAI_UNLOCK_COST }}文)</button>
-      <p v-else-if="!bossDefeated" class="text-xs text-danger">需先击败矿洞第120层BOSS</p>
-      <p v-else class="text-xs text-danger">金钱不足</p>
+      <button
+        v-if="bossDefeated"
+        class="btn text-xs"
+        :class="canUnlock ? 'bg-accent! text-bg!' : 'opacity-50'"
+        :disabled="!canUnlock"
+        @click="handleUnlock"
+      >
+        开通商路 ({{ HANHAI_UNLOCK_COST }}文)
+      </button>
+      <p v-if="bossDefeated && !canUnlock" class="text-xs text-danger">金钱不足（需要{{ HANHAI_UNLOCK_COST }}文）</p>
+      <p v-if="!bossDefeated" class="text-xs text-danger">需先击败矿洞第120层BOSS</p>
     </div>
 
     <!-- 已解锁 -->
@@ -568,14 +576,12 @@
 
   // === 解锁逻辑 ===
   const miningStore = useMiningStore()
-  const bossDefeated = miningStore.safePointFloor >= 120
-  const canUnlock = bossDefeated && playerStore.money >= HANHAI_UNLOCK_COST
+  const bossDefeated = computed(() => miningStore.defeatedBosses.includes('abyss_dragon'))
+  const canUnlock = computed(() => bossDefeated.value && playerStore.money >= HANHAI_UNLOCK_COST)
   const handleUnlock = () => {
     const result = hanhaiStore.unlockHanhai()
     if (result.success) addLog(result.message)
   }
-  void canUnlock
-  void handleUnlock
 
   // === 轮盘动画状态 ===
   const showRouletteModal = ref(false)

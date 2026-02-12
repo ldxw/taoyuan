@@ -19,6 +19,7 @@ import {
   getStarRating,
   makeSeedLabel,
   findPossibleHybrid,
+  findPossibleHybridById,
   getSeedMakerGeneticChance,
   getHybridTier
 } from '@/data/breeding'
@@ -151,6 +152,21 @@ export const useBreedingStore = defineStore('breeding', () => {
       return null
     }
 
+    // 安全校验：确保杂交种已记录到图鉴
+    if (result.isHybrid && result.hybridId) {
+      const existing = compendium.value.find(e => e.hybridId === result.hybridId)
+      if (!existing) {
+        const hybrid = findPossibleHybridById(result.hybridId)
+        compendium.value.push({
+          hybridId: result.hybridId,
+          discoveredYear: 1,
+          bestTotalStats: result.sweetness + result.yield + result.resistance,
+          timesGrown: 0
+        })
+        if (hybrid) addLog(hybrid.discoveryText)
+      }
+    }
+
     // 重置槽位
     slot.parentA = null
     slot.parentB = null
@@ -211,7 +227,7 @@ export const useBreedingStore = defineStore('breeding', () => {
       addLog('育种发生了变异！属性产生了大幅波动。')
     }
 
-    return {
+    const result: SeedGenetics = {
       id: generateGeneticsId(),
       cropId: a.cropId,
       generation: Math.max(a.generation, b.generation) + 1,
@@ -225,6 +241,28 @@ export const useBreedingStore = defineStore('breeding', () => {
       isHybrid: a.isHybrid,
       hybridId: a.hybridId
     }
+
+    // 同种杂交也需要同步图鉴（防止图鉴条目丢失后无法恢复）
+    if (result.isHybrid && result.hybridId) {
+      const existing = compendium.value.find(e => e.hybridId === result.hybridId)
+      if (!existing) {
+        const hybrid = findPossibleHybridById(result.hybridId)
+        compendium.value.push({
+          hybridId: result.hybridId,
+          discoveredYear: 1,
+          bestTotalStats: result.sweetness + result.yield + result.resistance,
+          timesGrown: 0
+        })
+        if (hybrid) addLog(hybrid.discoveryText)
+      } else {
+        const total = result.sweetness + result.yield + result.resistance
+        if (total > existing.bestTotalStats) {
+          existing.bestTotalStats = total
+        }
+      }
+    }
+
+    return result
   }
 
   /** 异种杂交 */
@@ -292,7 +330,7 @@ export const useBreedingStore = defineStore('breeding', () => {
       } as SeedGenetics
 
       if (hybrid) {
-        addLog(`杂交失败：父本属性未达标（需甜度≥${hybrid.minSweetness}，产量≥${hybrid.minYield}）。`)
+        addLog(`杂交失败：父本平均甜度${Math.round(avgSweetness)}（需≥${hybrid.minSweetness}），平均产量${Math.round(avgYield)}（需≥${hybrid.minYield}）。请先通过同种培育提升属性。`)
       } else {
         addLog('这两个品种无法杂交，返回了一颗种子。')
       }
@@ -308,11 +346,18 @@ export const useBreedingStore = defineStore('breeding', () => {
       if (slot.parentA && slot.parentB && !slot.ready) {
         slot.daysProcessed++
         if (slot.daysProcessed >= slot.totalDays) {
+          const isCrossBreed = slot.parentA.cropId !== slot.parentB.cropId
           slot.result = breedSeeds(slot.parentA, slot.parentB)
           slot.ready = true
           const crop = getCropById(slot.result.cropId)
           const stars = getStarRating(slot.result)
-          addLog(`育种完成：${crop?.name ?? slot.result.cropId}（${stars}星）。`)
+          if (isCrossBreed && slot.result.isHybrid) {
+            addLog(`杂交成功：${crop?.name ?? slot.result.cropId}（${stars}星）！已记录到图鉴。`)
+          } else if (isCrossBreed) {
+            addLog(`杂交未成功，获得了${crop?.name ?? slot.result.cropId}种子（${stars}星）。`)
+          } else {
+            addLog(`育种完成：${crop?.name ?? slot.result.cropId}（${stars}星）。`)
+          }
           const achievementStore = useAchievementStore()
           achievementStore.recordBreeding()
         }

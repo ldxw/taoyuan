@@ -24,6 +24,14 @@ export interface FarmPlot {
   giantCropGroup: number | null
   /** 育种种子的基因属性 */
   seedGenetics: SeedGenetics | null
+  /** 是否被虫害感染 */
+  infested: boolean
+  /** 连续虫害天数 */
+  infestedDays: number
+  /** 是否长草 */
+  weedy: boolean
+  /** 连续长草天数 */
+  weedyDays: number
 }
 
 /** 作物定义（配置数据用） */

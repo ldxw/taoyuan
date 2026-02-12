@@ -515,10 +515,15 @@
         handleEndDay()
         return
       }
-      miniGameParams.value = fishingStore.calculateMiniGameParams()
-      miniGameCompleted.value = false
-      showCloseConfirm.value = false
-      showFishingModal.value = true
+      if (result.junk) {
+        // 垃圾直接入包，不进入小游戏
+        lastResult.value = result.message
+      } else {
+        miniGameParams.value = fishingStore.calculateMiniGameParams()
+        miniGameCompleted.value = false
+        showCloseConfirm.value = false
+        showFishingModal.value = true
+      }
     }
     addLog(result.message)
     if (!result.success) {
@@ -599,7 +604,7 @@
     }
 
     const panMultiplier = inventoryStore.getToolStaminaMultiplier('pan')
-    const cost = Math.max(1, Math.floor(3 * panMultiplier))
+    const cost = Math.max(1, Math.floor(4 * panMultiplier))
     if (!playerStore.consumeStamina(cost)) {
       addLog('体力不足，无法淘金。')
       return
@@ -614,19 +619,19 @@
     let qty = 1
     let name: string
 
-    if (roll < 0.35) {
+    if (roll < 0.4) {
       itemId = 'copper_ore'
-      qty = 1 + Math.floor(Math.random() * 2)
-      name = `铜矿×${qty}`
-    } else if (roll < 0.6) {
+      qty = 1
+      name = '铜矿'
+    } else if (roll < 0.62) {
       itemId = tierIndex >= 1 ? 'iron_ore' : 'copper_ore'
-      qty = 1 + Math.floor(Math.random() * 2)
-      name = `${tierIndex >= 1 ? '铁矿' : '铜矿'}×${qty}`
+      qty = 1
+      name = tierIndex >= 1 ? '铁矿' : '铜矿'
     } else if (roll < 0.75) {
       itemId = tierIndex >= 2 ? 'gold_ore' : 'iron_ore'
       qty = 1
       name = tierIndex >= 2 ? '金矿' : '铁矿'
-    } else if (roll < 0.85) {
+    } else if (roll < 0.84) {
       itemId = 'quartz'
       qty = 1
       name = '石英'
@@ -639,15 +644,15 @@
       qty = 1
       name = '红宝石'
     } else {
-      const goldNuggetChance = tierIndex >= 3 ? 0.15 : 0.05
+      const goldNuggetChance = tierIndex >= 3 ? 0.12 : 0.04
       if (Math.random() < goldNuggetChance / 0.05) {
         itemId = 'gold_nugget'
         qty = 1
         name = '金砂'
       } else {
         itemId = 'copper_ore'
-        qty = 2
-        name = '铜矿×2'
+        qty = 1
+        name = '铜矿'
       }
     }
 

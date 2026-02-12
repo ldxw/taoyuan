@@ -4024,6 +4024,11 @@ export const findPossibleHybrid = (cropIdA: string, cropIdB: string): HybridDef 
   )
 }
 
+/** 根据杂交种ID查找配方 */
+export const findPossibleHybridById = (hybridId: string): HybridDef | null => {
+  return HYBRID_DEFS.find(h => h.id === hybridId) ?? null
+}
+
 /** 种子制造机产出育种种子的概率 */
 export const getSeedMakerGeneticChance = (farmingLevel: number): number => {
   return 0.3 + farmingLevel * 0.03

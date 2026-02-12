@@ -277,6 +277,28 @@
               </div>
             </div>
             <div
+              v-if="hasMonsterLure"
+              class="flex items-center justify-between border border-danger/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-danger/5"
+              @click="handleUseMonsterLure"
+            >
+              <span class="text-xs text-danger">
+                <Skull :size="12" class="inline" />
+                怪物诱饵
+              </span>
+              <span class="text-xs text-muted">&times;{{ inventoryStore.getItemCount('monster_lure') }}</span>
+            </div>
+            <div
+              v-if="availableCombatItems.length > 0"
+              class="flex items-center justify-between border border-success/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-success/5"
+              @click="showCombatItems = true"
+            >
+              <span class="text-xs text-success">
+                <Backpack :size="12" class="inline" />
+                使用道具
+              </span>
+              <span class="text-xs text-muted">{{ availableCombatItems.length }}种</span>
+            </div>
+            <div
               v-if="miningStore.stairsFound"
               class="flex items-center justify-between border border-success/30 rounded-xs px-3 py-1.5"
               :class="miningStore.stairsUsable ? 'cursor-pointer hover:bg-success/5' : 'opacity-50'"
@@ -375,6 +397,17 @@
               <span class="text-xs text-muted">减免伤害</span>
             </div>
             <div
+              v-if="availableCombatItems.length > 0"
+              class="flex items-center justify-between border border-success/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-success/5"
+              @click="showCombatItems = true"
+            >
+              <span class="text-xs text-success">
+                <Backpack :size="12" class="inline" />
+                使用道具
+              </span>
+              <span class="text-xs text-muted">{{ availableCombatItems.length }}种</span>
+            </div>
+            <div
               class="flex items-center justify-between border rounded-xs px-3 py-1.5"
               :class="miningStore.combatIsBoss ? 'border-accent/10 opacity-50' : 'border-danger/20 cursor-pointer hover:bg-danger/5'"
               @click="!miningStore.combatIsBoss && handleCombat('flee')"
@@ -399,17 +432,54 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 道具使用弹窗（战斗/探索共用） -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showCombatItems"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-70 p-4"
+        @click.self="showCombatItems = false"
+      >
+        <div class="game-panel max-w-xs w-full">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-accent">
+              <Backpack :size="14" class="inline" />
+              使用道具
+            </p>
+            <button class="btn text-xs py-0 px-1" @click="showCombatItems = false">
+              <X :size="12" />
+            </button>
+          </div>
+          <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
+            <div
+              v-for="item in availableCombatItems"
+              :key="item.itemId"
+              class="flex items-center justify-between border border-success/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-success/5"
+              @click="handleUseCombatItem(item.itemId)"
+            >
+              <div class="flex flex-col">
+                <span class="text-xs">{{ item.name }}</span>
+                <span class="text-[10px] text-muted">{{ item.desc }}</span>
+              </div>
+              <span class="text-xs text-muted">&times;{{ item.count }}</span>
+            </div>
+          </div>
+          <p v-if="availableCombatItems.length === 0" class="text-xs text-muted text-center py-2">没有可用道具</p>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { Mountain, Pickaxe, Zap, ChevronDown, LogOut, Swords, Shield, MoveRight, Skull, X, Map } from 'lucide-vue-next'
+  import { Mountain, Pickaxe, Zap, ChevronDown, LogOut, Swords, Shield, MoveRight, Skull, X, Map, Backpack } from 'lucide-vue-next'
   import { useMiningStore, useGameStore, usePlayerStore, useInventoryStore, useSkillStore } from '@/stores'
   import { ZONE_NAMES, getFloor, BOSS_MONSTERS } from '@/data'
   import { getWeaponById, getEnchantmentById, getWeaponDisplayName, WEAPON_TYPE_NAMES } from '@/data/weapons'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { BOMBS } from '@/data/processing'
+  import { getItemById } from '@/data/items'
   import type { CombatAction, MineTile } from '@/types'
   import { sfxMine, sfxAttack, sfxHurt, sfxClick, sfxEncounter, sfxDefend, sfxFlee, sfxVictory } from '@/composables/useAudio'
   import { useAudio } from '@/composables/useAudio'
@@ -430,6 +500,9 @@
   /** 炸弹模式 */
   const bombModeId = ref<string | null>(null)
 
+  /** 战斗道具面板 */
+  const showCombatItems = ref(false)
+
   const recentLog = computed(() => exploreLog.value.slice(-8))
 
   const activeFloorNum = computed(() => {
@@ -439,6 +512,51 @@
   const availableBombs = computed(() => {
     return BOMBS.map(b => ({ id: b.id, name: b.name, count: inventoryStore.getItemCount(b.id) })).filter(b => b.count > 0)
   })
+
+  /** 战斗中可用道具列表 */
+  const availableCombatItems = computed(() => {
+    const items: { itemId: string; name: string; desc: string; count: number }[] = []
+
+    // 公会徽章
+    const badgeCount = inventoryStore.getItemCount('guild_badge')
+    if (badgeCount > 0) {
+      items.push({ itemId: 'guild_badge', name: '公会徽章', desc: '攻击力永久+3', count: badgeCount })
+    }
+
+    // 猎魔符
+    if (!miningStore.slayerCharmActive) {
+      const charmCount = inventoryStore.getItemCount('slayer_charm')
+      if (charmCount > 0) {
+        items.push({ itemId: 'slayer_charm', name: '猎魔符', desc: '掉落率+20%（本次探索）', count: charmCount })
+      }
+    }
+
+    // 所有可食用的恢复类道具
+    const seen = new Set<string>(['guild_badge', 'slayer_charm', 'monster_lure'])
+    for (const invItem of inventoryStore.items) {
+      if (invItem.quantity <= 0 || seen.has(invItem.itemId)) continue
+      const def = getItemById(invItem.itemId)
+      if (!def?.edible) continue
+      if (!def.healthRestore && !def.staminaRestore) continue
+      seen.add(invItem.itemId)
+
+      const parts: string[] = []
+      if (def.healthRestore) parts.push(def.healthRestore >= 999 ? 'HP全满' : `HP+${def.healthRestore}`)
+      if (def.staminaRestore) parts.push(`体力+${def.staminaRestore}`)
+
+      items.push({
+        itemId: invItem.itemId,
+        name: def.name,
+        desc: parts.join('，'),
+        count: inventoryStore.getItemCount(invItem.itemId)
+      })
+    }
+
+    return items
+  })
+
+  /** 是否有怪物诱饵 */
+  const hasMonsterLure = computed(() => inventoryStore.getItemCount('monster_lure') > 0)
 
   const zoneName = computed(() => {
     const floor = getFloor(miningStore.currentFloor)
@@ -499,7 +617,11 @@
     return def ? WEAPON_TYPE_NAMES[def.type] : '未知'
   })
   const weaponAttack = computed(
-    () => inventoryStore.getWeaponAttack() + skillStore.combatLevel * 2 + inventoryStore.getRingEffectValue('attack_bonus')
+    () =>
+      inventoryStore.getWeaponAttack() +
+      skillStore.combatLevel * 2 +
+      inventoryStore.getRingEffectValue('attack_bonus') +
+      miningStore.guildBadgeBonusAttack
   )
   const critRateDisplay = computed(
     () => `${Math.round((inventoryStore.getWeaponCritRate() + inventoryStore.getRingEffectValue('crit_rate_bonus')) * 100)}%`
@@ -545,9 +667,9 @@
       case 'ore':
         return tile.state === 'collected' ? 'bg-bg border-accent/10' : 'bg-accent/20 border-accent/40'
       case 'monster':
-        return tile.state === 'defeated' ? 'bg-bg border-accent/10' : 'bg-danger/20 border-danger/40'
+        return tile.state === 'defeated' ? 'bg-bg border-accent/10' : 'bg-danger/20 border-danger/40 cursor-pointer'
       case 'boss':
-        return tile.state === 'defeated' ? 'bg-bg border-accent/10' : 'bg-danger/30 border-danger/50'
+        return tile.state === 'defeated' ? 'bg-bg border-accent/10' : 'bg-danger/30 border-danger/50 cursor-pointer'
       case 'stairs':
         return 'bg-success/20 border-success/40'
       case 'trap':
@@ -591,6 +713,10 @@
     if (bombModeId.value) {
       return tile.state !== 'hidden'
     }
+    // 已揭示的怪物/BOSS格可以重新交战
+    if (tile.state === 'revealed' && (tile.type === 'monster' || tile.type === 'boss') && tile.data?.monster) {
+      return true
+    }
     return tile.state === 'hidden' && miningStore.canRevealTile(tile.index)
   }
 
@@ -615,6 +741,23 @@
         exploreLog.value.push(result.message)
       }
       bombModeId.value = null
+      return
+    }
+
+    // 已揭示的怪物/BOSS格：重新交战
+    if (tile.state === 'revealed' && (tile.type === 'monster' || tile.type === 'boss') && tile.data?.monster) {
+      const result = miningStore.engageRevealedMonster(tile.index)
+      if (result.success) {
+        exploreLog.value.push(result.message)
+        addLog(result.message)
+        if (result.startsCombat) {
+          startBattleBgm()
+          sfxEncounter()
+        }
+      } else {
+        exploreLog.value.push(result.message)
+        addLog(result.message)
+      }
       return
     }
 
@@ -650,6 +793,7 @@
 
   const handleEnterMine = (startFrom?: number) => {
     showElevatorModal.value = false
+    showCombatItems.value = false
     const msg = miningStore.enterMine(startFrom)
     exploreLog.value = [msg]
     sfxClick()
@@ -658,6 +802,7 @@
 
   const handleEnterSkullCavern = () => {
     showElevatorModal.value = false
+    showCombatItems.value = false
     const msg = miningStore.enterSkullCavern()
     exploreLog.value = [msg]
     sfxClick()
@@ -674,9 +819,30 @@
     if (result.combatOver) {
       if (result.won) sfxVictory()
       resumeNormalBgm()
+      showCombatItems.value = false
       if (!miningStore.isExploring) {
         exploreLog.value.push(result.message)
       }
+    }
+  }
+
+  /** 使用战斗道具 */
+  const handleUseCombatItem = (itemId: string) => {
+    const result = miningStore.useCombatItem(itemId)
+    sfxClick()
+    addLog(result.message)
+    if (result.success) {
+      exploreLog.value.push(result.message)
+    }
+  }
+
+  /** 使用怪物诱饵 */
+  const handleUseMonsterLure = () => {
+    const result = miningStore.useMonsterLure()
+    sfxClick()
+    addLog(result.message)
+    if (result.success) {
+      exploreLog.value.push(result.message)
     }
   }
 
@@ -686,6 +852,7 @@
       handleEndDay()
       return
     }
+    showCombatItems.value = false
     const result = miningStore.goNextFloor()
     if (result.success) {
       exploreLog.value = [result.message]
@@ -701,6 +868,7 @@
 
   const handleLeave = () => {
     if (miningStore.inCombat) resumeNormalBgm()
+    showCombatItems.value = false
     const msg = miningStore.leaveMine()
     exploreLog.value = []
     bombModeId.value = null

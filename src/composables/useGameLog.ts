@@ -4,7 +4,7 @@ export type FloatColor = 'danger' | 'success' | 'accent' | 'water'
 
 // 配置 Qmsg 全局样式
 Qmsg.config({
-  position: 'top',
+  position: 'bottom',
   showIcon: false,
   maxNums: 5,
   timeout: 2500,

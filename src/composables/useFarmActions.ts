@@ -16,6 +16,7 @@ import { getCropById, getItemById } from '@/data'
 import { getFertilizerById } from '@/data/processing'
 import { ACTION_TIME_COSTS } from '@/data/timeConstants'
 import type { Quality } from '@/types'
+import type { FertilizerType } from '@/types/processing'
 import { addLog, showFloat } from './useGameLog'
 import { handleEndDay } from './useEndDay'
 import { sfxDig, sfxPlant, sfxWater, sfxHarvest, sfxLevelUp, sfxBuy, sfxCoin } from './useAudio'
@@ -316,7 +317,8 @@ export const handleBatchWater = () => {
     return
   }
 
-  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered)
+  const sprinklerCovered = farmStore.getAllWateredBySprinklers()
+  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered && !sprinklerCovered.has(p.id))
   if (targets.length === 0) {
     addLog('没有需要浇水的地块。')
     return
@@ -547,6 +549,289 @@ export const handleBatchPlant = (cropId: string) => {
     if (tr.passedOut) handleEndDay()
   } else {
     addLog('体力不足或种子不够，无法种植。')
+  }
+}
+
+/** 一键施肥（给所有未施肥的非荒地施指定肥料） */
+export const handleBatchFertilize = (fertilizerType: FertilizerType) => {
+  const gameStore = useGameStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const fertDef = getFertilizerById(fertilizerType)
+  if (!fertDef) return
+
+  const targets = farmStore.plots.filter(p => p.state !== 'wasteland' && !p.fertilizer)
+  if (targets.length === 0) {
+    addLog('没有可施肥的地块。')
+    return
+  }
+
+  let applied = 0
+  for (const plot of targets) {
+    if (!inventoryStore.hasItem(fertilizerType)) break
+    if (!inventoryStore.removeItem(fertilizerType)) break
+    if (farmStore.applyFertilizer(plot.id, fertilizerType)) {
+      applied++
+    } else {
+      inventoryStore.addItem(fertilizerType)
+      break
+    }
+  }
+
+  if (applied > 0) {
+    showFloat(`施肥 ×${applied}`, 'success')
+    addLog(`一键施了${applied}块地的${fertDef.name}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.plant * Math.min(applied, 3))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('肥料不足，无法施肥。')
+  }
+}
+
+/** 铲除单块作物 */
+export const handleRemoveCrop = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot) return
+  if (plot.state !== 'planted' && plot.state !== 'growing' && plot.state !== 'harvestable') {
+    addLog('该地块没有作物可以铲除。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法铲除。')
+    return
+  }
+
+  const result = farmStore.removeCrop(plotId)
+  if (result.cropId) {
+    const cropDef = getCropById(result.cropId)
+    sfxDig()
+    addLog(`铲除了${cropDef?.name ?? result.cropId}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 除虫（单块） */
+export const handleCurePest = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot || !plot.infested) {
+    addLog('该地块没有虫害。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法除虫。')
+    return
+  }
+
+  if (farmStore.curePest(plotId)) {
+    sfxDig()
+    addLog('清除了虫害。')
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 一键除虫（清除所有虫害地块，体力不足时自动停止） */
+export const handleBatchCurePest = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.infested)
+  if (targets.length === 0) {
+    addLog('没有需要除虫的地块。')
+    return
+  }
+
+  let cured = 0
+  const batchRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const batchRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        2 *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - batchRingFarmReduction) *
+          (1 - batchRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.curePest(plot.id)
+    cured++
+  }
+
+  if (cured > 0) {
+    sfxDig()
+    addLog(`一键除虫了${cured}块地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法除虫。')
+  }
+}
+
+/** 除草（单块） */
+export const handleClearWeed = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot || !plot.weedy) {
+    addLog('该地块没有杂草。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法除草。')
+    return
+  }
+
+  if (farmStore.clearWeed(plotId)) {
+    sfxDig()
+    addLog('清除了杂草。')
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 一键除草（清除所有杂草地块，体力不足时自动停止） */
+export const handleBatchClearWeed = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.weedy)
+  if (targets.length === 0) {
+    addLog('没有需要除草的地块。')
+    return
+  }
+
+  let cleared = 0
+  const batchRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const batchRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        2 *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - batchRingFarmReduction) *
+          (1 - batchRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.clearWeed(plot.id)
+    cleared++
+  }
+
+  if (cleared > 0) {
+    sfxDig()
+    addLog(`一键除草了${cleared}块地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法除草。')
   }
 }
 

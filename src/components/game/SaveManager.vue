@@ -9,7 +9,7 @@
       <div class="flex-1 flex flex-col gap-2 mb-3" @click="menuOpen = null">
         <div v-for="info in slots" :key="info.slot">
           <div v-if="info.exists" class="flex gap-1 w-full">
-            <button v-if="allowLoad" class="btn flex-1 justify-between! text-xs" @click="$emit('load', info.slot)">
+            <button v-if="allowLoad" class="btn flex-1 !justify-between text-xs" @click="$emit('load', info.slot)">
               <span class="inline-flex items-center gap-1">
                 <FolderOpen :size="12" />
                 存档 {{ info.slot + 1 }}
@@ -20,7 +20,7 @@
                 }}天
               </span>
             </button>
-            <div v-else class="btn flex-1 justify-between! text-xs cursor-default">
+            <div v-else class="btn flex-1 !justify-between text-xs cursor-default">
               <span class="inline-flex items-center gap-1">
                 <FolderOpen :size="12" />
                 存档 {{ info.slot + 1 }}
@@ -39,11 +39,11 @@
                 v-if="menuOpen === info.slot"
                 class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
               >
-                <button v-if="!isWebView" class="btn text-center rounded-none! justify-center text-sm" @click="handleExport(info.slot)">
+                <button v-if="!isWebView" class="btn text-center !rounded-none justify-center text-sm" @click="handleExport(info.slot)">
                   <Download :size="12" />
                   导出
                 </button>
-                <button class="btn btn-danger rounded-none! text-center justify-center text-sm" @click="handleDelete(info.slot)">
+                <button class="btn btn-danger !rounded-none text-center justify-center text-sm" @click="handleDelete(info.slot)">
                   <Trash2 :size="12" />
                   删除
                 </button>

@@ -1,7 +1,16 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { AnimalBuildingType, AnimalType, Animal, Quality, PetState, PetType, IncubationState } from '@/types'
-import { ANIMAL_BUILDINGS, ANIMAL_DEFS, HAY_ITEM_ID, getBuildingUpgrade, INCUBATION_MAP } from '@/data'
+import {
+  ANIMAL_BUILDINGS,
+  ANIMAL_DEFS,
+  HAY_ITEM_ID,
+  getBuildingUpgrade,
+  INCUBATION_MAP,
+  PREMIUM_FEED_ID,
+  NOURISHING_FEED_ID,
+  VITALITY_FEED_ID
+} from '@/data'
 import { usePlayerStore } from './usePlayerStore'
 import { useInventoryStore } from './useInventoryStore'
 import { useGameStore } from './useGameStore'
@@ -132,28 +141,33 @@ export const useAnimalStore = defineStore('animal', () => {
       daysOwned: 0,
       daysSinceProduct: 0,
       wasFed: false,
-      wasPetted: false
+      fedWith: null,
+      wasPetted: false,
+      hunger: 0,
+      sick: false,
+      sickDays: 0
     })
     return true
   }
 
-  /** 喂食所有动物（消耗干草，马也需要喂食） */
-  const feedAll = (): { fedCount: number; noHayCount: number } => {
+  /** 喂食所有动物（消耗指定饲料，马也需要喂食） */
+  const feedAll = (feedId: string = HAY_ITEM_ID): { fedCount: number; noFeedCount: number } => {
     const inventoryStore = useInventoryStore()
 
     let fedCount = 0
-    let noHayCount = 0
+    let noFeedCount = 0
     const unfed = animals.value.filter(a => !a.wasFed)
 
     for (const animal of unfed) {
-      if (inventoryStore.removeItem(HAY_ITEM_ID, 1)) {
+      if (inventoryStore.removeItem(feedId, 1)) {
         animal.wasFed = true
+        animal.fedWith = feedId
         fedCount++
       } else {
-        noHayCount++
+        noFeedCount++
       }
     }
-    return { fedCount, noHayCount }
+    return { fedCount, noFeedCount }
   }
 
   /** 抚摸动物 */
@@ -232,7 +246,11 @@ export const useAnimalStore = defineStore('animal', () => {
         daysOwned: 0,
         daysSinceProduct: 0,
         wasFed: false,
-        wasPetted: false
+        fedWith: null,
+        wasPetted: false,
+        hunger: 0,
+        sick: false,
+        sickDays: 0
       })
       incubating.value = null
       return { hatched: { type: animalType, name } }
@@ -300,7 +318,11 @@ export const useAnimalStore = defineStore('animal', () => {
         daysOwned: 0,
         daysSinceProduct: 0,
         wasFed: false,
-        wasPetted: false
+        fedWith: null,
+        wasPetted: false,
+        hunger: 0,
+        sick: false,
+        sickDays: 0
       })
       barnIncubating.value = null
       return { hatched: { type: animalType, name } }
@@ -407,9 +429,21 @@ export const useAnimalStore = defineStore('animal', () => {
     return { success: true, count: grazeable.length, message, bonusProducts: bonusProducts.length > 0 ? bonusProducts : undefined }
   }
 
-  /** 每日更新：产品收集、心情/友好度变化 */
-  const dailyUpdate = (): { products: { itemId: string; quality: Quality }[] } => {
+  /** 饥饿致死天数上限 */
+  const HUNGER_DEATH_DAYS = 7
+  /** 连续饥饿≥此天数时有概率生病 */
+  const HUNGER_SICK_THRESHOLD = 3
+  /** 每天生病概率（饥饿≥阈值时） */
+  const SICK_CHANCE = 0.3
+  /** 连续生病致死天数上限 */
+  const SICK_DEATH_DAYS = 5
+
+  /** 每日更新：产品收集、心情/友好度变化、饥饿/生病/死亡 */
+  const dailyUpdate = (): { products: { itemId: string; quality: Quality }[]; died: string[]; gotSick: string[]; healed: string[] } => {
     const products: { itemId: string; quality: Quality }[] = []
+    const died: string[] = []
+    const gotSick: string[] = []
+    const healed: string[] = []
     const skillStore = useSkillStore()
     const gameStore = useGameStore()
     const coopmasterBonus = skillStore.getSkill('farming').perk10 === 'coopmaster' ? 1.5 : 1.0
@@ -417,6 +451,45 @@ export const useAnimalStore = defineStore('animal', () => {
     for (const animal of animals.value) {
       animal.daysOwned++
       animal.daysSinceProduct++
+
+      // === 饥饿系统 ===
+      if (!animal.wasFed) {
+        animal.hunger++
+        // 骆驼夏季耐饿：饥饿增长减半（向下取整，至少+1已在上面）
+        if (animal.type === 'camel' && gameStore.season === 'summer' && animal.hunger > 1) {
+          animal.hunger = Math.max(1, animal.hunger - 1)
+        }
+      } else {
+        // 喂食后饥饿归零
+        animal.hunger = 0
+        // 喂食后治愈疾病：活力饲料100%，其他50%
+        if (animal.sick) {
+          const cureChance = animal.fedWith === VITALITY_FEED_ID ? 1.0 : 0.5
+          if (Math.random() < cureChance) {
+            animal.sick = false
+            animal.sickDays = 0
+            healed.push(animal.name)
+          }
+        }
+      }
+
+      // 饥饿达到阈值时有概率生病
+      if (animal.hunger >= HUNGER_SICK_THRESHOLD && !animal.sick && Math.random() < SICK_CHANCE) {
+        animal.sick = true
+        animal.sickDays = 0
+        gotSick.push(animal.name)
+      }
+
+      // 生病天数累计
+      if (animal.sick) {
+        animal.sickDays++
+      }
+
+      // 饥饿致死 或 久病致死
+      if (animal.hunger >= HUNGER_DEATH_DAYS || animal.sickDays >= SICK_DEATH_DAYS) {
+        died.push(animal.name)
+        continue // 跳过后续处理，后面统一移除
+      }
 
       // 友好度变化
       const friendshipMultiplier = gameStore.farmMapType === 'meadowlands' ? 1.5 : 1.0
@@ -427,50 +500,114 @@ export const useAnimalStore = defineStore('animal', () => {
       if (!animal.wasPetted && animal.type !== 'yak') {
         animal.friendship = Math.max(0, animal.friendship - 5)
       }
+      // 生病时友好度额外下降
+      if (animal.sick) {
+        animal.friendship = Math.max(0, animal.friendship - 10)
+      }
       if (animal.wasFed && animal.wasPetted) {
-        animal.friendship = Math.min(1000, animal.friendship + Math.floor(15 * friendshipMultiplier * coopmasterBonus))
+        const base = animal.fedWith === PREMIUM_FEED_ID ? 25 : 15
+        animal.friendship = Math.min(1000, animal.friendship + Math.floor(base * friendshipMultiplier * coopmasterBonus))
       } else if (animal.wasFed) {
-        animal.friendship = Math.min(1000, animal.friendship + Math.floor(5 * friendshipMultiplier * coopmasterBonus))
+        const base = animal.fedWith === PREMIUM_FEED_ID ? 10 : 5
+        animal.friendship = Math.min(1000, animal.friendship + Math.floor(base * friendshipMultiplier * coopmasterBonus))
       }
 
       // 心情根据喂食调整
       // 骆驼: 夏季未喂食不扣心情(耐热)
       if (animal.wasFed) {
-        animal.mood = Math.min(255, animal.mood + 30)
+        const moodGain = animal.fedWith === PREMIUM_FEED_ID ? 60 : 30
+        animal.mood = Math.min(255, animal.mood + moodGain)
       } else if (animal.type === 'camel' && gameStore.season === 'summer') {
         // 骆驼夏季耐热，未喂食不扣心情
       } else {
         animal.mood = Math.max(0, animal.mood - 50)
       }
+      // 生病时心情额外下降
+      if (animal.sick) {
+        animal.mood = Math.max(0, animal.mood - 30)
+      }
 
-      // 产品检查（跳过马，马无产出）
+      // 产品检查（跳过马，马无产出；生病时不产出）
       const def = ANIMAL_DEFS.find(d => d.type === animal.type)
-      if (def && def.produceDays > 0 && animal.daysSinceProduct >= def.produceDays && animal.wasFed) {
-        let quality = getAnimalProductQuality(animal.friendship)
-        // 牧羊人专精：品质提升一档
-        if (hasShepherd) {
-          const qualityOrder: Quality[] = ['normal', 'fine', 'excellent', 'supreme']
-          const idx = qualityOrder.indexOf(quality)
-          quality = qualityOrder[Math.min(idx + 1, qualityOrder.length - 1)]!
+      if (def && def.produceDays > 0 && animal.wasFed && !animal.sick) {
+        const effectiveDays = animal.fedWith === NOURISHING_FEED_ID ? Math.max(1, def.produceDays - 1) : def.produceDays
+        if (animal.daysSinceProduct >= effectiveDays) {
+          let quality = getAnimalProductQuality(animal.friendship)
+          // 牧羊人专精：品质提升一档
+          if (hasShepherd) {
+            const qualityOrder: Quality[] = ['normal', 'fine', 'excellent', 'supreme']
+            const idx = qualityOrder.indexOf(quality)
+            quality = qualityOrder[Math.min(idx + 1, qualityOrder.length - 1)]!
+          }
+          products.push({ itemId: def.productId, quality })
+          animal.daysSinceProduct = 0
         }
-        products.push({ itemId: def.productId, quality })
-        animal.daysSinceProduct = 0
       }
 
       // 兔子: 好感≥600时4%概率额外产出幸运兔脚
-      if (animal.type === 'rabbit' && animal.friendship >= 600 && Math.random() < 0.04) {
+      if (animal.type === 'rabbit' && animal.friendship >= 600 && !animal.sick && Math.random() < 0.04) {
         products.push({ itemId: 'rabbit_foot', quality: getAnimalProductQuality(animal.friendship) })
       }
 
       // 重置每日状态
       animal.wasFed = false
+      animal.fedWith = null
       animal.wasPetted = false
+    }
+
+    // 移除死亡的动物（饿死或病死）
+    if (died.length > 0) {
+      animals.value = animals.value.filter(a => a.hunger < HUNGER_DEATH_DAYS && a.sickDays < SICK_DEATH_DAYS)
     }
 
     // 重置放牧状态
     grazedToday.value = false
 
-    return { products }
+    return { products, died, gotSick, healed }
+  }
+
+  /** 出售动物，返还购买价的一半 */
+  const sellAnimal = (animalId: string): { success: boolean; refund: number; name: string } => {
+    const idx = animals.value.findIndex(a => a.id === animalId)
+    if (idx === -1) return { success: false, refund: 0, name: '' }
+    const animal = animals.value[idx]!
+    const def = ANIMAL_DEFS.find(d => d.type === animal.type)
+    const refund = Math.floor((def?.cost ?? 0) / 2)
+    const name = animal.name
+    animals.value.splice(idx, 1)
+    if (refund > 0) {
+      const playerStore = usePlayerStore()
+      playerStore.earnMoney(refund)
+    }
+    return { success: true, refund, name }
+  }
+
+  /** 治疗单只生病的动物（消耗1个兽药） */
+  const healAnimal = (animalId: string): boolean => {
+    const animal = animals.value.find(a => a.id === animalId)
+    if (!animal || !animal.sick) return false
+    const inventoryStore = useInventoryStore()
+    if (!inventoryStore.removeItem('animal_medicine', 1)) return false
+    animal.sick = false
+    animal.sickDays = 0
+    return true
+  }
+
+  /** 治疗所有生病的动物（批量消耗兽药） */
+  const healAllSick = (): { healedCount: number; noMedicineCount: number } => {
+    const inventoryStore = useInventoryStore()
+    let healedCount = 0
+    let noMedicineCount = 0
+    for (const animal of animals.value.filter(a => a.sick)) {
+      if (inventoryStore.removeItem('animal_medicine', 1)) {
+        animal.sick = false
+        animal.sickDays = 0
+        healedCount++
+      } else {
+        noMedicineCount++
+      }
+    }
+    return { healedCount, noMedicineCount }
   }
 
   /** 根据友好度决定产品品质 */
@@ -503,7 +640,13 @@ export const useAnimalStore = defineStore('animal', () => {
       buildings.value = savedBuildings
     }
     if (data.animals) {
-      animals.value = data.animals
+      animals.value = data.animals.map((a: any) => ({
+        ...a,
+        hunger: a.hunger ?? 0,
+        sick: a.sick ?? false,
+        sickDays: a.sickDays ?? 0,
+        fedWith: a.fedWith ?? null
+      }))
     }
     incubating.value = data.incubating ?? null
     barnIncubating.value = data.barnIncubating ?? null
@@ -528,6 +671,9 @@ export const useAnimalStore = defineStore('animal', () => {
     buildBuilding,
     upgradeBuilding,
     buyAnimal,
+    sellAnimal,
+    healAnimal,
+    healAllSick,
     feedAll,
     petAnimal,
     startIncubation,

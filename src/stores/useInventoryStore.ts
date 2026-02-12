@@ -3,13 +3,14 @@ import { defineStore } from 'pinia'
 import type { InventoryItem, Quality, Tool, ToolType, ToolTier, OwnedWeapon, OwnedRing, RingEffectType } from '@/types'
 import { showFloat } from '@/composables/useGameLog'
 import { getItemById } from '@/data/items'
-import { getWeaponById, getEnchantmentById } from '@/data/weapons'
+import { getWeaponById, getEnchantmentById, getWeaponSellPrice } from '@/data/weapons'
 import { getRingById } from '@/data/rings'
 import { usePlayerStore } from './usePlayerStore'
 
 const INITIAL_CAPACITY = 24
 const MAX_CAPACITY = 60
 const MAX_STACK = 99
+const TEMP_CAPACITY = 10
 
 export const useInventoryStore = defineStore('inventory', () => {
   const items = ref<InventoryItem[]>([])
@@ -39,6 +40,12 @@ export const useInventoryStore = defineStore('inventory', () => {
   const pendingUpgrade = ref<{ toolType: ToolType; targetTier: ToolTier; daysRemaining: number } | null>(null)
 
   const isFull = computed(() => items.value.length >= capacity.value)
+
+  /** 临时背包（溢出缓冲区） */
+  const tempItems = ref<InventoryItem[]>([])
+  const isTempFull = computed(() => tempItems.value.length >= TEMP_CAPACITY)
+  /** 主背包+临时背包均满 */
+  const isAllFull = computed(() => isFull.value && isTempFull.value)
 
   /** 获取当前装备的武器 */
   const getEquippedWeapon = (): OwnedWeapon => {
@@ -89,6 +96,24 @@ export const useInventoryStore = defineStore('inventory', () => {
     return true
   }
 
+  /** 卖出武器（不能卖装备中的武器，不能卖唯一武器） */
+  const sellWeapon = (index: number): { success: boolean; message: string } => {
+    if (ownedWeapons.value.length <= 1) return { success: false, message: '至少保留一把武器。' }
+    if (index === equippedWeaponIndex.value) return { success: false, message: '不能卖出装备中的武器，请先切换。' }
+    if (index < 0 || index >= ownedWeapons.value.length) return { success: false, message: '无效索引。' }
+    const weapon = ownedWeapons.value[index]!
+    const price = getWeaponSellPrice(weapon.defId, weapon.enchantmentId)
+    const playerStore = usePlayerStore()
+    playerStore.earnMoney(price)
+    ownedWeapons.value.splice(index, 1)
+    // 修正装备索引
+    if (equippedWeaponIndex.value > index) {
+      equippedWeaponIndex.value--
+    }
+    const def = getWeaponById(weapon.defId)
+    return { success: true, message: `卖出了${def?.name ?? '武器'}，获得${price}文。` }
+  }
+
   /** 添加物品到背包 */
   const addItem = (itemId: string, quantity: number = 1, quality: Quality = 'normal'): boolean => {
     let remaining = quantity
@@ -108,6 +133,23 @@ export const useInventoryStore = defineStore('inventory', () => {
       const batch = Math.min(remaining, MAX_STACK)
       items.value.push({ itemId, quantity: batch, quality })
       remaining -= batch
+    }
+
+    // 溢出到临时背包
+    if (remaining > 0) {
+      for (const slot of tempItems.value) {
+        if (remaining <= 0) break
+        if (slot.itemId === itemId && slot.quality === quality && slot.quantity < MAX_STACK) {
+          const canAdd = Math.min(remaining, MAX_STACK - slot.quantity)
+          slot.quantity += canAdd
+          remaining -= canAdd
+        }
+      }
+      while (remaining > 0 && !isTempFull.value) {
+        const batch = Math.min(remaining, MAX_STACK)
+        tempItems.value.push({ itemId, quantity: batch, quality })
+        remaining -= batch
+      }
     }
 
     if (remaining > 0) {
@@ -156,10 +198,117 @@ export const useInventoryStore = defineStore('inventory', () => {
     return getItemCount(itemId) >= quantity
   }
 
+  /** 物品分类排序优先级 */
+  const CATEGORY_ORDER: Record<string, number> = {
+    seed: 0,
+    crop: 1,
+    fruit: 2,
+    fish: 3,
+    animal_product: 4,
+    processed: 5,
+    food: 6,
+    ore: 7,
+    gem: 8,
+    material: 9,
+    machine: 10,
+    sprinkler: 11,
+    fertilizer: 12,
+    bait: 13,
+    tackle: 14,
+    bomb: 15,
+    sapling: 16,
+    gift: 17,
+    fossil: 18,
+    artifact: 19,
+    misc: 20
+  }
+
+  /** 一键整理背包（按分类→物品ID→品质排序，合并同类栈） */
+  const sortItems = () => {
+    // 先合并同类栈
+    const merged: InventoryItem[] = []
+    for (const item of items.value) {
+      const existing = merged.find(m => m.itemId === item.itemId && m.quality === item.quality)
+      if (existing) {
+        existing.quantity += item.quantity
+      } else {
+        merged.push({ ...item })
+      }
+    }
+    // 拆分超过 MAX_STACK 的栈
+    const split: InventoryItem[] = []
+    for (const item of merged) {
+      let remaining = item.quantity
+      while (remaining > 0) {
+        const batch = Math.min(remaining, MAX_STACK)
+        split.push({ itemId: item.itemId, quantity: batch, quality: item.quality })
+        remaining -= batch
+      }
+    }
+    // 按分类 → 物品ID → 品质排序
+    const qualityOrder: Record<string, number> = { normal: 0, fine: 1, excellent: 2, supreme: 3 }
+    split.sort((a, b) => {
+      const defA = getItemById(a.itemId)
+      const defB = getItemById(b.itemId)
+      const catA = CATEGORY_ORDER[defA?.category ?? 'misc'] ?? 20
+      const catB = CATEGORY_ORDER[defB?.category ?? 'misc'] ?? 20
+      if (catA !== catB) return catA - catB
+      if (a.itemId !== b.itemId) return a.itemId.localeCompare(b.itemId)
+      return (qualityOrder[a.quality] ?? 0) - (qualityOrder[b.quality] ?? 0)
+    })
+    items.value = split
+  }
+
   /** 扩容背包 */
   const expandCapacity = (): boolean => {
     if (capacity.value >= MAX_CAPACITY) return false
     capacity.value += 4
+    return true
+  }
+
+  /** 将临时背包中的物品转移到主背包 */
+  const moveFromTemp = (index: number): boolean => {
+    if (index < 0 || index >= tempItems.value.length) return false
+    const tempSlot = tempItems.value[index]!
+    const { itemId, quality } = tempSlot
+    let remaining = tempSlot.quantity
+
+    for (const slot of items.value) {
+      if (remaining <= 0) break
+      if (slot.itemId === itemId && slot.quality === quality && slot.quantity < MAX_STACK) {
+        const canAdd = Math.min(remaining, MAX_STACK - slot.quantity)
+        slot.quantity += canAdd
+        remaining -= canAdd
+      }
+    }
+    while (remaining > 0 && !isFull.value) {
+      const batch = Math.min(remaining, MAX_STACK)
+      items.value.push({ itemId, quantity: batch, quality })
+      remaining -= batch
+    }
+
+    if (remaining <= 0) {
+      tempItems.value.splice(index, 1)
+      return true
+    }
+    tempSlot.quantity = remaining
+    return false
+  }
+
+  /** 一键将所有可转移的临时背包物品移入主背包 */
+  const moveAllFromTemp = (): number => {
+    let movedCount = 0
+    for (let i = tempItems.value.length - 1; i >= 0; i--) {
+      if (isFull.value) break
+      if (moveFromTemp(i)) movedCount++
+    }
+    return movedCount
+  }
+
+  /** 丢弃临时背包中的物品 */
+  const discardTempItem = (index: number): boolean => {
+    if (index < 0 || index >= tempItems.value.length) return false
+    tempItems.value.splice(index, 1)
     return true
   }
 
@@ -235,14 +384,20 @@ export const useInventoryStore = defineStore('inventory', () => {
     return ownedRings.value.some(r => r.defId === defId)
   }
 
-  /** 装备戒指到指定槽位（0 或 1） */
+  /** 装备戒指到指定槽位（0 或 1），自动处理换位 */
   const equipRing = (ringIndex: number, slot: 0 | 1): boolean => {
     if (ringIndex < 0 || ringIndex >= ownedRings.value.length) return false
-    // 不能在两个槽位装备同一个戒指实例
-    const otherSlot = slot === 0 ? equippedRingSlot2.value : equippedRingSlot1.value
-    if (otherSlot === ringIndex) return false
-    if (slot === 0) equippedRingSlot1.value = ringIndex
-    else equippedRingSlot2.value = ringIndex
+    const targetSlot = slot === 0 ? equippedRingSlot1 : equippedRingSlot2
+    const otherSlot = slot === 0 ? equippedRingSlot2 : equippedRingSlot1
+    // 已在目标槽位，无操作
+    if (targetSlot.value === ringIndex) return true
+    // 在另一个槽位 → 交换
+    if (otherSlot.value === ringIndex) {
+      otherSlot.value = targetSlot.value // 可能是 -1
+      targetSlot.value = ringIndex
+    } else {
+      targetSlot.value = ringIndex
+    }
     return true
   }
 
@@ -256,6 +411,24 @@ export const useInventoryStore = defineStore('inventory', () => {
       equippedRingSlot2.value = -1
     }
     return true
+  }
+
+  /** 卖出戒指（自动卸下已装备的戒指） */
+  const sellRing = (index: number): { success: boolean; message: string } => {
+    if (index < 0 || index >= ownedRings.value.length) return { success: false, message: '无效索引。' }
+    const ring = ownedRings.value[index]!
+    const def = getRingById(ring.defId)
+    const price = def?.sellPrice ?? 0
+    // 自动卸下
+    if (equippedRingSlot1.value === index) equippedRingSlot1.value = -1
+    if (equippedRingSlot2.value === index) equippedRingSlot2.value = -1
+    const playerStore = usePlayerStore()
+    playerStore.earnMoney(price)
+    ownedRings.value.splice(index, 1)
+    // 修正装备索引
+    if (equippedRingSlot1.value > index) equippedRingSlot1.value--
+    if (equippedRingSlot2.value > index) equippedRingSlot2.value--
+    return { success: true, message: `卖出了${def?.name ?? '戒指'}，获得${price}文。` }
   }
 
   /** 查询某种戒指效果的合计值（两个槽位叠加） */
@@ -309,6 +482,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     return {
       items: items.value,
       capacity: capacity.value,
+      tempItems: tempItems.value,
       tools: tools.value,
       ownedWeapons: ownedWeapons.value,
       equippedWeaponIndex: equippedWeaponIndex.value,
@@ -322,6 +496,7 @@ export const useInventoryStore = defineStore('inventory', () => {
   const deserialize = (data: ReturnType<typeof serialize>) => {
     items.value = (data.items ?? []).filter(i => getItemById(i.itemId))
     capacity.value = data.capacity ?? INITIAL_CAPACITY
+    tempItems.value = ((data as any).tempItems ?? []).filter((i: InventoryItem) => getItemById(i.itemId))
     tools.value = data.tools ?? [
       { type: 'wateringCan', tier: 'basic' },
       { type: 'hoe', tier: 'basic' },
@@ -381,11 +556,18 @@ export const useInventoryStore = defineStore('inventory', () => {
     equippedWeaponIndex,
     pendingUpgrade,
     isFull,
+    tempItems,
+    isTempFull,
+    isAllFull,
     addItem,
     removeItem,
     getItemCount,
     hasItem,
     expandCapacity,
+    moveFromTemp,
+    moveAllFromTemp,
+    discardTempItem,
+    sortItems,
     getTool,
     getToolStaminaMultiplier,
     getToolBatchCount,
@@ -399,6 +581,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     addWeapon,
     hasWeapon,
     equipWeapon,
+    sellWeapon,
     ownedRings,
     equippedRingSlot1,
     equippedRingSlot2,
@@ -406,6 +589,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     hasRing,
     equipRing,
     unequipRing,
+    sellRing,
     getRingEffectValue,
     craftRing,
     serialize,

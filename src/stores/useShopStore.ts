@@ -61,7 +61,7 @@ export const useShopStore = defineStore('shop', () => {
   const buySeed = (seedId: string, quantity: number = 1): boolean => {
     const seed = availableSeeds.value.find(s => s.seedId === seedId)
     if (!seed) return false
-    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === seedId && s.quantity + quantity <= 99)) return false
+    if (inventoryStore.isAllFull && !inventoryStore.items.some(s => s.itemId === seedId && s.quantity + quantity <= 99)) return false
     const totalCost = applyDiscount(seed.price) * quantity
     if (!playerStore.spendMoney(totalCost)) return false
     inventoryStore.addItem(seedId, quantity)
@@ -94,7 +94,11 @@ export const useShopStore = defineStore('shop', () => {
 
   const apothecaryItems = computed<ShopItemEntry[]>(() => [
     { itemId: 'herb', name: '草药', price: 50, description: '山间野生的草药' },
-    { itemId: 'ginseng', name: '人参', price: 600, description: '极其珍贵的野生人参' }
+    { itemId: 'ginseng', name: '人参', price: 600, description: '极其珍贵的野生人参' },
+    { itemId: 'animal_medicine', name: '兽药', price: 150, description: '治疗生病的牲畜' },
+    { itemId: 'premium_feed', name: '精饲料', price: 200, description: '提升动物心情和好感' },
+    { itemId: 'nourishing_feed', name: '滋补饲料', price: 250, description: '加速动物产出' },
+    { itemId: 'vitality_feed', name: '活力饲料', price: 300, description: '喂食必定治愈疾病' }
   ])
 
   // === 渔具铺 (秋月) ===
@@ -137,7 +141,7 @@ export const useShopStore = defineStore('shop', () => {
 
   /** 购买通用物品 */
   const buyItem = (itemId: string, price: number, quantity: number = 1): boolean => {
-    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity + quantity <= 99)) return false
+    if (inventoryStore.isAllFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity + quantity <= 99)) return false
     const totalCost = applyDiscount(price) * quantity
     if (!playerStore.spendMoney(totalCost)) return false
     inventoryStore.addItem(itemId, quantity)
@@ -205,7 +209,7 @@ export const useShopStore = defineStore('shop', () => {
   const buyFromTraveler = (itemId: string): boolean => {
     const item = travelingStock.value.find(s => s.itemId === itemId)
     if (!item || item.quantity <= 0) return false
-    if (inventoryStore.isFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity < 99)) return false
+    if (inventoryStore.isAllFull && !inventoryStore.items.some(s => s.itemId === itemId && s.quantity < 99)) return false
     const finalPrice = applyDiscount(item.price)
     if (!playerStore.spendMoney(finalPrice)) return false
     inventoryStore.addItem(itemId)

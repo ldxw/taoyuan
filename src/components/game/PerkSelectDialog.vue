@@ -63,7 +63,7 @@
       { id: 'trapper', name: '捕手', description: '挣扎时成功率+15%' }
     ],
     mining: [
-      { id: 'miner', name: '矿工', description: '矿石+1' },
+      { id: 'miner', name: '矿工', description: '50%概率矿石+1' },
       { id: 'geologist', name: '地质学家', description: '稀有矿石概率大幅提升' }
     ],
     combat: [
@@ -106,11 +106,11 @@
     },
     mining: {
       miner: [
-        { id: 'prospector', name: '探矿者', description: '矿石25%概率双倍' },
+        { id: 'prospector', name: '探矿者', description: '矿石15%概率双倍' },
         { id: 'blacksmith', name: '铁匠', description: '金属矿石售价+50%' }
       ],
       geologist: [
-        { id: 'excavator', name: '挖掘者', description: '炸弹矿石产量+50%' },
+        { id: 'excavator', name: '挖掘者', description: '使用炸弹时30%概率不消耗' },
         { id: 'mineralogist', name: '宝石学家', description: '击败怪物额外掉落矿石' }
       ]
     },

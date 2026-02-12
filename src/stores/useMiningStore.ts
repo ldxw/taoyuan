@@ -17,6 +17,7 @@ import {
   getBombIndices
 } from '@/data'
 import { getBombById } from '@/data/processing'
+import { getItemById } from '@/data/items'
 import {
   getWeaponById,
   getEnchantmentById,
@@ -71,6 +72,11 @@ export const useMiningStore = defineStore('mining', () => {
 
   /** 本次探索收集的物品（离开时50%丢失用） */
   const sessionLoot = ref<{ itemId: string; quantity: number }[]>([])
+
+  /** 猎魔符效果：本次探索掉落率+20% */
+  const slayerCharmActive = ref(false)
+  /** 公会徽章累积攻击力加成（永久） */
+  const guildBadgeBonusAttack = ref(0)
 
   // ==================== 格子探索状态 ====================
 
@@ -174,6 +180,36 @@ export const useMiningStore = defineStore('mining', () => {
 
   // ==================== 格子交互 ====================
 
+  /** 与已揭示的怪物/BOSS重新交战（逃跑后或炸弹揭示后） */
+  const engageRevealedMonster = (index: number): { success: boolean; message: string; startsCombat: boolean } => {
+    if (!isExploring.value) return { success: false, message: '你不在矿洞中。', startsCombat: false }
+    if (inCombat.value) return { success: false, message: '战斗中无法探索。', startsCombat: false }
+
+    const tile = floorGrid.value[index]
+    if (!tile || tile.state !== 'revealed') return { success: false, message: '无法交战。', startsCombat: false }
+    if (tile.type !== 'monster' && tile.type !== 'boss') return { success: false, message: '该格子没有怪物。', startsCombat: false }
+
+    const monster = tile.data?.monster
+    if (!monster) return { success: false, message: '该格子没有怪物。', startsCombat: false }
+
+    _combatTileIndex.value = tile.index
+    combatMonster.value = { ...monster }
+    combatMonsterHp.value = monster.hp
+    combatRound.value = 0
+
+    if (tile.type === 'boss') {
+      const isFirstKill = !defeatedBosses.value.includes(monster.id)
+      combatLog.value = [`BOSS战！再次挑战${monster.name}！(HP: ${monster.hp})${isFirstKill ? '' : '（弱化版）'}`]
+      combatIsBoss.value = true
+    } else {
+      combatLog.value = [`再次遭遇${monster.name}！(HP: ${monster.hp})`]
+      combatIsBoss.value = false
+    }
+    inCombat.value = true
+
+    return { success: true, message: `与${monster.name}交战！`, startsCombat: true }
+  }
+
   /** 检查格子是否可翻开 */
   const canRevealTile = (index: number): boolean => {
     const tile = floorGrid.value[index]
@@ -264,13 +300,13 @@ export const useMiningStore = defineStore('mining', () => {
     const oreId = tile.data?.oreId ?? 'copper_ore'
     let quantity = tile.data?.oreQuantity ?? 1
 
-    // 矿工专精 +1
-    if (skillStore.getSkill('mining').perk5 === 'miner') quantity += 1
-    // 山丘农场加成
+    // 矿工专精：50%概率+1
+    if (skillStore.getSkill('mining').perk5 === 'miner' && Math.random() < 0.5) quantity += 1
+    // 山丘农场加成：50%概率+1
     const gameStore = useGameStore()
-    if (gameStore.farmMapType === 'hilltop') quantity += 1
-    // 探矿者专精：25% 概率双倍
-    if (skillStore.getSkill('mining').perk10 === 'prospector' && Math.random() < 0.25) quantity *= 2
+    if (gameStore.farmMapType === 'hilltop' && Math.random() < 0.5) quantity += 1
+    // 探矿者专精：15% 概率双倍
+    if (skillStore.getSkill('mining').perk10 === 'prospector' && Math.random() < 0.15) quantity *= 2
     // 戒指矿石加成
     const ringOreBonus = inventoryStore.getRingEffectValue('ore_bonus')
     if (ringOreBonus > 0) quantity += Math.floor(ringOreBonus)
@@ -431,15 +467,18 @@ export const useMiningStore = defineStore('mining', () => {
     if (!bombDef) return { success: false, message: '无效的炸弹。' }
     if (!inventoryStore.removeItem(bombId)) return { success: false, message: '背包中没有该炸弹。' }
 
+    // 挖掘者专精：30%概率不消耗炸弹
+    const excavatorSaved = skillStore.getSkill('mining').perk10 === 'excavator' && Math.random() < 0.3
+    if (excavatorSaved) {
+      inventoryStore.addItem(bombId, 1)
+    }
+
     const indices = getBombIndices(centerIndex, bombId)
     const floor = getActiveFloorData()
 
     let oreCollected = 0
     let monstersKilled = 0
     const collectedOres: string[] = []
-
-    // 挖掘者专精：炸弹矿石+50%
-    const excavatorBonus = skillStore.getSkill('mining').perk10 === 'excavator' ? 1.5 : 1.0
 
     for (const idx of indices) {
       const tile = floorGrid.value[idx]
@@ -451,10 +490,8 @@ export const useMiningStore = defineStore('mining', () => {
           break
         case 'ore': {
           const oreId = tile.data?.oreId ?? 'copper_ore'
-          let quantity = Math.floor((tile.data?.oreQuantity ?? 1) * excavatorBonus)
-          if (skillStore.getSkill('mining').perk5 === 'miner') quantity += 1
-          const gameStore = useGameStore()
-          if (gameStore.farmMapType === 'hilltop') quantity += 1
+          // 炸弹采矿不享受矿工专精/地形/探矿者加成，仅给基础数量
+          const quantity = tile.data?.oreQuantity ?? 1
           inventoryStore.addItem(oreId, quantity)
           sessionLoot.value.push({ itemId: oreId, quantity })
           useAchievementStore().discoverItem(oreId)
@@ -544,6 +581,7 @@ export const useMiningStore = defineStore('mining', () => {
     if (monstersKilled > 0) msg += `${oreCollected > 0 ? '，' : ''}击败了${monstersKilled}只怪物`
     if (oreCollected === 0 && monstersKilled === 0) msg += '翻开了一些区域'
     msg += '！'
+    if (excavatorSaved) msg += '（挖掘者：炸弹未消耗！）'
     return { success: true, message: msg }
   }
 
@@ -663,7 +701,8 @@ export const useMiningStore = defineStore('mining', () => {
     // 基础攻击力（含戒指加成 + 料理全技能加成）
     const ringAttackBonus = inventoryStore.getRingEffectValue('attack_bonus')
     const allSkillsBuff = cookingStore.activeBuff?.type === 'all_skills' ? cookingStore.activeBuff.value : 0
-    const baseAttack = inventoryStore.getWeaponAttack() + (skillStore.combatLevel + allSkillsBuff) * 2 + ringAttackBonus
+    const baseAttack =
+      inventoryStore.getWeaponAttack() + (skillStore.combatLevel + allSkillsBuff) * 2 + ringAttackBonus + guildBadgeBonusAttack.value
     const bruteBonus = skillStore.getSkill('combat').perk10 === 'brute' ? 1.25 : 1.0
 
     // 暴击判定（含戒指加成 + 幸运加成）
@@ -760,7 +799,7 @@ export const useMiningStore = defineStore('mining', () => {
     const enchant = owned.enchantmentId ? getEnchantmentById(owned.enchantmentId) : null
     const ringDropBonus = inventoryStore.getRingEffectValue('monster_drop_bonus')
     const ringLuckBonus = inventoryStore.getRingEffectValue('luck')
-    const luckyBonus = (enchant?.special === 'lucky' ? 0.2 : 0) + ringDropBonus + ringLuckBonus * 0.5
+    const luckyBonus = (enchant?.special === 'lucky' ? 0.2 : 0) + ringDropBonus + ringLuckBonus * 0.5 + (slayerCharmActive.value ? 0.2 : 0)
 
     // 普通掉落
     const drops: string[] = []
@@ -913,6 +952,7 @@ export const useMiningStore = defineStore('mining', () => {
     combatIsBoss.value = false
     const wasInSkullCavern = isInSkullCavern.value
     isExploring.value = false
+    slayerCharmActive.value = false
 
     // 清空格子
     floorGrid.value = []
@@ -994,14 +1034,23 @@ export const useMiningStore = defineStore('mining', () => {
         useAchievementStore().recordSkullCavernFloor(skullCavernFloor.value)
       }
     } else {
-      // 主矿洞：最多 120 层
-      if (currentFloor.value >= MAX_MINE_FLOOR) {
-        return { success: false, message: '已经到达矿洞最深处！' }
+      // 检查安全点（只在到达更高层时更新，避免电梯返回低层后覆盖进度）
+      // 必须在 MAX_MINE_FLOOR 检查之前执行，否则120层安全点永远不会被记录
+      if (floor?.isSafePoint && currentFloor.value > safePointFloor.value) {
+        safePointFloor.value = currentFloor.value
       }
 
-      // 检查安全点
-      if (floor?.isSafePoint) {
-        safePointFloor.value = currentFloor.value
+      // 主矿洞：最多 120 层
+      if (currentFloor.value >= MAX_MINE_FLOOR) {
+        // 到达120层后自动转入骷髅矿穴
+        if (isSkullCavernUnlocked()) {
+          isInSkullCavern.value = true
+          skullCavernFloor.value = 1
+          cacheSkullFloor(1)
+          _generateGrid()
+          return { success: true, message: '你穿过矿洞最深处的裂隙，进入了骷髅矿穴第1层！' }
+        }
+        return { success: false, message: '已经到达矿洞最深处！（击败60层BOSS可解锁骷髅矿穴）' }
       }
 
       currentFloor.value++
@@ -1033,12 +1082,111 @@ export const useMiningStore = defineStore('mining', () => {
     combatIsBoss.value = false
     floorGrid.value = []
     _combatTileIndex.value = -1
+    slayerCharmActive.value = false
     if (isInSkullCavern.value) {
       isInSkullCavern.value = false
       cachedSkullFloorData.value = null
       return '你离开了骷髅矿穴。'
     }
     return '你离开了矿洞。'
+  }
+
+  // ==================== 道具使用 ====================
+
+  /** 在战斗/探索中使用道具 */
+  const useCombatItem = (itemId: string): { success: boolean; message: string } => {
+    if (!inCombat.value && !isExploring.value) return { success: false, message: '不在矿洞中。' }
+
+    // 公会徽章：永久+3攻击力
+    if (itemId === 'guild_badge') {
+      if (!inventoryStore.removeItem('guild_badge')) return { success: false, message: '没有公会徽章。' }
+      guildBadgeBonusAttack.value += 3
+      const msg = '使用了公会徽章，攻击力永久+3！'
+      if (inCombat.value) combatLog.value.push(msg)
+      return { success: true, message: msg }
+    }
+
+    // 猎魔符：本次探索掉落率+20%
+    if (itemId === 'slayer_charm') {
+      if (slayerCharmActive.value) return { success: false, message: '猎魔符效果已激活。' }
+      if (!inventoryStore.removeItem('slayer_charm')) return { success: false, message: '没有猎魔符。' }
+      slayerCharmActive.value = true
+      const msg = '使用了猎魔符，本次探索怪物掉落率+20%！'
+      if (inCombat.value) combatLog.value.push(msg)
+      return { success: true, message: msg }
+    }
+
+    // 食物/药剂类道具
+    const def = getItemById(itemId)
+    if (!def) return { success: false, message: '未知物品。' }
+
+    const hpFull = playerStore.hp >= playerStore.getMaxHp()
+    const staminaFull = playerStore.stamina >= playerStore.maxStamina
+    const hasHpRestore = def.healthRestore && def.healthRestore > 0
+    const hasStaminaRestore = def.staminaRestore && def.staminaRestore > 0
+
+    if (hasHpRestore && !hasStaminaRestore && hpFull) {
+      return { success: false, message: '生命值已满。' }
+    }
+    if (hasStaminaRestore && !hasHpRestore && staminaFull) {
+      return { success: false, message: '体力已满。' }
+    }
+    if (hpFull && staminaFull && (hasHpRestore || hasStaminaRestore)) {
+      return { success: false, message: '体力和生命值都已满。' }
+    }
+
+    if (!inventoryStore.removeItem(itemId)) return { success: false, message: `没有${def.name}。` }
+
+    const parts: string[] = []
+    if (hasHpRestore) {
+      const restore = def.healthRestore! >= 999 ? playerStore.getMaxHp() : def.healthRestore!
+      playerStore.restoreHealth(restore)
+      parts.push(`恢复${def.healthRestore! >= 999 ? '全部' : def.healthRestore}HP`)
+    }
+    if (hasStaminaRestore) {
+      playerStore.restoreStamina(def.staminaRestore!)
+      parts.push(`恢复${def.staminaRestore}体力`)
+    }
+
+    const msg = `使用了${def.name}，${parts.join('和')}！`
+    if (inCombat.value) combatLog.value.push(msg)
+    return { success: true, message: msg }
+  }
+
+  /** 在探索中使用怪物诱饵（本层怪物数量翻倍） */
+  const useMonsterLure = (): { success: boolean; message: string } => {
+    if (!isExploring.value) return { success: false, message: '不在矿洞中。' }
+    if (inCombat.value) return { success: false, message: '战斗中无法使用怪物诱饵。' }
+    if (!inventoryStore.removeItem('monster_lure')) return { success: false, message: '没有怪物诱饵。' }
+
+    const floor = getActiveFloorData()
+    if (!floor) return { success: true, message: '使用了怪物诱饵，但本层无效。' }
+
+    // 统计现有未击败的怪物数量
+    const existingMonsters = floorGrid.value.filter(t => (t.type === 'monster' || t.type === 'boss') && t.state !== 'defeated').length
+
+    // 找到所有隐藏的空格子
+    const hiddenEmpty = floorGrid.value.filter(t => t.state === 'hidden' && t.type === 'empty')
+    const monstersToAdd = Math.min(existingMonsters, hiddenEmpty.length)
+
+    if (monstersToAdd === 0) {
+      return { success: true, message: '使用了怪物诱饵，但本层没有空间放置更多怪物。' }
+    }
+
+    // 随机打乱并放置怪物
+    const shuffled = [...hiddenEmpty].sort(() => Math.random() - 0.5)
+    const monsterPool = floor.monsters
+    for (let i = 0; i < monstersToAdd; i++) {
+      const tile = shuffled[i]!
+      const monster = monsterPool.length > 0 ? { ...monsterPool[Math.floor(Math.random() * monsterPool.length)]! } : undefined
+      if (monster) {
+        tile.type = 'monster'
+        tile.data = { monster }
+      }
+    }
+
+    totalMonstersOnFloor.value += monstersToAdd
+    return { success: true, message: `使用了怪物诱饵！本层增加了${monstersToAdd}只怪物。` }
   }
 
   // ==================== 序列化 ====================
@@ -1050,7 +1198,8 @@ export const useMiningStore = defineStore('mining', () => {
       defeatedBosses: defeatedBosses.value,
       isInSkullCavern: isInSkullCavern.value,
       skullCavernFloor: skullCavernFloor.value,
-      skullCavernBestFloor: skullCavernBestFloor.value
+      skullCavernBestFloor: skullCavernBestFloor.value,
+      guildBadgeBonusAttack: guildBadgeBonusAttack.value
     }
   }
 
@@ -1079,6 +1228,9 @@ export const useMiningStore = defineStore('mining', () => {
     // 格子状态不序列化——读档后玩家在矿洞外
     isExploring.value = false
     floorGrid.value = []
+
+    // 公会徽章永久加成
+    guildBadgeBonusAttack.value = ((data as Record<string, unknown>).guildBadgeBonusAttack as number) ?? 0
   }
 
   return {
@@ -1102,15 +1254,21 @@ export const useMiningStore = defineStore('mining', () => {
     stairsUsable,
     totalMonstersOnFloor,
     monstersDefeatedCount,
+    // 道具系统
+    slayerCharmActive,
+    guildBadgeBonusAttack,
     // 方法
     isSkullCavernUnlocked,
     getUnlockedSafePoints,
     canRevealTile,
+    engageRevealedMonster,
     revealTile,
     useBombOnGrid,
     enterMine,
     enterSkullCavern,
     combatAction,
+    useCombatItem,
+    useMonsterLure,
     goNextFloor,
     leaveMine,
     serialize,
