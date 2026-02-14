@@ -1,7 +1,7 @@
 import type { Season } from './game'
 
 /** 任务类型 */
-export type QuestType = 'delivery' | 'fishing' | 'mining' | 'gathering'
+export type QuestType = 'delivery' | 'fishing' | 'mining' | 'gathering' | 'special_order'
 
 /** 任务目标模板 */
 export interface QuestTargetDef {
@@ -39,4 +39,74 @@ export interface QuestInstance {
   friendshipReward: number
   daysRemaining: number
   accepted: boolean
+  /** 物品奖励（特殊订单） */
+  itemReward?: { itemId: string; quantity: number }[]
+  /** 难度标签（特殊订单） */
+  tierLabel?: string
+}
+
+// ============================================================
+// 主线任务类型
+// ============================================================
+
+/** 主线任务目标类型 */
+export type MainQuestObjectiveType =
+  | 'earnMoney'
+  | 'reachMineFloor'
+  | 'reachSkullFloor'
+  | 'skillLevel'
+  | 'allSkillsLevel'
+  | 'harvestCrops'
+  | 'catchFish'
+  | 'cookRecipes'
+  | 'killMonsters'
+  | 'discoverItems'
+  | 'npcFriendship'
+  | 'npcAllFriendly'
+  | 'completeBundles'
+  | 'completeQuests'
+  | 'shipItems'
+  | 'ownAnimals'
+  | 'married'
+  | 'hasChild'
+  | 'deliverItem'
+
+/** 主线任务单个目标 */
+export interface MainQuestObjective {
+  type: MainQuestObjectiveType
+  /** 目标描述文本 */
+  label: string
+  /** 数值目标(金钱/层数/等级/数量) */
+  target?: number
+  /** 技能类型(skillLevel时) */
+  skillType?: string
+  /** NPC ID(npcFriendship时) */
+  npcId?: string
+  /** 好感等级(npcFriendship/npcAllFriendly时) */
+  friendshipLevel?: string
+  /** 物品ID(deliverItem时) */
+  itemId?: string
+  /** 物品数量(deliverItem时) */
+  itemQuantity?: number
+}
+
+/** 主线任务定义(数据层) */
+export interface MainQuestDef {
+  id: string
+  chapter: number
+  order: number
+  title: string
+  description: string
+  npcId: string
+  objectives: MainQuestObjective[]
+  moneyReward: number
+  friendshipReward?: { npcId: string; amount: number }[]
+  itemReward?: { itemId: string; quantity: number }[]
+}
+
+/** 主线任务运行时状态 */
+export interface MainQuestState {
+  questId: string
+  accepted: boolean
+  objectiveProgress: boolean[]
 }

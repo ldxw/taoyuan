@@ -5,9 +5,20 @@ import { resolve } from 'path'
 
 export default defineConfig({
   base: './',
+  css: {
+    transformer: 'lightningcss',
+    lightningcss: {
+      targets: {
+        chrome: 30 << 16,
+        firefox: 30 << 16,
+        safari: 6 << 16,
+        edge: 12 << 16
+      }
+    }
+  },
   build: {
     outDir: 'docs',
-    cssMinify: true
+    cssMinify: 'lightningcss'
   },
   esbuild: {
     drop: ['console', 'debugger'],

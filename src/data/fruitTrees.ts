@@ -45,6 +45,50 @@ export const FRUIT_TREE_DEFS: FruitTreeDef[] = [
     fruitSeason: 'winter',
     growthDays: 28,
     fruitSellPrice: 100
+  },
+  {
+    type: 'apricot_tree',
+    name: '杏树',
+    saplingId: 'sapling_apricot',
+    saplingPrice: 350,
+    fruitId: 'apricot',
+    fruitName: '杏子',
+    fruitSeason: 'spring',
+    growthDays: 28,
+    fruitSellPrice: 55
+  },
+  {
+    type: 'pomegranate_tree',
+    name: '石榴树',
+    saplingId: 'sapling_pomegranate',
+    saplingPrice: 500,
+    fruitId: 'pomegranate',
+    fruitName: '石榴',
+    fruitSeason: 'summer',
+    growthDays: 28,
+    fruitSellPrice: 95
+  },
+  {
+    type: 'persimmon_tree',
+    name: '柿树',
+    saplingId: 'sapling_persimmon',
+    saplingPrice: 400,
+    fruitId: 'persimmon',
+    fruitName: '柿子',
+    fruitSeason: 'autumn',
+    growthDays: 28,
+    fruitSellPrice: 85
+  },
+  {
+    type: 'hawthorn_tree',
+    name: '山楂树',
+    saplingId: 'sapling_hawthorn',
+    saplingPrice: 350,
+    fruitId: 'hawthorn',
+    fruitName: '山楂',
+    fruitSeason: 'winter',
+    growthDays: 28,
+    fruitSellPrice: 65
   }
 ]
 

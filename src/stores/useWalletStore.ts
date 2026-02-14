@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { WALLET_ITEMS } from '@/data/wallet'
+import { FISH } from '@/data/fish'
 import { useAchievementStore } from './useAchievementStore'
 import { useSkillStore } from './useSkillStore'
 import { useMiningStore } from './useMiningStore'
@@ -51,15 +52,11 @@ export const useWalletStore = defineStore('wallet', () => {
       newlyUnlocked.push('矿工护符')
     }
 
-    // 垂钓者令牌：钓到15种鱼
+    // 垂钓者令牌：钓到30种鱼
     if (!has('anglers_token')) {
-      const fishCount = achievementStore.discoveredItems.filter(id => {
-        // 简单判断：检查是否是鱼类物品
-        return id.match(
-          /carp|bass|catfish|trout|salmon|crucian|mandarin_fish|eel|pufferfish|sturgeon|koi|loach|snakehead|perch|bream|legendary/
-        )
-      }).length
-      if (fishCount >= 15) {
+      const fishIdSet = new Set(FISH.map(f => f.id))
+      const fishCount = achievementStore.discoveredItems.filter(id => fishIdSet.has(id)).length
+      if (fishCount >= 30) {
         unlock('anglers_token')
         newlyUnlocked.push('钓翁令牌')
       }

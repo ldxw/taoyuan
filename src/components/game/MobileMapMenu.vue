@@ -116,11 +116,11 @@
 
   const pick = (keys: PanelKey[]) => keys.map(k => tabMap.value.get(k)!).filter(Boolean)
 
-  const farmGroup = computed(() => pick(['farm', 'animal', 'home']))
-  const villageGroup = computed(() => pick(['village', 'shop']))
-  const wildGroup = computed(() => pick(['forage', 'fishing', 'mining']))
+  const farmGroup = computed(() => pick(['farm', 'animal', 'home', 'breeding']))
+  const villageGroup = computed(() => pick(['village', 'shop', 'museum', 'guild']))
+  const wildGroup = computed(() => pick(['forage', 'fishing', 'mining', 'hanhai']))
   const craftGroup = computed(() => pick(['cooking', 'workshop', 'upgrade']))
-  const personalGroup = computed(() => pick(['inventory', 'skills', 'achievement', 'wallet', 'quest']))
+  const personalGroup = computed(() => pick(['charinfo', 'inventory', 'skills', 'achievement', 'wallet', 'quest']))
 
   const go = (key: PanelKey) => {
     navigateToPanel(key)
@@ -147,6 +147,7 @@
   .map-area-grid {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
   }
 

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { MachineType, ProcessingSlot } from '@/types'
+import type { MachineType, ProcessingSlot, Quality } from '@/types'
 import {
   PROCESSING_MACHINES,
   SPRINKLERS,
@@ -14,13 +14,17 @@ import {
 } from '@/data/processing'
 import { useInventoryStore } from './useInventoryStore'
 import { usePlayerStore } from './usePlayerStore'
+import { useSkillStore } from './useSkillStore'
+import { useBreedingStore } from './useBreedingStore'
+import { addLog } from '@/composables/useGameLog'
 
 /** 最大放置机器数 */
-const MAX_MACHINES = 6
+const MAX_MACHINES = 15
 
 export const useProcessingStore = defineStore('processing', () => {
   const inventoryStore = useInventoryStore()
   const playerStore = usePlayerStore()
+  const skillStore = useSkillStore()
 
   /** 已放置的加工机器（运行中的槽位） */
   const machines = ref<ProcessingSlot[]>([])
@@ -121,6 +125,15 @@ export const useProcessingStore = defineStore('processing', () => {
 
   // === 加工操作 ===
 
+  /** 检测背包中某物品的最低品质（removeItem 默认消耗顺序） */
+  const getLowestQuality = (itemId: string): Quality => {
+    const order: Quality[] = ['normal', 'fine', 'excellent', 'supreme']
+    for (const q of order) {
+      if (inventoryStore.getItemCount(itemId, q) > 0) return q
+    }
+    return 'normal'
+  }
+
   /** 向已放置的机器投入原料开始加工 */
   const startProcessing = (slotIndex: number, recipeId: string): boolean => {
     const slot = machines.value[slotIndex]
@@ -128,13 +141,16 @@ export const useProcessingStore = defineStore('processing', () => {
     const recipe = getProcessingRecipeById(recipeId)
     if (!recipe || recipe.machineType !== slot.machineType) return false
 
-    // 消耗输入材料（蜂箱无需输入）
+    // 消耗输入材料（蜂箱无需输入），记录投入品质
+    let quality: Quality = 'normal'
     if (recipe.inputItemId !== null) {
+      quality = getLowestQuality(recipe.inputItemId)
       if (!inventoryStore.removeItem(recipe.inputItemId, recipe.inputQuantity)) return false
     }
 
     slot.recipeId = recipeId
     slot.inputItemId = recipe.inputItemId
+    slot.inputQuality = quality
     slot.daysProcessed = 0
     slot.totalDays = recipe.processingDays
     slot.ready = false
@@ -149,11 +165,21 @@ export const useProcessingStore = defineStore('processing', () => {
     const recipe = getProcessingRecipeById(slot.recipeId)
     if (!recipe) return null
 
-    inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity)
+    inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
+
+    // 种子制造机额外触发育种种子生成
+    if (slot.machineType === 'seed_maker' && slot.inputItemId) {
+      const breedingStore = useBreedingStore()
+      const farmingLevel = skillStore.farmingLevel
+      if (breedingStore.trySeedMakerGeneticSeed(slot.inputItemId, farmingLevel)) {
+        addLog('种子制造机额外产出了一颗育种种子！')
+      }
+    }
 
     // 重置槽位
     slot.recipeId = null
     slot.inputItemId = null
+    slot.inputQuality = undefined
     slot.daysProcessed = 0
     slot.totalDays = 0
     slot.ready = false
@@ -165,11 +191,11 @@ export const useProcessingStore = defineStore('processing', () => {
   const removeMachine = (slotIndex: number): boolean => {
     const slot = machines.value[slotIndex]
     if (!slot) return false
-    // 如果正在加工，退回原料
+    // 如果正在加工，退回原料（保留品质）
     if (slot.recipeId && !slot.ready && slot.inputItemId) {
       const recipe = getProcessingRecipeById(slot.recipeId)
       if (recipe && recipe.inputItemId) {
-        inventoryStore.addItem(recipe.inputItemId, recipe.inputQuantity)
+        inventoryStore.addItem(recipe.inputItemId, recipe.inputQuantity, slot.inputQuality ?? 'normal')
       }
     }
     machines.value.splice(slotIndex, 1)
@@ -184,12 +210,60 @@ export const useProcessingStore = defineStore('processing', () => {
   // === 每日更新 ===
 
   const dailyUpdate = () => {
+    const collected: string[] = []
     for (const slot of machines.value) {
       if (!slot.recipeId || slot.ready) continue
       slot.daysProcessed++
       if (slot.daysProcessed >= slot.totalDays) {
-        slot.ready = true
+        // 自动收取产物（继承投入品质）
+        const recipe = getProcessingRecipeById(slot.recipeId)
+        if (recipe) {
+          const outputQuality = slot.inputQuality ?? 'normal'
+          inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, outputQuality)
+          collected.push(recipe.name)
+
+          // 种子制造机额外触发育种种子生成
+          if (slot.machineType === 'seed_maker' && slot.inputItemId) {
+            const breedingStore = useBreedingStore()
+            const farmingLevel = skillStore.farmingLevel
+            if (breedingStore.trySeedMakerGeneticSeed(slot.inputItemId, farmingLevel)) {
+              addLog('种子制造机额外产出了一颗育种种子！')
+            }
+          }
+
+          // 尝试自动续产：无需原料的配方直接重启，需要原料的检查背包
+          if (recipe.inputItemId === null) {
+            slot.daysProcessed = 0
+            slot.inputQuality = undefined
+            slot.ready = false
+          } else if (inventoryStore.hasItem(recipe.inputItemId, recipe.inputQuantity)) {
+            slot.inputQuality = getLowestQuality(recipe.inputItemId)
+            inventoryStore.removeItem(recipe.inputItemId, recipe.inputQuantity)
+            slot.daysProcessed = 0
+            slot.ready = false
+          } else {
+            // 背包没有原料，重置为空闲
+            slot.recipeId = null
+            slot.inputItemId = null
+            slot.inputQuality = undefined
+            slot.daysProcessed = 0
+            slot.totalDays = 0
+            slot.ready = false
+          }
+        } else {
+          slot.ready = true
+        }
       }
+    }
+    if (collected.length > 0) {
+      const counts = new Map<string, number>()
+      for (const name of collected) {
+        counts.set(name, (counts.get(name) ?? 0) + 1)
+      }
+      const summary = Array.from(counts.entries())
+        .map(([name, count]) => (count > 1 ? `${name}x${count}` : name))
+        .join('、')
+      addLog(`工坊自动收取了：${summary}。`)
     }
   }
 
@@ -208,6 +282,7 @@ export const useProcessingStore = defineStore('processing', () => {
     machineCount,
     MAX_MACHINES,
     canCraft,
+    consumeCraftMaterials,
     craftMachine,
     craftSprinkler,
     craftFertilizer,

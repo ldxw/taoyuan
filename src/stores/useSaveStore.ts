@@ -17,6 +17,14 @@ import { useHomeStore } from './useHomeStore'
 import { useFishingStore } from './useFishingStore'
 import { useWalletStore } from './useWalletStore'
 import { useQuestStore } from './useQuestStore'
+import { useShopStore } from './useShopStore'
+import { useSettingsStore } from './useSettingsStore'
+import { useWarehouseStore } from './useWarehouseStore'
+import { useBreedingStore } from './useBreedingStore'
+import { useMuseumStore } from './useMuseumStore'
+import { useGuildStore } from './useGuildStore'
+import { useSecretNoteStore } from './useSecretNoteStore'
+import { useHanhaiStore } from './useHanhaiStore'
 
 const SAVE_KEY_PREFIX = 'taoyuanxiang_save_'
 const MAX_SLOTS = 3
@@ -40,7 +48,6 @@ const decrypt = (cipher: string): string | null => {
 }
 
 /** 解密并解析存档数据 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const parseSaveData = (raw: string): Record<string, any> | null => {
   const decrypted = decrypt(raw)
   if (!decrypted) return null
@@ -126,6 +133,14 @@ export const useSaveStore = defineStore('save', () => {
       const fishingStore = useFishingStore()
       const walletStore = useWalletStore()
       const questStore = useQuestStore()
+      const shopStore = useShopStore()
+      const settingsStore = useSettingsStore()
+      const warehouseStore = useWarehouseStore()
+      const breedingStore = useBreedingStore()
+      const museumStore = useMuseumStore()
+      const guildStore = useGuildStore()
+      const secretNoteStore = useSecretNoteStore()
+      const hanhaiStore = useHanhaiStore()
 
       const data = {
         game: gameStore.serialize(),
@@ -143,6 +158,14 @@ export const useSaveStore = defineStore('save', () => {
         fishing: fishingStore.serialize(),
         wallet: walletStore.serialize(),
         quest: questStore.serialize(),
+        shop: shopStore.serialize(),
+        settings: settingsStore.serialize(),
+        warehouse: warehouseStore.serialize(),
+        breeding: breedingStore.serialize(),
+        museum: museumStore.serialize(),
+        guild: guildStore.serialize(),
+        secretNote: secretNoteStore.serialize(),
+        hanhai: hanhaiStore.serialize(),
         savedAt: new Date().toISOString()
       }
       localStorage.setItem(`${SAVE_KEY_PREFIX}${slot}`, encrypt(JSON.stringify(data)))
@@ -182,6 +205,14 @@ export const useSaveStore = defineStore('save', () => {
       const fishingStore = useFishingStore()
       const walletStore = useWalletStore()
       const questStore = useQuestStore()
+      const shopStore = useShopStore()
+      const settingsStore = useSettingsStore()
+      const warehouseStore = useWarehouseStore()
+      const breedingStore = useBreedingStore()
+      const museumStore = useMuseumStore()
+      const guildStore = useGuildStore()
+      const secretNoteStore = useSecretNoteStore()
+      const hanhaiStore = useHanhaiStore()
 
       gameStore.deserialize(data.game)
       playerStore.deserialize(data.player)
@@ -198,6 +229,14 @@ export const useSaveStore = defineStore('save', () => {
       if (data.fishing) fishingStore.deserialize(data.fishing)
       if (data.wallet) walletStore.deserialize(data.wallet)
       if (data.quest) questStore.deserialize(data.quest)
+      if (data.shop) shopStore.deserialize(data.shop)
+      if (data.settings) settingsStore.deserialize(data.settings)
+      if (data.warehouse) warehouseStore.deserialize(data.warehouse)
+      if (data.breeding) breedingStore.deserialize(data.breeding)
+      if (data.museum) museumStore.deserialize(data.museum)
+      if (data.guild) guildStore.deserialize(data.guild)
+      if (data.secretNote) secretNoteStore.deserialize(data.secretNote)
+      if (data.hanhai) hanhaiStore.deserialize(data.hanhai)
       activeSlot.value = slot
       return true
     } catch {

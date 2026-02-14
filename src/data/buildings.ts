@@ -23,7 +23,7 @@ export const FARMHOUSE_UPGRADES: FarmhouseUpgradeDef[] = [
     level: 2,
     name: '宅院',
     description: '宽敞的院落，每晚额外恢复10%体力。',
-    cost: 50000,
+    cost: 65000,
     materialCost: [
       { itemId: 'wood', quantity: 100 },
       { itemId: 'iron_ore', quantity: 50 }
@@ -52,6 +52,12 @@ export const CAVE_MUSHROOM_DAILY_CHANCE = 0.6
 /** 蝙蝠洞每天产出概率 */
 export const CAVE_FRUIT_BAT_DAILY_CHANCE = 0.5
 
+/** 仓库解锁材料需求 */
+export const WAREHOUSE_UNLOCK_MATERIALS = [
+  { itemId: 'wood', quantity: 300 },
+  { itemId: 'iron_ore', quantity: 20 }
+]
+
 /** 温室解锁价格 */
 export const GREENHOUSE_UNLOCK_COST = 35000
 
@@ -64,6 +70,44 @@ export const GREENHOUSE_MATERIAL_COST = [
 
 /** 温室地块数 */
 export const GREENHOUSE_PLOT_COUNT = 12
+
+/** 温室升级定义 */
+export interface GreenhouseUpgradeDef {
+  level: number
+  name: string
+  plotCount: number
+  gridCols: number
+  cost: number
+  materialCost: { itemId: string; quantity: number }[]
+  description: string
+}
+
+export const GREENHOUSE_UPGRADES: GreenhouseUpgradeDef[] = [
+  {
+    level: 1,
+    name: '温室扩建·壹',
+    plotCount: 20,
+    gridCols: 5,
+    cost: 50000,
+    materialCost: [
+      { itemId: 'wood', quantity: 300 },
+      { itemId: 'iron_bar', quantity: 20 }
+    ],
+    description: '扩建至20个地块（5×4）'
+  },
+  {
+    level: 2,
+    name: '温室扩建·贰',
+    plotCount: 30,
+    gridCols: 6,
+    cost: 100000,
+    materialCost: [
+      { itemId: 'wood', quantity: 500 },
+      { itemId: 'gold_bar', quantity: 15 }
+    ],
+    description: '扩建至30个地块（6×5）'
+  }
+]
 
 /** 酒窖陈酿天数——提升一档品质所需天数 */
 export const CELLAR_AGING_DAYS = 14

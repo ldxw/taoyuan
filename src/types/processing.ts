@@ -1,5 +1,28 @@
+import type { Quality } from './item'
+import type { FishingLocation } from './skill'
+
 /** 加工机器类型 */
-export type MachineType = 'wine_workshop' | 'sauce_jar' | 'bee_house' | 'oil_press'
+export type MachineType =
+  | 'wine_workshop'
+  | 'sauce_jar'
+  | 'bee_house'
+  | 'oil_press'
+  | 'mayo_maker'
+  | 'seed_maker'
+  | 'crystal_duplicator'
+  | 'smoker'
+  | 'dehydrator'
+  | 'recycler'
+  | 'cheese_press'
+  | 'loom'
+  | 'furnace'
+  | 'charcoal_kiln'
+  | 'mill'
+  | 'worm_bin'
+  | 'tea_maker'
+  | 'tofu_press'
+  | 'herb_grinder'
+  | 'incense_maker'
 
 /** 加工机器定义 */
 export interface ProcessingMachineDef {
@@ -30,20 +53,21 @@ export interface ProcessingSlot {
   machineType: MachineType
   recipeId: string | null
   inputItemId: string | null
+  inputQuality?: Quality
   daysProcessed: number
   totalDays: number
   ready: boolean
 }
 
 /** 洒水器类型 */
-export type SprinklerType = 'bamboo_sprinkler' | 'copper_sprinkler'
+export type SprinklerType = 'bamboo_sprinkler' | 'copper_sprinkler' | 'gold_sprinkler'
 
 /** 洒水器定义 */
 export interface SprinklerDef {
   id: SprinklerType
   name: string
   description: string
-  range: 4 | 8
+  range: 4 | 8 | 24
   craftCost: { itemId: string; quantity: number }[]
   craftMoney: number
 }
@@ -74,7 +98,7 @@ export interface FertilizerDef {
 }
 
 /** 鱼饵类型 */
-export type BaitType = 'standard_bait' | 'wild_bait' | 'magic_bait'
+export type BaitType = 'standard_bait' | 'wild_bait' | 'magic_bait' | 'deluxe_bait' | 'targeted_bait'
 
 /** 鱼饵定义 */
 export interface BaitDef {
@@ -87,13 +111,19 @@ export interface BaitDef {
   doubleCatchChance?: number
   /** 是否无视季节限制 */
   ignoresSeason?: boolean
+  /** 挣扎成功率加成 */
+  struggleBonus?: number
+  /** 困难鱼权重倍率 */
+  hardWeightMult?: number
+  /** 传说鱼权重倍率 */
+  legendaryWeightMult?: number
   craftCost: { itemId: string; quantity: number }[]
   craftMoney: number
   shopPrice: number | null
 }
 
 /** 浮漂类型 */
-export type TackleType = 'spinner' | 'trap_bobber' | 'cork_bobber' | 'quality_bobber'
+export type TackleType = 'spinner' | 'trap_bobber' | 'cork_bobber' | 'quality_bobber' | 'lead_bobber'
 
 /** 浮漂定义 */
 export interface TackleDef {
@@ -101,7 +131,7 @@ export interface TackleDef {
   name: string
   description: string
   maxDurability: number
-  requiredRodTier: 'iron' | 'steel'
+  requiredRodTier: 'iron' | 'steel' | 'iridium'
   /** 体力消耗减免 (0.5 = -50%) */
   staminaReduction?: number
   /** 断线时额外机会次数 */
@@ -110,6 +140,8 @@ export interface TackleDef {
   struggleBonus?: number
   /** 鱼品质提升档数 */
   qualityBoost?: number
+  /** 危险行为概率减免 (0.1 = dash/surge 各 -10%) */
+  dangerReduction?: number
   craftCost: { itemId: string; quantity: number }[]
   craftMoney: number
   shopPrice: number | null
@@ -150,6 +182,14 @@ export interface PlantedWildTree {
   hasTapper: boolean
   tapDaysElapsed: number
   tapReady: boolean
+  /** 已伐木次数（>=3 时树消失） */
+  chopCount: number
+}
+
+/** 蟹笼状态 */
+export interface CrabPotState {
+  location: FishingLocation
+  hasBait: boolean
 }
 
 /** 钱袋物品定义 */

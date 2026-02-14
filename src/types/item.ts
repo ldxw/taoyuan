@@ -19,6 +19,12 @@ export type ItemCategory =
   | 'bait'
   | 'tackle'
   | 'bomb'
+  | 'fossil'
+  | 'artifact'
+  | 'weapon'
+  | 'ring'
+  | 'hat'
+  | 'shoe'
 
 /** 物品品质 */
 export type Quality = 'normal' | 'fine' | 'excellent' | 'supreme'
@@ -46,13 +52,48 @@ export interface InventoryItem {
 }
 
 /** 工具等级 */
-export type ToolTier = 'basic' | 'iron' | 'steel'
+export type ToolTier = 'basic' | 'iron' | 'steel' | 'iridium'
 
 /** 工具类型 */
-export type ToolType = 'wateringCan' | 'hoe' | 'pickaxe' | 'fishingRod'
+export type ToolType = 'wateringCan' | 'hoe' | 'pickaxe' | 'fishingRod' | 'scythe' | 'axe' | 'pan'
 
 /** 工具实例 */
 export interface Tool {
   type: ToolType
   tier: ToolTier
+}
+
+/** 武器类型 */
+export type WeaponType = 'sword' | 'dagger' | 'club'
+
+/** 武器定义 */
+export interface WeaponDef {
+  id: string
+  name: string
+  type: WeaponType
+  attack: number
+  critRate: number
+  description: string
+  /** 商店购买价格（null = 不可购买） */
+  shopPrice: number | null
+  /** 购买所需材料 */
+  shopMaterials: { itemId: string; quantity: number }[]
+  /** 固定附魔（BOSS 武器） */
+  fixedEnchantment: string | null
+}
+
+/** 附魔定义 */
+export interface EnchantmentDef {
+  id: string
+  name: string
+  description: string
+  attackBonus: number
+  critBonus: number
+  special: 'vampiric' | 'sturdy' | 'lucky' | null
+}
+
+/** 拥有的武器实例 */
+export interface OwnedWeapon {
+  defId: string
+  enchantmentId: string | null
 }

@@ -7,12 +7,16 @@ import {
   useShopStore,
   useSkillStore,
   useCookingStore,
-  useAchievementStore
+  useAchievementStore,
+  useWalletStore,
+  useQuestStore,
+  useBreedingStore
 } from '@/stores'
 import { getCropById, getItemById } from '@/data'
 import { getFertilizerById } from '@/data/processing'
 import { ACTION_TIME_COSTS } from '@/data/timeConstants'
 import type { Quality } from '@/types'
+import type { FertilizerType } from '@/types/processing'
 import { addLog, showFloat } from './useGameLog'
 import { handleEndDay } from './useEndDay'
 import { sfxDig, sfxPlant, sfxWater, sfxHarvest, sfxLevelUp, sfxBuy, sfxCoin } from './useAudio'
@@ -47,10 +51,23 @@ export const handlePlotClick = (plotId: number) => {
   }
 
   if (plot.state === 'wasteland') {
+    if (!inventoryStore.isToolAvailable('hoe')) {
+      addLog('锄头正在升级中，无法开垦。')
+      return
+    }
     const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+    const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
     const cost = Math.max(
       1,
-      Math.floor(3 * inventoryStore.getToolStaminaMultiplier('hoe') * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff))
+      Math.floor(
+        3 *
+          inventoryStore.getToolStaminaMultiplier('hoe') *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - ringFarmReduction) *
+          (1 - ringGlobalReduction)
+      )
     )
     if (!playerStore.consumeStamina(cost)) {
       addLog('体力不足，无法开垦。')
@@ -74,10 +91,17 @@ export const handlePlotClick = (plotId: number) => {
       return
     }
     const cropFarmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cropRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+    const cropRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
     const cost = Math.max(
       1,
       Math.floor(
-        3 * inventoryStore.getToolStaminaMultiplier('hoe') * (1 - skillStore.getStaminaReduction('farming')) * (1 - cropFarmingBuff)
+        3 *
+          inventoryStore.getToolStaminaMultiplier('hoe') *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - cropFarmingBuff) *
+          (1 - cropRingFarmReduction) *
+          (1 - cropRingGlobalReduction)
       )
     )
     if (!playerStore.consumeStamina(cost)) {
@@ -96,20 +120,28 @@ export const handlePlotClick = (plotId: number) => {
       return
     }
   } else if (plot.state === 'planted' || plot.state === 'growing') {
+    if (!inventoryStore.isToolAvailable('wateringCan')) {
+      addLog('水壶正在升级中，无法浇水。')
+      return
+    }
     if (plot.watered) {
       addLog('这块地今天已经浇过水了。')
       return
     }
     const crop = getCropById(plot.cropId!)
-    const baseCost = crop?.deepWatering ? 2 : 1
+    const baseCost = crop?.deepWatering ? 3 : 2
     const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const waterRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+    const waterRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
     const cost = Math.max(
       1,
       Math.floor(
         baseCost *
           inventoryStore.getToolStaminaMultiplier('wateringCan') *
           (1 - skillStore.getStaminaReduction('farming')) *
-          (1 - farmingBuff)
+          (1 - farmingBuff) *
+          (1 - waterRingFarmReduction) *
+          (1 - waterRingGlobalReduction)
       )
     )
     if (!playerStore.consumeStamina(cost)) {
@@ -128,30 +160,52 @@ export const handlePlotClick = (plotId: number) => {
       return
     }
   } else if (plot.state === 'harvestable') {
-    if (!playerStore.consumeStamina(1)) {
-      addLog('体力不足，无法收获。')
+    if (!inventoryStore.isToolAvailable('scythe')) {
+      addLog('镰刀正在升级中，无法收获。')
       return
     }
+    // 镰刀收获不消耗体力
     // 在收获清除前读取肥料信息
     const plotFertilizer = plot.fertilizer
-    const cropId = farmStore.harvestPlot(plotId)
+    const result = farmStore.harvestPlot(plotId)
+    const cropId = result.cropId
+    const genetics = result.genetics
     if (cropId) {
       const cropDef = getCropById(cropId)
       const fertDef = plotFertilizer ? getFertilizerById(plotFertilizer) : null
-      const quality = skillStore.rollCropQualityWithBonus(fertDef?.qualityBonus ?? 0)
+      const ringCropQualityBonus = inventoryStore.getRingEffectValue('crop_quality_bonus')
+      const allSkillsBuff = cookingStore.activeBuff?.type === 'all_skills' ? cookingStore.activeBuff.value : 0
+      const quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + ringCropQualityBonus, allSkillsBuff)
       // 精耕细作天赋：20% 概率双倍收获
       const intensiveDouble = skillStore.getSkill('farming').perk10 === 'intensive' && Math.random() < 0.2
-      const harvestQty = intensiveDouble ? 2 : 1
+      // 育种产量加成：yield/100 × 30% 概率双收
+      const yieldDouble = genetics && !intensiveDouble && Math.random() < (genetics.yield / 100) * 0.3
+      const harvestQty = intensiveDouble || yieldDouble ? 2 : 1
       inventoryStore.addItem(cropId, harvestQty, quality)
       achievementStore.discoverItem(cropId)
       achievementStore.recordCropHarvest()
+      useQuestStore().onItemObtained(cropId, harvestQty)
       const { leveledUp, newLevel } = skillStore.addExp('farming', 10)
       const qualityLabel = quality !== 'normal' ? `(${QUALITY_NAMES[quality]})` : ''
       sfxHarvest()
-      const qtyLabel = intensiveDouble ? '×2' : ''
+      const qtyLabel = intensiveDouble || yieldDouble ? '×2' : ''
       showFloat(`+${cropDef?.name ?? cropId}${qtyLabel}${qualityLabel}`, 'success')
-      let msg = `收获了${cropDef?.name ?? cropId}${qtyLabel}${qualityLabel}！(-1体力)`
+      let msg = `收获了${cropDef?.name ?? cropId}${qtyLabel}${qualityLabel}！`
       if (intensiveDouble) msg += ' 精耕细作，双倍丰收！'
+      if (yieldDouble) msg += ' 育种产量加成，双倍丰收！'
+      // 育种甜度加成：额外金币
+      if (genetics && genetics.sweetness > 0 && cropDef) {
+        const bonusMoney = Math.floor((cropDef.sellPrice * harvestQty * genetics.sweetness) / 200)
+        if (bonusMoney > 0) {
+          usePlayerStore().earnMoney(bonusMoney)
+          msg += ` 甜度加成+${bonusMoney}文`
+          showFloat(`+${bonusMoney}文`, 'accent')
+        }
+      }
+      // 杂交种记录
+      if (genetics?.isHybrid && genetics.hybridId) {
+        useBreedingStore().recordHybridGrown(genetics.hybridId)
+      }
       if (leveledUp) {
         msg += ` 农耕提升到${newLevel}级！`
         sfxLevelUp()
@@ -170,12 +224,15 @@ export const handlePlotClick = (plotId: number) => {
 /** 从商店购买种子 */
 export const handleBuySeed = (seedId: string) => {
   const shopStore = useShopStore()
+  const walletStore = useWalletStore()
   const seed = shopStore.availableSeeds.find(s => s.seedId === seedId)
   if (!seed) return
+  const discount = walletStore.getShopDiscount()
+  const actualPrice = Math.floor(seed.price * (1 - discount))
   if (shopStore.buySeed(seedId)) {
     sfxBuy()
-    showFloat(`-${seed.price}文`, 'danger')
-    addLog(`购买了${seed.cropName}种子。(-${seed.price}文)`)
+    showFloat(`-${actualPrice}文`, 'danger')
+    addLog(`购买了${seed.cropName}种子。(-${actualPrice}文)`)
   } else {
     addLog('金币不足或背包已满。')
   }
@@ -240,6 +297,551 @@ export const handleSellAll = () => {
   }
 }
 
+/** 一键浇水（浇所有未浇水地块，体力不足时自动停止） */
+export const handleBatchWater = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+
+  if (!inventoryStore.isToolAvailable('wateringCan')) {
+    addLog('水壶正在升级中，无法浇水。')
+    return
+  }
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const sprinklerCovered = farmStore.getAllWateredBySprinklers()
+  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered && !sprinklerCovered.has(p.id))
+  if (targets.length === 0) {
+    addLog('没有需要浇水的地块。')
+    return
+  }
+
+  let watered = 0
+  const batchRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const batchRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const crop = getCropById(plot.cropId!)
+    const baseCost = crop?.deepWatering ? 3 : 2
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        baseCost *
+          inventoryStore.getToolStaminaMultiplier('wateringCan') *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - batchRingFarmReduction) *
+          (1 - batchRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.waterPlot(plot.id)
+    skillStore.addExp('farming', 2)
+    watered++
+  }
+
+  if (watered > 0) {
+    sfxWater()
+    addLog(`一键浇水了${watered}块地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchWater * inventoryStore.getToolStaminaMultiplier('wateringCan'))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法浇水。')
+  }
+}
+
+/** 一键开垦（开垦所有荒地，体力不足时自动停止） */
+export const handleBatchTill = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+
+  if (!inventoryStore.isToolAvailable('hoe')) {
+    addLog('锄头正在升级中，无法开垦。')
+    return
+  }
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.state === 'wasteland')
+  if (targets.length === 0) {
+    addLog('没有需要开垦的荒地。')
+    return
+  }
+
+  let tilled = 0
+  const tillRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const tillRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        3 *
+          inventoryStore.getToolStaminaMultiplier('hoe') *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - tillRingFarmReduction) *
+          (1 - tillRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.tillPlot(plot.id)
+    tilled++
+  }
+
+  if (tilled > 0) {
+    sfxDig()
+    addLog(`一键开垦了${tilled}块荒地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill * inventoryStore.getToolStaminaMultiplier('hoe'))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法开垦。')
+  }
+}
+
+/** 一键收获（收获所有成熟作物，不消耗体力） */
+export const handleBatchHarvest = () => {
+  const gameStore = useGameStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const achievementStore = useAchievementStore()
+
+  if (!inventoryStore.isToolAvailable('scythe')) {
+    addLog('镰刀正在升级中，无法收获。')
+    return
+  }
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.state === 'harvestable' && p.giantCropGroup === null)
+  if (targets.length === 0) {
+    addLog('没有可收获的作物。')
+    return
+  }
+
+  let harvested = 0
+  const harvestedCrops: string[] = []
+
+  for (const plot of targets) {
+    const plotFertilizer = plot.fertilizer
+    const result = farmStore.harvestPlot(plot.id)
+    const cropId = result.cropId
+    const genetics = result.genetics
+    if (cropId) {
+      const cropDef = getCropById(cropId)
+      const fertDef = plotFertilizer ? getFertilizerById(plotFertilizer) : null
+      const batchRingCropQuality = inventoryStore.getRingEffectValue('crop_quality_bonus')
+      const batchAllSkillsBuff = cookingStore.activeBuff?.type === 'all_skills' ? cookingStore.activeBuff.value : 0
+      const quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + batchRingCropQuality, batchAllSkillsBuff)
+      const intensiveDouble = skillStore.getSkill('farming').perk10 === 'intensive' && Math.random() < 0.2
+      const yieldDouble = genetics && !intensiveDouble && Math.random() < (genetics.yield / 100) * 0.3
+      const harvestQty = intensiveDouble || yieldDouble ? 2 : 1
+      inventoryStore.addItem(cropId, harvestQty, quality)
+      achievementStore.discoverItem(cropId)
+      achievementStore.recordCropHarvest()
+      useQuestStore().onItemObtained(cropId, harvestQty)
+      skillStore.addExp('farming', 10)
+      harvested++
+      harvestedCrops.push(cropDef?.name ?? cropId)
+      // 育种甜度加成
+      if (genetics && genetics.sweetness > 0 && cropDef) {
+        const bonusMoney = Math.floor((cropDef.sellPrice * harvestQty * genetics.sweetness) / 200)
+        if (bonusMoney > 0) {
+          usePlayerStore().earnMoney(bonusMoney)
+        }
+      }
+      if (genetics?.isHybrid && genetics.hybridId) {
+        useBreedingStore().recordHybridGrown(genetics.hybridId)
+      }
+    }
+  }
+
+  if (harvested > 0) {
+    sfxHarvest()
+    const cropCounts = new Map<string, number>()
+    for (const name of harvestedCrops) {
+      cropCounts.set(name, (cropCounts.get(name) ?? 0) + 1)
+    }
+    const cropSummary = Array.from(cropCounts.entries())
+      .map(([name, count]) => (count > 1 ? `${name}x${count}` : name))
+      .join('、')
+    addLog(`一键收获了${harvested}株作物：${cropSummary}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchHarvest * inventoryStore.getToolStaminaMultiplier('scythe'))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 一键种植（在所有空耕地上种植指定作物） */
+export const handleBatchPlant = (cropId: string) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+
+  if (!inventoryStore.isToolAvailable('hoe')) {
+    addLog('锄头正在升级中，无法播种。')
+    return
+  }
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const cropDef = getCropById(cropId)
+  if (!cropDef) return
+
+  const targets = farmStore.plots.filter(p => p.state === 'tilled')
+  if (targets.length === 0) {
+    addLog('没有可种植的空耕地。')
+    return
+  }
+
+  let planted = 0
+  const plantRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const plantRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    if (!inventoryStore.hasItem(cropDef.seedId)) break
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        3 *
+          inventoryStore.getToolStaminaMultiplier('hoe') *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - plantRingFarmReduction) *
+          (1 - plantRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    inventoryStore.removeItem(cropDef.seedId)
+    farmStore.plantCrop(plot.id, cropDef.id)
+    planted++
+  }
+
+  if (planted > 0) {
+    sfxPlant()
+    addLog(`一键种植了${planted}株${cropDef.name}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.plant * Math.min(planted, 3))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足或种子不够，无法种植。')
+  }
+}
+
+/** 一键施肥（给所有未施肥的非荒地施指定肥料） */
+export const handleBatchFertilize = (fertilizerType: FertilizerType) => {
+  const gameStore = useGameStore()
+  const farmStore = useFarmStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const fertDef = getFertilizerById(fertilizerType)
+  if (!fertDef) return
+
+  const targets = farmStore.plots.filter(p => p.state !== 'wasteland' && !p.fertilizer)
+  if (targets.length === 0) {
+    addLog('没有可施肥的地块。')
+    return
+  }
+
+  let applied = 0
+  for (const plot of targets) {
+    if (!inventoryStore.hasItem(fertilizerType)) break
+    if (!inventoryStore.removeItem(fertilizerType)) break
+    if (farmStore.applyFertilizer(plot.id, fertilizerType)) {
+      applied++
+    } else {
+      inventoryStore.addItem(fertilizerType)
+      break
+    }
+  }
+
+  if (applied > 0) {
+    showFloat(`施肥 ×${applied}`, 'success')
+    addLog(`一键施了${applied}块地的${fertDef.name}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.plant * Math.min(applied, 3))
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('肥料不足，无法施肥。')
+  }
+}
+
+/** 铲除单块作物 */
+export const handleRemoveCrop = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot) return
+  if (plot.state !== 'planted' && plot.state !== 'growing' && plot.state !== 'harvestable') {
+    addLog('该地块没有作物可以铲除。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法铲除。')
+    return
+  }
+
+  const result = farmStore.removeCrop(plotId)
+  if (result.cropId) {
+    const cropDef = getCropById(result.cropId)
+    sfxDig()
+    addLog(`铲除了${cropDef?.name ?? result.cropId}。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 除虫（单块） */
+export const handleCurePest = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot || !plot.infested) {
+    addLog('该地块没有虫害。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法除虫。')
+    return
+  }
+
+  if (farmStore.curePest(plotId)) {
+    sfxDig()
+    addLog('清除了虫害。')
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 一键除虫（清除所有虫害地块，体力不足时自动停止） */
+export const handleBatchCurePest = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.infested)
+  if (targets.length === 0) {
+    addLog('没有需要除虫的地块。')
+    return
+  }
+
+  let cured = 0
+  const batchRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const batchRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        2 *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - batchRingFarmReduction) *
+          (1 - batchRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.curePest(plot.id)
+    cured++
+  }
+
+  if (cured > 0) {
+    sfxDig()
+    addLog(`一键除虫了${cured}块地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法除虫。')
+  }
+}
+
+/** 除草（单块） */
+export const handleClearWeed = (plotId: number) => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const plot = farmStore.plots[plotId]
+  if (!plot || !plot.weedy) {
+    addLog('该地块没有杂草。')
+    return
+  }
+
+  const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+  const ringFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  const cost = Math.max(
+    1,
+    Math.floor(
+      2 * (1 - skillStore.getStaminaReduction('farming')) * (1 - farmingBuff) * (1 - ringFarmReduction) * (1 - ringGlobalReduction)
+    )
+  )
+  if (!playerStore.consumeStamina(cost)) {
+    addLog('体力不足，无法除草。')
+    return
+  }
+
+  if (farmStore.clearWeed(plotId)) {
+    sfxDig()
+    addLog('清除了杂草。')
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.till)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  }
+}
+
+/** 一键除草（清除所有杂草地块，体力不足时自动停止） */
+export const handleBatchClearWeed = () => {
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
+  const skillStore = useSkillStore()
+  const cookingStore = useCookingStore()
+  const inventoryStore = useInventoryStore()
+
+  if (gameStore.isPastBedtime) {
+    addLog('已经凌晨2点了，你必须休息。')
+    handleEndDay()
+    return
+  }
+
+  const targets = farmStore.plots.filter(p => p.weedy)
+  if (targets.length === 0) {
+    addLog('没有需要除草的地块。')
+    return
+  }
+
+  let cleared = 0
+  const batchRingFarmReduction = inventoryStore.getRingEffectValue('farming_stamina')
+  const batchRingGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+  for (const plot of targets) {
+    const farmingBuff = cookingStore.activeBuff?.type === 'farming' ? cookingStore.activeBuff.value / 100 : 0
+    const cost = Math.max(
+      1,
+      Math.floor(
+        2 *
+          (1 - skillStore.getStaminaReduction('farming')) *
+          (1 - farmingBuff) *
+          (1 - batchRingFarmReduction) *
+          (1 - batchRingGlobalReduction)
+      )
+    )
+    if (!playerStore.consumeStamina(cost)) break
+    farmStore.clearWeed(plot.id)
+    cleared++
+  }
+
+  if (cleared > 0) {
+    sfxDig()
+    addLog(`一键除草了${cleared}块地。`)
+    const tr = gameStore.advanceTime(ACTION_TIME_COSTS.batchTill)
+    if (tr.message) addLog(tr.message)
+    if (tr.passedOut) handleEndDay()
+  } else {
+    addLog('体力不足，无法除草。')
+  }
+}
+
 export const useFarmActions = () => {
   return {
     selectedSeed,
@@ -248,6 +850,9 @@ export const useFarmActions = () => {
     handleSellItem,
     handleSellItemAll,
     handleSellAll,
+    handleBatchWater,
+    handleBatchTill,
+    handleBatchHarvest,
     QUALITY_NAMES
   }
 }

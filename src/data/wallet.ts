@@ -26,9 +26,9 @@ export const WALLET_ITEMS: WalletItemDef[] = [
   {
     id: 'anglers_token',
     name: '钓翁令牌',
-    description: '钓鱼时鱼安静概率+10%。',
+    description: '钓鱼小游戏中鱼移动速度降低10%。',
     effect: { type: 'fishingCalm', value: 0.1 },
-    unlockCondition: '钓到15种不同的鱼'
+    unlockCondition: '钓到30种不同的鱼'
   },
   {
     id: 'chefs_hat',

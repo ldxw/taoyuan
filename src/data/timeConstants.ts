@@ -61,44 +61,55 @@ export const formatTime = (hour: number): string => {
 // === 行动时间开销 (单位：小时) ===
 export const ACTION_TIME_COSTS = {
   // 农场
-  till: 0.33,
+  till: 0.17,
   plant: 0.17,
-  water: 0.17,
+  water: 0.08,
   harvest: 0.17,
   // 钓鱼
-  fishStart: 2,
+  fishStart: 1,
   // 挖矿
   mineOre: 0.5,
   combat: 0.5,
   nextFloor: 0.33,
+  revealTile: 0.1,
   // 采集
   forage: 1,
+  chopTree: 1,
   // 烹饪
   cook: 0.5,
   eat: 0,
   // 社交
-  talk: 0.5,
+  talk: 0.17,
   gift: 0,
   // 加工坊
-  craftMachine: 0.5,
+  craftMachine: 0.17,
   startProcessing: 0,
   collectProduct: 0,
-  craftSprinkler: 0.5,
-  craftFertilizer: 0.5,
-  craftJadeRing: 0.5,
+  craftSprinkler: 0.17,
+  craftFertilizer: 0.17,
+  craftJadeRing: 0.17,
   // 畜棚
   feedAnimals: 0.5,
   petAnimal: 0.17,
+  graze: 1,
   // 农舍
   collectCave: 0.17,
   aging: 0.17,
   plantTree: 0.5,
   // 工具升级
   toolUpgrade: 1,
+  // 批量农场操作
+  batchWater: 0.17,
+  batchTill: 0.25,
+  batchHarvest: 0.5,
+  // 淘金
+  pan: 1,
   // UI
   checkInventory: 0,
   checkSkills: 0,
-  checkAchievement: 0
+  checkAchievement: 0,
+  // 育种
+  breeding: 0.17
 } as const
 
 // === 地点分组映射 ===
@@ -109,14 +120,19 @@ export const TAB_TO_LOCATION_GROUP: Record<string, LocationGroup | null> = {
   village: 'village_area',
   shop: 'village_area',
   cooking: 'village_area',
-  workshop: 'village_area',
+  workshop: 'farm',
+  breeding: 'farm',
   upgrade: 'village_area',
   forage: 'nature',
   fishing: 'nature',
   mining: 'mine',
   inventory: null,
   skills: null,
-  achievement: null
+  achievement: null,
+  charinfo: null,
+  museum: 'village_area',
+  guild: 'village_area',
+  hanhai: 'hanhai'
 }
 
 // === 移动时间 ===
@@ -132,14 +148,23 @@ export const TRAVEL_TIME: Record<string, number> = {
   'nature->mine': 1,
   'mine->farm': 1,
   'mine->village_area': 1,
-  'mine->nature': 1
+  'mine->nature': 1,
+  'farm->hanhai': 2,
+  'hanhai->farm': 2,
+  'village_area->hanhai': 2,
+  'hanhai->village_area': 2,
+  'nature->hanhai': 2,
+  'hanhai->nature': 2,
+  'mine->hanhai': 1.5,
+  'hanhai->mine': 1.5
 }
 
 const LOCATION_GROUP_NAMES: Record<LocationGroup, string> = {
   farm: '农场',
   village_area: '桃源村',
   nature: '野外',
-  mine: '矿洞'
+  mine: '矿洞',
+  hanhai: '瀚海'
 }
 
 export const getLocationGroupName = (group: LocationGroup): string => {
@@ -156,8 +181,8 @@ export interface ShopSchedule {
 }
 
 export const SHOP_SCHEDULES: ShopSchedule[] = [
-  { tabKey: 'shop', name: '万物铺', closedDays: ['wed'], openHour: 8, closeHour: 18 },
-  { tabKey: 'upgrade', name: '工坊', closedDays: ['sun'], openHour: 9, closeHour: 17 }
+  { tabKey: 'shop', name: '桃源商圈', closedDays: [], openHour: 6, closeHour: 24 },
+  { tabKey: 'upgrade', name: '工坊', closedDays: ['sun'], openHour: 8, closeHour: 20 }
 ]
 
 export const isShopOpen = (tabKey: string, day: number, hour: number): { open: boolean; reason?: string } => {
@@ -184,12 +209,43 @@ export interface NpcScheduleEntry {
 }
 
 export const NPC_SCHEDULES: NpcScheduleEntry[] = [
+  // 原有 NPC
   { npcId: 'chen_bo', availableDays: 'all', availableHours: { from: 8, to: 20 } },
   { npcId: 'liu_niang', availableDays: 'all', availableHours: { from: 9, to: 21 } },
   { npcId: 'a_shi', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri'], availableHours: { from: 7, to: 18 } },
   { npcId: 'qiu_yue', availableDays: 'all', availableHours: { from: 6, to: 22 } },
   { npcId: 'lin_lao', availableDays: 'all', availableHours: { from: 8, to: 19 } },
-  { npcId: 'xiao_man', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 9, to: 17 } }
+  { npcId: 'xiao_man', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 9, to: 17 } },
+  // 新增可婚 NPC
+  { npcId: 'chun_lan', availableDays: 'all', availableHours: { from: 7, to: 20 } },
+  { npcId: 'xue_qin', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri'], availableHours: { from: 10, to: 19 } },
+  { npcId: 'su_su', availableDays: 'all', availableHours: { from: 8, to: 20 } },
+  { npcId: 'hong_dou', availableDays: 'all', availableHours: { from: 10, to: 23 } },
+  { npcId: 'dan_qing', availableDays: 'all', availableHours: { from: 8, to: 21 } },
+  { npcId: 'a_tie', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 7, to: 18 } },
+  { npcId: 'yun_fei', availableDays: ['tue', 'thu', 'sat', 'sun'], availableHours: { from: 6, to: 16 } },
+  { npcId: 'da_niu', availableDays: 'all', availableHours: { from: 6, to: 19 } },
+  { npcId: 'mo_bai', availableDays: 'all', availableHours: { from: 12, to: 23 } },
+  // 新增不可婚 NPC
+  { npcId: 'wang_dashen', availableDays: 'all', availableHours: { from: 6, to: 19 } },
+  { npcId: 'zhao_mujiang', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 7, to: 18 } },
+  { npcId: 'sun_tiejiang', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'], availableHours: { from: 7, to: 18 } },
+  { npcId: 'zhang_popo', availableDays: 'all', availableHours: { from: 8, to: 17 } },
+  { npcId: 'li_yu', availableDays: 'all', availableHours: { from: 6, to: 20 } },
+  { npcId: 'zhou_xiucai', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri'], availableHours: { from: 8, to: 17 } },
+  { npcId: 'wu_shen', availableDays: 'all', availableHours: { from: 8, to: 20 } },
+  { npcId: 'ma_liu', availableDays: ['wed', 'sat', 'sun'], availableHours: { from: 9, to: 18 } },
+  { npcId: 'lao_song', availableDays: 'all', availableHours: { from: 18, to: 26 } },
+  { npcId: 'pang_shen', availableDays: 'all', availableHours: { from: 5, to: 16 } },
+  { npcId: 'a_hua', availableDays: 'all', availableHours: { from: 9, to: 18 } },
+  { npcId: 'shi_tou', availableDays: 'all', availableHours: { from: 8, to: 20 } },
+  { npcId: 'hui_niang', availableDays: 'all', availableHours: { from: 8, to: 19 } },
+  { npcId: 'lao_lu', availableDays: 'all', availableHours: { from: 10, to: 22 } },
+  { npcId: 'liu_cunzhang', availableDays: ['mon', 'tue', 'wed', 'thu', 'fri'], availableHours: { from: 8, to: 18 } },
+  { npcId: 'qian_niang', availableDays: 'all', availableHours: { from: 8, to: 18 } },
+  { npcId: 'he_zhanggui', availableDays: 'all', availableHours: { from: 9, to: 22 } },
+  { npcId: 'qin_dashu', availableDays: 'all', availableHours: { from: 6, to: 18 } },
+  { npcId: 'a_fu', availableDays: 'all', availableHours: { from: 7, to: 18 } }
 ]
 
 export const isNpcAvailable = (npcId: string, day: number, hour: number): boolean => {
@@ -213,7 +269,9 @@ export const getNpcUnavailableReason = (npcId: string, day: number, hour: number
 }
 
 // === 深夜惩罚 ===
-export const LATE_NIGHT_STAMINA_RECOVERY = 0.75
+/** 渐进式晚睡恢复：根据就寝时间线性递减 */
+export const LATE_NIGHT_RECOVERY_MAX = 0.9 // 24时就寝恢复90%
+export const LATE_NIGHT_RECOVERY_MIN = 0.6 // 25时就寝恢复60%
 export const PASSOUT_STAMINA_RECOVERY = 0.5
 export const PASSOUT_MONEY_PENALTY_RATE = 0.1
 export const PASSOUT_MONEY_PENALTY_CAP = 1000

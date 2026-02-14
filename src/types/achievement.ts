@@ -7,6 +7,7 @@ export type AchievementCondition =
   | { type: 'fishCaught'; count: number }
   | { type: 'moneyEarned'; amount: number }
   | { type: 'mineFloor'; floor: number }
+  | { type: 'skullCavernFloor'; floor: number }
   | { type: 'recipesCooked'; count: number }
   | { type: 'npcFriendship'; level: string }
   | { type: 'skillLevel'; skillType: SkillType; level: number }
@@ -15,6 +16,18 @@ export type AchievementCondition =
   | { type: 'npcAllFriendly' }
   | { type: 'married' }
   | { type: 'hasChild' }
+  | { type: 'monstersKilled'; count: number }
+  | { type: 'shippedCount'; count: number }
+  | { type: 'fullShipment' }
+  | { type: 'animalCount'; count: number }
+  | { type: 'allSkillsMax' }
+  | { type: 'allBundlesComplete' }
+  | { type: 'hybridsDiscovered'; count: number }
+  | { type: 'breedingsDone'; count: number }
+  | { type: 'hybridTier'; tier: number }
+  | { type: 'hybridsShipped'; count: number }
+  | { type: 'museumDonations'; count: number }
+  | { type: 'guildGoalsCompleted'; count: number }
 
 /** 成就定义 */
 export interface AchievementDef {

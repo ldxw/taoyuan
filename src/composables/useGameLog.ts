@@ -2,6 +2,20 @@ import Qmsg from 'qmsg'
 
 export type FloatColor = 'danger' | 'success' | 'accent' | 'water'
 
+export interface QmsgConfigOptions {
+  position: string
+  timeout: number
+  maxNums: number
+  isLimitWidth: boolean
+  limitWidthNum: number
+  limitWidthWrap: 'no-wrap' | 'wrap' | 'ellipsis'
+  animation: boolean
+  autoClose: boolean
+  showClose: boolean
+  showIcon: boolean
+  showReverse: boolean
+}
+
 // 配置 Qmsg 全局样式
 Qmsg.config({
   position: 'top',
@@ -10,6 +24,24 @@ Qmsg.config({
   timeout: 2500,
   useShadowRoot: false
 })
+
+/** 动态更新 Qmsg 全部通知配置 */
+export const applyQmsgConfig = (opts: QmsgConfigOptions) => {
+  Qmsg.config({
+    position: opts.position as 'top',
+    timeout: opts.timeout,
+    maxNums: opts.maxNums,
+    isLimitWidth: opts.isLimitWidth,
+    limitWidthNum: opts.limitWidthNum,
+    limitWidthWrap: opts.limitWidthWrap,
+    animation: opts.animation,
+    autoClose: opts.autoClose,
+    showClose: opts.showClose,
+    showIcon: opts.showIcon,
+    showReverse: opts.showReverse,
+    useShadowRoot: false
+  })
+}
 
 // 天赋检查回调 — 由 useDialogs 注册以避免循环导入
 let _perkChecker: (() => void) | null = null

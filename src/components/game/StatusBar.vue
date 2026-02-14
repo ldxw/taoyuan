@@ -10,7 +10,6 @@
         <span class="text-muted hidden md:inline">({{ gameStore.weekdayName }})</span>
         <span :class="{ 'text-danger': gameStore.isLateNight }">{{ gameStore.timeDisplay }}</span>
         <span class="text-muted">{{ WEATHER_NAMES[gameStore.weather] }}</span>
-        <span class="text-muted/60 text-xs hidden md:inline">→{{ WEATHER_NAMES[gameStore.tomorrowWeather] }}</span>
       </div>
       <span class="text-accent shrink-0">
         <Coins :size="12" class="inline" />
@@ -27,9 +26,9 @@
             <Zap :size="12" class="inline" />
             {{ playerStore.stamina }}/{{ playerStore.maxStamina }}
           </span>
-          <div class="w-14 md:w-20 h-2 bg-bg rounded-[2px] border border-accent/20">
+          <div class="w-14 md:w-20 h-2 bg-bg rounded-xs border border-accent/20">
             <div
-              class="h-full rounded-[2px] transition-all duration-300"
+              class="h-full rounded-xs transition-all duration-300"
               :class="staminaBarColor"
               :style="{ width: playerStore.staminaPercent + '%' }"
             />
@@ -41,9 +40,9 @@
             <Heart :size="12" class="inline" />
             {{ playerStore.hp }}/{{ playerStore.getMaxHp() }}
           </span>
-          <div class="w-12 md:w-16 h-2 bg-bg rounded-[2px] border border-accent/20">
+          <div class="w-12 md:w-16 h-2 bg-bg rounded-xs border border-accent/20">
             <div
-              class="h-full rounded-[2px] transition-all duration-300"
+              class="h-full rounded-xs transition-all duration-300"
               :class="hpBarColor"
               :style="{ width: playerStore.getHpPercent() + '%' }"
             />
@@ -52,31 +51,29 @@
         <!-- 剩余时间 -->
         <div class="flex items-center gap-1">
           <Clock :size="12" class="tinline" />
-          <div class="w-12 md:w-16 h-2 bg-bg rounded-[2px] border border-accent/20">
-            <div class="h-full rounded-[2px] transition-all duration-300" :class="timeBarColor" :style="{ width: timePercent + '%' }" />
+          <div class="w-12 md:w-16 h-2 bg-bg rounded-xs border border-accent/20">
+            <div class="h-full rounded-xs transition-all duration-300" :class="timeBarColor" :style="{ width: timePercent + '%' }" />
           </div>
         </div>
       </div>
-      <!-- 音频控制 -->
+      <!-- 操作按钮 -->
       <div class="flex items-center gap-1 shrink-0">
-        <button class="!hidden btn text-xs py-0 px-2 min-h-0 md:!flex" @click="showMobileMap = true">
+        <button class="hidden! btn text-xs py-0 px-2 min-h-0 md:flex!" @click="showMobileMap = true">
           <Map :size="12" />
           地图
         </button>
-        <button class="!hidden btn btn-danger text-xs py-0 px-2 min-h-0 md:!flex" @click.stop="handleSleep">
+        <button class="hidden! btn btn-danger text-xs py-0 px-2 min-h-0 md:flex!" @click.stop="handleSleep">
           <Moon :size="12" />
           {{ sleepLabel }}
         </button>
-        <button class="btn text-xs py-0 px-1 min-h-0" @click="toggleSfx">
-          <Volume2 v-if="sfxEnabled" :size="14" />
-          <VolumeX v-else :size="14" />
-        </button>
-        <button class="btn text-xs py-0 px-1 min-h-0" @click="toggleBgm">
-          <Music :size="14" :class="{ 'opacity-30': !bgmEnabled }" />
+        <button class="hidden! btn btn-danger text-xs py-0 px-2 min-h-0 md:flex!" @click="showSettings = true">
+          <SettingsIcon :size="14" />
+          <span class="hidden md:flex">设置</span>
         </button>
       </div>
     </div>
     <MobileMapMenu :open="showMobileMap" :current="currentPanel" @close="showMobileMap = false" />
+    <SettingsDialog :open="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
@@ -84,20 +81,22 @@
   import { computed, ref } from 'vue'
   import { useRoute } from 'vue-router'
   import { useGameStore, usePlayerStore, SEASON_NAMES, WEATHER_NAMES } from '@/stores'
-  import { useAudio } from '@/composables/useAudio'
   import MobileMapMenu from '@/components/game/MobileMapMenu.vue'
+  import SettingsDialog from '@/components/game/SettingsDialog.vue'
   import { DAY_START_HOUR, DAY_END_HOUR } from '@/data/timeConstants'
-  import { Zap, Heart, Clock, Coins, Volume2, VolumeX, Music, Moon, Map } from 'lucide-vue-next'
+  import { Zap, Heart, Clock, Coins, Moon, Map, Settings as SettingsIcon } from 'lucide-vue-next'
 
   const emit = defineEmits<{ 'request-sleep': [] }>()
 
   const route = useRoute()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
-  const { sfxEnabled, bgmEnabled, toggleSfx, toggleBgm } = useAudio()
 
   /** 地图菜单 */
   const showMobileMap = ref(false)
+
+  /** 设置弹窗 */
+  const showSettings = ref(false)
 
   /** 从路由名称获取当前面板标识 */
   const currentPanel = computed(() => {

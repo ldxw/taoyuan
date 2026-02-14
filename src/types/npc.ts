@@ -19,6 +19,12 @@ export interface NpcDef {
   marriageable?: boolean
   /** 关联的心事件ID列表 */
   heartEventIds?: string[]
+  /** 约会阶段专属对话 */
+  datingDialogues?: string[]
+  /** 知己专属对话 */
+  zhijiDialogues?: string[]
+  /** 知己心事件ID列表 */
+  zhijiHeartEventIds?: string[]
   /** 生日 (季节+日期) */
   birthday?: { season: Season; day: number }
 }
@@ -29,8 +35,14 @@ export interface NpcState {
   friendship: number
   talkedToday: boolean
   giftedToday: boolean
+  /** 本周送礼次数 (上限2) */
+  giftsThisWeek: number
+  /** 是否正在约会 */
+  dating: boolean
   /** 是否已结婚 */
   married: boolean
+  /** 是否已结为知己 */
+  zhiji: boolean
   /** 已触发的心事件ID */
   triggeredHeartEvents: string[]
 }
@@ -52,6 +64,8 @@ export interface HeartEventDef {
   npcId: string
   /** 触发所需的最低好感度 */
   requiredFriendship: number
+  /** 是否需要知己关系才能触发 */
+  requiresZhiji?: boolean
   title: string
   scenes: HeartEventScene[]
 }

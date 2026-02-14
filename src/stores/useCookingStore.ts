@@ -7,6 +7,7 @@ import { usePlayerStore } from './usePlayerStore'
 import { useSkillStore } from './useSkillStore'
 import { useAchievementStore } from './useAchievementStore'
 import { useWalletStore } from './useWalletStore'
+import { useHomeStore } from './useHomeStore'
 
 export const useCookingStore = defineStore('cooking', () => {
   const inventoryStore = useInventoryStore()
@@ -21,7 +22,16 @@ export const useCookingStore = defineStore('cooking', () => {
     'bamboo_shoot_stir_fry',
     'dried_persimmon',
     'sesame_paste',
-    'corn_pancake'
+    'corn_pancake',
+    'scrambled_egg_rice',
+    'stir_fried_potato',
+    'boiled_egg',
+    'congee',
+    'roasted_sweet_potato',
+    'vegetable_soup',
+    'chive_egg_stir_fry',
+    'peanut_candy',
+    'silkie_egg_soup'
   ])
 
   /** 当天生效的食物增益 */
@@ -79,14 +89,16 @@ export const useCookingStore = defineStore('cooking', () => {
 
     // 炼金师专精：食物恢复+50%
     const walletStore = useWalletStore()
+    const homeStore = useHomeStore()
     const chefBonus = 1 + walletStore.getCookingRestoreBonus()
     const alchemistBonus = skillStore.getSkill('foraging').perk10 === 'alchemist' ? 1.5 : 1.0
-    const staminaRestore = Math.floor(recipe.effect.staminaRestore * alchemistBonus * chefBonus)
+    const kitchenBonus = homeStore.getKitchenBonus()
+    const staminaRestore = Math.floor(recipe.effect.staminaRestore * alchemistBonus * chefBonus * kitchenBonus)
     playerStore.restoreStamina(staminaRestore)
     let msg = `食用了${recipe.name}，恢复${staminaRestore}体力`
 
     if (recipe.effect.healthRestore) {
-      const healthRestore = Math.floor(recipe.effect.healthRestore * alchemistBonus * chefBonus)
+      const healthRestore = Math.floor(recipe.effect.healthRestore * alchemistBonus * chefBonus * kitchenBonus)
       playerStore.restoreHealth(healthRestore)
       msg += `、${healthRestore}生命值`
     }
@@ -95,6 +107,10 @@ export const useCookingStore = defineStore('cooking', () => {
     if (recipe.effect.buff) {
       activeBuff.value = { ...recipe.effect.buff }
       msg += ` ${recipe.effect.buff.description}`
+      // 「体力全恢复」类buff：立即将体力回满
+      if (recipe.effect.buff.type === 'stamina') {
+        playerStore.restoreStamina(playerStore.maxStamina)
+      }
     }
 
     return { success: true, message: msg }

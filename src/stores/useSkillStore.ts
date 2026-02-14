@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { SkillType, SkillState, SkillPerk5, SkillPerk10 } from '@/types'
+import { useInventoryStore } from './useInventoryStore'
 
-/** 各等级所需累计经验（6-10级减少约15%） */
-const EXP_TABLE = [0, 100, 250, 500, 800, 1200, 1500, 1950, 2500, 3200, 4200]
+/** 各等级所需累计经验 **/
+const EXP_TABLE = [0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000]
 
 /** 创建初始技能状态 */
 const createSkill = (type: SkillType): SkillState => {
@@ -11,7 +12,13 @@ const createSkill = (type: SkillType): SkillState => {
 }
 
 export const useSkillStore = defineStore('skill', () => {
-  const skills = ref<SkillState[]>([createSkill('farming'), createSkill('foraging'), createSkill('fishing'), createSkill('mining')])
+  const skills = ref<SkillState[]>([
+    createSkill('farming'),
+    createSkill('foraging'),
+    createSkill('fishing'),
+    createSkill('mining'),
+    createSkill('combat')
+  ])
 
   const getSkill = (type: SkillType): SkillState => {
     return skills.value.find(s => s.type === type)!
@@ -21,11 +28,15 @@ export const useSkillStore = defineStore('skill', () => {
   const fishingLevel = computed(() => getSkill('fishing').level)
   const miningLevel = computed(() => getSkill('mining').level)
   const foragingLevel = computed(() => getSkill('foraging').level)
+  const combatLevel = computed(() => getSkill('combat').level)
 
-  /** 增加经验并自动升级 */
+  /** 增加经验并自动升级（含戒指经验加成） */
   const addExp = (type: SkillType, amount: number): { leveledUp: boolean; newLevel: number } => {
+    const ringExpBonus = useInventoryStore().getRingEffectValue('exp_bonus')
+    const adjustedAmount = Math.floor(amount * (1 + ringExpBonus))
+
     const skill = getSkill(type)
-    skill.exp += amount
+    skill.exp += adjustedAmount
     let leveledUp = false
 
     while (skill.level < 10) {
@@ -48,9 +59,9 @@ export const useSkillStore = defineStore('skill', () => {
     return { current: skill.exp, required: EXP_TABLE[skill.level + 1]! }
   }
 
-  /** 计算技能对体力消耗的减免 (每级减少0.1，即10%累计) */
+  /** 计算技能对体力消耗的减免 (每级减少1%，10级共减少10%) */
   const getStaminaReduction = (type: SkillType): number => {
-    return getSkill(type).level * 0.1
+    return getSkill(type).level * 0.01
   }
 
   /** 设置等级5专精 */
@@ -74,9 +85,9 @@ export const useSkillStore = defineStore('skill', () => {
     return rollCropQualityWithBonus(0)
   }
 
-  /** 判断作物品质（带肥料加成） */
-  const rollCropQualityWithBonus = (qualityBonus: number): 'normal' | 'fine' | 'excellent' | 'supreme' => {
-    const level = farmingLevel.value
+  /** 判断作物品质（带肥料加成 + 可选技能等级加成） */
+  const rollCropQualityWithBonus = (qualityBonus: number, levelBonus: number = 0): 'normal' | 'fine' | 'excellent' | 'supreme' => {
+    const level = farmingLevel.value + levelBonus
     const roll = Math.random()
 
     if (level >= 9 && roll < 0.05 + qualityBonus * 0.5) return 'supreme'
@@ -85,11 +96,11 @@ export const useSkillStore = defineStore('skill', () => {
     return 'normal'
   }
 
-  /** 判断采集物品质（基于采集等级和专精） */
-  const rollForageQuality = (): 'normal' | 'fine' | 'excellent' | 'supreme' => {
+  /** 判断采集物品质（基于采集等级和专精 + 可选技能等级加成） */
+  const rollForageQuality = (levelBonus: number = 0): 'normal' | 'fine' | 'excellent' | 'supreme' => {
     const skill = getSkill('foraging')
     if (skill.perk10 === 'botanist') return 'excellent'
-    const level = skill.level
+    const level = skill.level + levelBonus
     const roll = Math.random()
 
     if (level >= 9 && roll < 0.05) return 'supreme'
@@ -103,7 +114,28 @@ export const useSkillStore = defineStore('skill', () => {
   }
 
   const deserialize = (data: ReturnType<typeof serialize>) => {
-    skills.value = data.skills
+    const arr: SkillState[] = data.skills ?? []
+    // 确保 5 个技能都存在（旧存档可能没有 combat）
+    const allTypes: SkillType[] = ['farming', 'foraging', 'fishing', 'mining', 'combat']
+    for (const type of allTypes) {
+      if (!arr.find(s => s.type === type)) {
+        const newSkill = createSkill(type)
+        // 旧存档迁移：mining 的 fighter/warrior/brute → combat
+        if (type === 'combat') {
+          const mining = arr.find(s => s.type === 'mining')
+          if (mining && mining.perk5 === 'fighter') {
+            newSkill.exp = mining.exp
+            newSkill.level = mining.level
+            newSkill.perk5 = 'fighter'
+            newSkill.perk10 = mining.perk10
+            mining.perk5 = null
+            mining.perk10 = null
+          }
+        }
+        arr.push(newSkill)
+      }
+    }
+    skills.value = arr
   }
 
   return {
@@ -112,6 +144,7 @@ export const useSkillStore = defineStore('skill', () => {
     fishingLevel,
     miningLevel,
     foragingLevel,
+    combatLevel,
     getSkill,
     addExp,
     getExpToNextLevel,

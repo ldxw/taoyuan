@@ -1,15 +1,29 @@
 import { ref } from 'vue'
 import type { HeartEventDef, SkillType, SkillPerk5, SkillPerk10 } from '@/types'
 import type { SeasonEventDef } from '@/data/events'
-import { useSkillStore, useNpcStore, usePlayerStore } from '@/stores'
+import { WEDDING_EVENT } from '@/data/heartEvents'
+import { useSkillStore, useNpcStore, usePlayerStore, useGameStore } from '@/stores'
 import { addLog, showFloat, _registerPerkChecker } from './useGameLog'
 import { useAudio } from './useAudio'
 
 // 模块级单例状态
 const currentEvent = ref<SeasonEventDef | null>(null)
 const pendingHeartEvent = ref<HeartEventDef | null>(null)
-const currentFestival = ref<'fishing_contest' | 'harvest_fair' | null>(null)
+type FestivalType =
+  | 'fishing_contest'
+  | 'harvest_fair'
+  | 'dragon_boat'
+  | 'lantern_riddle'
+  | 'pot_throwing'
+  | 'dumpling_making'
+  | 'firework_show'
+  | 'tea_contest'
+  | 'kite_flying'
+const currentFestival = ref<FestivalType | null>(null)
 const pendingPerk = ref<{ skillType: SkillType; level: 5 | 10 } | null>(null)
+
+/** 宠物领养弹窗 */
+const pendingPetAdoption = ref(false)
 
 /** 检查是否有技能达到天赋阈值但尚未选择天赋 */
 export const checkAllPerks = () => {
@@ -64,6 +78,12 @@ export const closeHeartEvent = (changes: { npcId: string; amount: number }[]) =>
   pendingHeartEvent.value = null
 }
 
+/** 触发婚礼事件（由 useEndDay 调用） */
+export const triggerWeddingEvent = (npcId: string) => {
+  const event: HeartEventDef = { ...WEDDING_EVENT, npcId }
+  pendingHeartEvent.value = event
+}
+
 /** 显示季节事件对话框 */
 export const showEvent = (event: SeasonEventDef) => {
   currentEvent.value = event
@@ -76,9 +96,11 @@ export const closeEvent = () => {
   endFestivalBgm()
 }
 
-/** 显示节日庆典界面 */
-export const showFestival = (type: 'fishing_contest' | 'harvest_fair') => {
+/** 显示节日庆典界面并播放小游戏专属 BGM */
+export const showFestival = (type: FestivalType) => {
   currentFestival.value = type
+  const { startMinigameBgm } = useAudio()
+  startMinigameBgm(type)
 }
 
 /** 关闭节日庆典并发放奖品 */
@@ -90,8 +112,25 @@ export const closeFestival = (prize: number) => {
     addLog(`节日奖金：${prize}文！`)
   }
   currentFestival.value = null
-  const { endFestivalBgm } = useAudio()
-  endFestivalBgm()
+  // 如果还有事件叙述在显示，切换到季节节日 BGM；否则直接恢复季节 BGM
+  if (currentEvent.value) {
+    const { startFestivalBgm } = useAudio()
+    const gameStore = useGameStore()
+    startFestivalBgm(gameStore.season)
+  } else {
+    const { endFestivalBgm } = useAudio()
+    endFestivalBgm()
+  }
+}
+
+/** 触发宠物领养弹窗 */
+export const triggerPetAdoption = () => {
+  pendingPetAdoption.value = true
+}
+
+/** 关闭宠物领养弹窗 */
+export const closePetAdoption = () => {
+  pendingPetAdoption.value = false
 }
 
 export const useDialogs = () => {
@@ -100,13 +139,17 @@ export const useDialogs = () => {
     pendingHeartEvent,
     currentFestival,
     pendingPerk,
+    pendingPetAdoption,
     checkAllPerks,
     handlePerkSelect,
     triggerHeartEvent,
+    triggerWeddingEvent,
     closeHeartEvent,
     showEvent,
     closeEvent,
     showFestival,
-    closeFestival
+    closeFestival,
+    triggerPetAdoption,
+    closePetAdoption
   }
 }
