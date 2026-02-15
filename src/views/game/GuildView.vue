@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Swords :size="14" />
         <span>冒险家公会</span>
       </div>
@@ -9,41 +9,37 @@
     </div>
 
     <!-- 标签页 -->
-    <div class="flex gap-1 mb-3">
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'goals' }" @click="tab = 'goals'">
-        讨伐任务
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'shop' }" @click="tab = 'shop'">
-        公会商店
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'bestiary' }" @click="tab = 'bestiary'">
+    <div class="flex space-x-1 mb-3">
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'goals' }" @click="tab = 'goals'">讨伐任务</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'shop' }" @click="tab = 'shop'">公会商店</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'bestiary' }" @click="tab = 'bestiary'">
         怪物图鉴
-      </button>
+      </Button>
     </div>
 
     <!-- 讨伐任务 -->
     <div v-if="tab === 'goals'">
       <!-- 空状态 -->
-      <div v-if="!hasAnyKills" class="flex flex-col items-center justify-center py-8 gap-3 mb-3">
+      <div v-if="!hasAnyKills" class="flex flex-col items-center justify-center py-8 space-y-3 mb-3">
         <Swords :size="48" class="text-accent/30" />
         <p class="text-sm text-muted">尚未讨伐任何怪物</p>
         <p class="text-xs text-muted/60 text-center max-w-60">前往矿洞击败怪物，完成讨伐目标可领取奖励</p>
       </div>
 
       <!-- 区域筛选 -->
-      <div class="grid grid-cols-4 md:grid-cols-none md:flex gap-1 mb-2 flex-wrap">
+      <div class="grid grid-cols-4 md:grid-cols-none md:flex gap-1 md:space-x-1 mb-2 flex-wrap">
         <button
           v-for="z in ZONE_FILTERS"
           :key="z.key"
           class="btn text-xs"
-          :class="{ 'bg-accent! text-bg!': goalZone === z.key }"
+          :class="{ '!bg-accent !text-bg': goalZone === z.key }"
           @click="goalZone = z.key"
         >
           {{ z.label }}
         </button>
       </div>
 
-      <div class="flex flex-col gap-2 max-h-72 overflow-y-auto">
+      <div class="flex flex-col space-y-2 max-h-72 overflow-y-auto">
         <div
           v-for="goal in filteredGoals"
           :key="goal.monsterId"
@@ -52,7 +48,7 @@
           @click="selectedGoal = goal"
         >
           <div class="flex items-center justify-between mb-1">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center space-x-1.5">
               <CircleCheck v-if="isGoalClaimed(goal.monsterId)" :size="12" class="text-success shrink-0" />
               <Circle
                 v-else
@@ -122,14 +118,14 @@
           </div>
 
           <div v-if="isGoalClaimed(selectedGoal.monsterId)" class="border border-success/30 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck :size="12" class="text-success" />
               <span class="text-xs text-success">已完成</span>
             </div>
           </div>
           <button
             v-else-if="getKillCount(selectedGoal.monsterId) >= selectedGoal.killTarget"
-            class="btn text-xs w-full justify-center bg-accent! text-bg!"
+            class="btn text-xs w-full justify-center !bg-accent !text-bg"
             @click="handleClaimGoal(selectedGoal.monsterId)"
           >
             <Gift :size="12" />
@@ -140,7 +136,7 @@
     </Transition>
 
     <!-- 公会商店 -->
-    <div v-if="tab === 'shop'" class="flex flex-col gap-2">
+    <div v-if="tab === 'shop'" class="flex flex-col space-y-2">
       <div
         v-for="item in GUILD_SHOP_ITEMS"
         :key="item.itemId"
@@ -196,7 +192,7 @@
           <button
             v-else
             class="btn text-xs w-full justify-center"
-            :class="playerStore.money >= shopModalItem.price ? 'bg-accent! text-bg!' : 'opacity-50 cursor-not-allowed'"
+            :class="playerStore.money >= shopModalItem.price ? '!bg-accent !text-bg' : 'opacity-50 cursor-not-allowed'"
             :disabled="playerStore.money < shopModalItem.price"
             @click="handleBuyShopItem(shopModalItem.itemId)"
           >
@@ -209,7 +205,7 @@
 
     <!-- 怪物图鉴 -->
     <div v-if="tab === 'bestiary'">
-      <div v-if="guildStore.encounteredMonsters.length === 0" class="flex flex-col items-center justify-center py-8 gap-3">
+      <div v-if="guildStore.encounteredMonsters.length === 0" class="flex flex-col items-center justify-center py-8 space-y-3">
         <BookOpen :size="48" class="text-accent/30" />
         <p class="text-sm text-muted">图鉴尚无记录</p>
         <p class="text-xs text-muted/60 text-center max-w-60">在矿洞中遭遇怪物后，它们的信息将记录在此</p>
@@ -281,7 +277,7 @@
 
     <!-- 底部统计 -->
     <div class="mt-3 border border-accent/20 rounded-xs p-2">
-      <div class="flex items-center gap-2 text-xs mb-1.5">
+      <div class="flex items-center space-x-2 text-xs mb-1.5">
         <span class="text-muted shrink-0">讨伐进度</span>
         <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
           <div
@@ -312,6 +308,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { Swords, Gift, CircleCheck, Circle, Lock, ShoppingCart, BookOpen, X } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useGuildStore, usePlayerStore } from '@/stores'
   import { MONSTER_GOALS, GUILD_SHOP_ITEMS } from '@/data/guild'
   import { MONSTERS, BOSS_MONSTERS } from '@/data/mine'

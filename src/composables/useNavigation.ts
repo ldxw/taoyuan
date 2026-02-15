@@ -27,7 +27,8 @@ import {
   FlaskConical,
   Landmark,
   Swords,
-  Tent
+  Tent,
+  Waves
 } from 'lucide-vue-next'
 
 export type PanelKey =
@@ -52,12 +53,14 @@ export type PanelKey =
   | 'museum'
   | 'guild'
   | 'hanhai'
+  | 'fishpond'
 
 export const TABS: { key: PanelKey; label: string; icon: Component }[] = [
   { key: 'farm', label: '农场', icon: Wheat },
   { key: 'animal', label: '畜棚', icon: Egg },
   { key: 'home', label: '农舍', icon: Home },
   { key: 'breeding', label: '育种', icon: FlaskConical },
+  { key: 'fishpond', label: '鱼塘', icon: Waves },
   { key: 'village', label: '桃源村', icon: Users },
   { key: 'shop', label: '商圈', icon: Store },
   { key: 'forage', label: '竹林', icon: TreePine },

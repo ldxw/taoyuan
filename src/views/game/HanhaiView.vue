@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Tent :size="14" />
         <span>瀚海</span>
       </div>
@@ -10,19 +10,13 @@
     </div>
 
     <!-- 未解锁 -->
-    <div v-if="!hanhaiStore.unlocked" class="flex flex-col items-center justify-center py-10 gap-3">
+    <div v-if="!hanhaiStore.unlocked" class="flex flex-col items-center justify-center py-10 space-y-3">
       <Tent :size="48" class="text-accent/30" />
       <p class="text-sm text-muted">商路尚未开通</p>
       <p class="text-xs text-muted/60 text-center max-w-60">需要击败矿洞第120层BOSS并支付{{ HANHAI_UNLOCK_COST }}文修路费</p>
-      <button
-        v-if="bossDefeated"
-        class="btn text-xs"
-        :class="canUnlock ? 'bg-accent! text-bg!' : 'opacity-50'"
-        :disabled="!canUnlock"
-        @click="handleUnlock"
-      >
+      <Button v-if="bossDefeated" :class="canUnlock ? '!bg-accent !text-bg' : 'opacity-50'" :disabled="!canUnlock" @click="handleUnlock">
         开通商路 ({{ HANHAI_UNLOCK_COST }}文)
-      </button>
+      </Button>
       <p v-if="bossDefeated && !canUnlock" class="text-xs text-danger">金钱不足（需要{{ HANHAI_UNLOCK_COST }}文）</p>
       <p v-if="!bossDefeated" class="text-xs text-danger">需先击败矿洞第120层BOSS</p>
     </div>
@@ -30,26 +24,18 @@
     <!-- 已解锁 -->
     <template v-else>
       <!-- 标签页 -->
-      <div class="flex gap-1 mb-3">
-        <button
-          class="btn text-xs flex-1 justify-center"
-          :class="{ 'bg-accent! text-bg!': activeTab === 'shop' }"
-          @click="activeTab = 'shop'"
-        >
+      <div class="flex space-x-1 mb-3">
+        <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': activeTab === 'shop' }" @click="activeTab = 'shop'">
           驿站商店
-        </button>
-        <button
-          class="btn text-xs flex-1 justify-center"
-          :class="{ 'bg-accent! text-bg!': activeTab === 'casino' }"
-          @click="activeTab = 'casino'"
-        >
+        </Button>
+        <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': activeTab === 'casino' }" @click="activeTab = 'casino'">
           瀚海赌坊
-        </button>
+        </Button>
       </div>
 
       <!-- 驿站商店 -->
       <template v-if="activeTab === 'shop'">
-        <div class="flex flex-col gap-1 max-h-80 overflow-y-auto">
+        <div class="flex flex-col space-y-1 max-h-80 overflow-y-auto">
           <div
             v-for="item in HANHAI_SHOP_ITEMS"
             :key="item.itemId"
@@ -64,10 +50,9 @@
           </div>
         </div>
         <!-- 藏宝图寻宝 -->
-        <button v-if="treasureMapCount > 0" class="btn text-xs w-full justify-center mt-2" @click="handleUseTreasureMap">
-          <Map :size="12" />
+        <Button v-if="treasureMapCount > 0" :icon="Map" :icon-size="12" class="w-full justify-center mt-2" @click="handleUseTreasureMap">
           使用藏宝图寻宝（{{ treasureMapCount }}张）
-        </button>
+        </Button>
       </template>
 
       <!-- 赌坊 -->
@@ -82,118 +67,118 @@
         </div>
 
         <!-- 次数用完 -->
-        <div v-if="!hanhaiStore.canBet" class="flex flex-col items-center justify-center py-8 gap-3">
+        <div v-if="!hanhaiStore.canBet" class="flex flex-col items-center justify-center py-8 space-y-3">
           <Dices :size="48" class="text-accent/30" />
           <p class="text-sm text-muted">今日赌博次数已用完</p>
           <p class="text-xs text-muted/60">明天再来碰碰运气吧</p>
         </div>
 
-        <div v-else class="flex flex-col gap-2">
+        <div v-else class="flex flex-col space-y-2">
           <!-- 幸运轮盘 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <CircleDot :size="12" />
-              幸运轮盘
+              <span>幸运轮盘</span>
             </p>
             <p class="text-xs text-muted mb-2">选择投注金额，转动轮盘赢取倍数奖励</p>
-            <div class="flex gap-1">
-              <button
+            <div class="flex space-x-1">
+              <Button
                 v-for="tier in ROULETTE_BET_TIERS"
                 :key="tier"
-                class="btn text-xs flex-1 justify-center"
+                class="flex-1 justify-center"
                 :disabled="playerStore.money < tier"
                 @click="handleRoulette(tier)"
               >
                 {{ tier }}文
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- 骰子猜大小 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Dices :size="12" />
-              骰子猜大小
+              <span>骰子猜大小</span>
             </p>
             <p class="text-xs text-muted mb-2">投注{{ DICE_BET_AMOUNT }}文，猜对大小赢2倍</p>
-            <div class="flex gap-1">
-              <button class="btn text-xs flex-1 justify-center" :disabled="playerStore.money < DICE_BET_AMOUNT" @click="handleDice(false)">
+            <div class="flex space-x-1">
+              <Button class="flex-1 justify-center" :disabled="playerStore.money < DICE_BET_AMOUNT" @click="handleDice(false)">
                 猜小 (2-6)
-              </button>
-              <button class="btn text-xs flex-1 justify-center" :disabled="playerStore.money < DICE_BET_AMOUNT" @click="handleDice(true)">
+              </Button>
+              <Button class="flex-1 justify-center" :disabled="playerStore.money < DICE_BET_AMOUNT" @click="handleDice(true)">
                 猜大 (7-12)
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- 猜杯 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Trophy :size="12" />
-              猜杯
+              <span>猜杯</span>
             </p>
             <p class="text-xs text-muted mb-2">投注{{ CUP_BET_AMOUNT }}文，3选1猜中赢{{ CUP_WIN_MULTIPLIER }}倍</p>
-            <div class="flex gap-1">
-              <button
+            <div class="flex space-x-1">
+              <Button
                 v-for="i in 3"
                 :key="i"
-                class="btn text-xs flex-1 justify-center"
+                class="flex-1 justify-center"
                 :disabled="playerStore.money < CUP_BET_AMOUNT"
                 @click="handleCup(i - 1)"
               >
                 第{{ i }}杯
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- 斗蛐蛐 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Bug :size="12" />
-              斗蛐蛐
+              <span>斗蛐蛐</span>
             </p>
             <p class="text-xs text-muted mb-2">投注{{ CRICKET_BET_AMOUNT }}文，选蛐蛐上场对战，赢{{ CRICKET_WIN_MULTIPLIER }}倍</p>
-            <div class="flex gap-1">
-              <button
+            <div class="flex space-x-1">
+              <Button
                 v-for="c in CRICKETS"
                 :key="c.id"
-                class="btn text-xs flex-1 justify-center"
+                class="flex-1 justify-center"
                 :disabled="playerStore.money < CRICKET_BET_AMOUNT"
                 @click="handleCricket(c)"
               >
                 {{ c.name }}
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- 翻牌寻宝 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Gem :size="12" />
-              翻牌寻宝
+              <span>翻牌寻宝</span>
             </p>
             <p class="text-xs text-muted mb-2">投注{{ CARD_BET_AMOUNT }}文，{{ CARD_TOTAL }}张牌中{{ CARD_TREASURE_COUNT }}张有宝</p>
-            <div class="flex gap-1">
-              <button
+            <div class="flex space-x-1">
+              <Button
                 v-for="i in CARD_TOTAL"
                 :key="i"
-                class="btn text-xs flex-1 justify-center"
+                class="flex-1 justify-center"
                 :disabled="playerStore.money < CARD_BET_AMOUNT"
                 @click="handleCardFlip(i - 1)"
               >
                 {{ i }}
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- 瀚海扑克 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Spade :size="12" />
-              瀚海扑克
+              <span>瀚海扑克</span>
             </p>
             <p class="text-xs text-muted mb-2">选择场次入场，入场费即筹码，每局抽水给荷官</p>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col space-y-1">
               <div
                 v-for="t in TEXAS_TIERS"
                 :key="t.id"
@@ -203,23 +188,21 @@
                   <p class="text-xs">{{ t.name }}</p>
                   <p class="text-xs text-muted">入场{{ t.entryFee }}文 + 抽水{{ t.rake }}文 · 盲注{{ t.blind }} · {{ t.rounds }}手</p>
                 </div>
-                <button class="btn text-xs ml-2 shrink-0" :disabled="playerStore.money < t.minMoney" @click="handleTexas(t.id)">
+                <Button class="ml-2 shrink-0" :disabled="playerStore.money < t.minMoney" @click="handleTexas(t.id)">
                   {{ playerStore.money < t.minMoney ? `需${t.minMoney}文` : '入场' }}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
 
           <!-- 恶魔轮盘 -->
           <div class="border border-accent/20 rounded-xs p-2">
-            <p class="text-xs text-accent mb-2 flex items-center gap-1">
+            <p class="text-xs text-accent mb-2 flex items-center space-x-1">
               <Crosshair :size="12" />
-              恶魔轮盘
+              <span>恶魔轮盘</span>
             </p>
             <p class="text-xs text-muted mb-2">投注{{ BUCKSHOT_BET_AMOUNT }}文，与庄家轮流开枪，胜者得{{ BUCKSHOT_WIN_MULTIPLIER }}倍</p>
-            <button class="btn text-xs w-full justify-center" :disabled="playerStore.money < BUCKSHOT_BET_AMOUNT" @click="handleBuckshot">
-              挑战
-            </button>
+            <Button class="w-full justify-center" :disabled="playerStore.money < BUCKSHOT_BET_AMOUNT" @click="handleBuckshot">挑战</Button>
           </div>
         </div>
       </template>
@@ -268,13 +251,13 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center bg-accent! text-bg!"
+          <Button
+            class="w-full justify-center !bg-accent !text-bg"
             :disabled="playerStore.money < shopModalItem.price"
             @click="handleBuyItem(shopModalItem.itemId)"
           >
             购买
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -287,7 +270,7 @@
           <p class="text-xs text-muted text-center mb-3">投注 {{ rouletteBetAmount }}文</p>
 
           <!-- 转盘格子 -->
-          <div class="flex flex-col gap-1 mb-3">
+          <div class="flex flex-col space-y-1 mb-3">
             <div
               v-for="(outcome, i) in ROULETTE_OUTCOMES"
               :key="i"
@@ -308,7 +291,7 @@
               <p v-if="rouletteAnimResult.multiplier > 0" class="text-xs text-success">+{{ rouletteAnimResult.winnings }}文</p>
               <p v-else class="text-xs text-danger">-{{ rouletteBetAmount }}文</p>
             </div>
-            <button class="btn text-xs w-full justify-center" @click="showRouletteModal = false">确定</button>
+            <Button class="w-full justify-center" @click="showRouletteModal = false">确定</Button>
           </template>
         </div>
       </div>
@@ -325,7 +308,7 @@
           </p>
 
           <!-- 骰子面 -->
-          <div class="flex justify-center gap-4 mb-3">
+          <div class="flex justify-center space-x-4 mb-3">
             <div v-for="(val, di) in diceDisplay" :key="di" class="dice-face" :class="{ 'dice-rolling': dicePhase === 'rolling' }">
               <div v-for="pos in 9" :key="pos" class="flex items-center justify-center">
                 <div
@@ -355,7 +338,7 @@
                 {{ diceAnimResult.won ? '+' + diceAnimResult.winnings + '文' : '-' + DICE_BET_AMOUNT + '文' }}
               </p>
             </div>
-            <button class="btn text-xs w-full justify-center" @click="showDiceModal = false">确定</button>
+            <Button class="w-full justify-center" @click="showDiceModal = false">确定</Button>
           </template>
         </div>
       </div>
@@ -369,7 +352,7 @@
           <p class="text-xs text-muted text-center mb-4">你选了第{{ cupGuess + 1 }}杯</p>
 
           <!-- 三个杯子 -->
-          <div class="flex justify-center gap-3 mb-3">
+          <div class="flex justify-center space-x-3 mb-3">
             <div
               v-for="i in 3"
               :key="i"
@@ -410,7 +393,7 @@
                 {{ cupAnimResult.won ? '+' + cupAnimResult.winnings + '文' : '-' + CUP_BET_AMOUNT + '文' }}
               </p>
             </div>
-            <button class="btn text-xs w-full justify-center" @click="showCupModal = false">确定</button>
+            <Button class="w-full justify-center" @click="showCupModal = false">确定</Button>
           </template>
         </div>
       </div>
@@ -427,7 +410,7 @@
           </p>
 
           <!-- 对战面板 -->
-          <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center justify-between space-x-2 mb-3">
             <!-- 我方 -->
             <div class="flex-1 text-center">
               <p class="text-xs text-accent mb-1">{{ cricketChoiceName }}</p>
@@ -518,7 +501,7 @@
                 }}
               </p>
             </div>
-            <button class="btn text-xs w-full justify-center" @click="showCricketModal = false">确定</button>
+            <Button class="w-full justify-center" @click="showCricketModal = false">确定</Button>
           </template>
         </div>
       </div>
@@ -532,7 +515,7 @@
           <p class="text-xs text-muted text-center mb-4">你选了第{{ cardPick + 1 }}张</p>
 
           <!-- 牌面 -->
-          <div class="flex justify-center gap-2 mb-3">
+          <div class="flex justify-center space-x-2 mb-3">
             <div
               v-for="i in CARD_TOTAL"
               :key="i"
@@ -569,7 +552,7 @@
                 {{ cardAnimResult.won ? '+' + cardAnimResult.winnings + '文' : '-' + CARD_BET_AMOUNT + '文' }}
               </p>
             </div>
-            <button class="btn text-xs w-full justify-center" @click="showCardModal = false">确定</button>
+            <Button class="w-full justify-center" @click="showCardModal = false">确定</Button>
           </template>
         </div>
       </div>
@@ -637,6 +620,7 @@
   } from '@/composables/useAudio'
   import TexasHoldemGame from '@/components/game/TexasHoldemGame.vue'
   import BuckshotRouletteGame from '@/components/game/BuckshotRouletteGame.vue'
+  import Button from '@/components/game/Button.vue'
 
   // suppress unused warnings for template-only refs
   void CRICKET_WIN_MULTIPLIER
@@ -991,10 +975,10 @@
     grid-template-columns: repeat(3, 1fr);
     width: 3.5rem;
     height: 3.5rem;
-    border: 1px solid oklch(from var(--color-accent) l c h / 0.3);
+    border: 1px solid rgba(200, 164, 92, 0.3);
     border-radius: 2px;
     padding: 6px;
-    gap: 2px;
+    margin: 2px;
   }
 
   .dice-rolling {
@@ -1022,7 +1006,7 @@
     position: relative;
     width: 4rem;
     height: 4rem;
-    border: 1px solid oklch(from var(--color-accent) l c h / 0.2);
+    border: 1px solid rgba(200, 164, 92, 0.2);
     border-radius: 2px;
     display: flex;
     flex-direction: column;
@@ -1032,17 +1016,17 @@
   }
 
   .cup-highlight {
-    border-color: oklch(from var(--color-accent) l c h / 0.6);
-    background: oklch(from var(--color-accent) l c h / 0.1);
+    border-color: rgba(200, 164, 92, 0.6);
+    background: rgba(200, 164, 92, 0.1);
   }
 
   .cup-correct {
-    border-color: oklch(from var(--color-success) l c h / 0.6);
-    background: oklch(from var(--color-success) l c h / 0.1);
+    border-color: rgba(90, 158, 111, 0.6);
+    background: rgba(90, 158, 111, 0.1);
   }
 
   .cup-picked {
-    border-color: oklch(from var(--color-danger) l c h / 0.4);
+    border-color: rgba(195, 64, 67, 0.4);
   }
 
   .cup-shake {
@@ -1082,7 +1066,7 @@
   .card-tile {
     width: 3rem;
     height: 3.5rem;
-    border: 1px solid oklch(from var(--color-accent) l c h / 0.2);
+    border: 1px solid rgba(200, 164, 92, 0.2);
     border-radius: 2px;
     display: flex;
     flex-direction: column;
@@ -1092,18 +1076,18 @@
   }
 
   .card-flipping {
-    border-color: oklch(from var(--color-accent) l c h / 0.6);
-    background: oklch(from var(--color-accent) l c h / 0.1);
+    border-color: rgba(200, 164, 92, 0.6);
+    background: rgba(200, 164, 92, 0.1);
     animation: card-flip 0.4s ease;
   }
 
   .card-treasure {
-    border-color: oklch(from var(--color-success) l c h / 0.6);
-    background: oklch(from var(--color-success) l c h / 0.08);
+    border-color: rgba(90, 158, 111, 0.6);
+    background: rgba(90, 158, 111, 0.08);
   }
 
   .card-empty {
-    border-color: oklch(from var(--color-accent) l c h / 0.1);
+    border-color: rgba(200, 164, 92, 0.1);
     opacity: 0.5;
   }
 

@@ -11,6 +11,7 @@ import {
 import { useSkillStore } from './useSkillStore'
 import { useHomeStore } from './useHomeStore'
 import { useInventoryStore } from './useInventoryStore'
+import { useAchievementStore } from './useAchievementStore'
 
 /** 最大体力阶梯 (5档, 270 起 508 顶) */
 const STAMINA_CAPS = [120, 160, 200, 250, 300]
@@ -139,6 +140,7 @@ export const usePlayerStore = defineStore('player', () => {
   /** 获得金币 */
   const earnMoney = (amount: number) => {
     money.value += amount
+    useAchievementStore().recordMoneyEarned(amount)
   }
 
   /** 设置玩家身份（新游戏或旧存档迁移时调用） */

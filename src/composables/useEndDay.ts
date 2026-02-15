@@ -16,6 +16,7 @@ import { useQuestStore } from '@/stores/useQuestStore'
 import { useFishingStore } from '@/stores/useFishingStore'
 import { useBreedingStore } from '@/stores/useBreedingStore'
 import { useHanhaiStore } from '@/stores/useHanhaiStore'
+import { useFishPondStore } from '@/stores/useFishPondStore'
 import { getItemById, getTodayEvent, getNpcById, getCropById } from '@/data'
 import { RECIPES } from '@/data/recipes'
 import { CAVE_UNLOCK_EARNINGS } from '@/data/buildings'
@@ -553,6 +554,30 @@ export const handleEndDay = () => {
     addLog(`${petName}叼回来一个${itemDef2?.name ?? petResult.item}。`)
   }
 
+  // 鱼塘每日更新
+  const fishPondStore = useFishPondStore()
+  if (fishPondStore.pond.built) {
+    const pondResult = fishPondStore.dailyUpdate()
+    for (const p of pondResult.products) {
+      inventoryStore.addItem(p.itemId, 1, p.quality)
+    }
+    if (pondResult.products.length > 0) {
+      addLog(`鱼塘产出了${pondResult.products.length}件水产品。`)
+    }
+    if (pondResult.died.length > 0) {
+      addLog(`${pondResult.died.join('、')}因病重不治而死亡了……`)
+    }
+    if (pondResult.gotSick.length > 0) {
+      addLog(`${pondResult.gotSick.join('、')}生病了！请及时治疗。`)
+    }
+    if (pondResult.bred) {
+      addLog(`鱼塘繁殖成功，新的${pondResult.bred}出生了！`)
+    }
+    if (pondResult.breedingFailed) {
+      addLog(`${pondResult.breedingFailed}。`)
+    }
+  }
+
   // 蟹笼收获
   const fishingStore = useFishingStore()
   const crabPotHarvest = fishingStore.collectCrabPots()
@@ -632,17 +657,29 @@ export const handleEndDay = () => {
     triggerWeddingEvent(weddingResult.npcId)
   }
 
-  // 子女每日更新
-  const childResult = npcStore.dailyChildUpdate()
-  if (childResult.newBorn) {
-    addLog(`${childResult.newBorn}出生了！恭喜！`)
+  // 孕期每日更新
+  const pregResult = npcStore.dailyPregnancyUpdate()
+  if (pregResult.born) {
+    const qMsg =
+      pregResult.born.quality === 'healthy' ? '健健康康的！' : pregResult.born.quality === 'premature' ? '虽然早产了一些，但平安无事。' : ''
+    addLog(`${pregResult.born.name}出生了！恭喜！${qMsg}`)
+  }
+  if (pregResult.stageChanged) {
+    const stageLabels: Record<string, string> = { early: '初期', mid: '中期', late: '后期', ready: '待产期' }
+    addLog(`孕期进入${stageLabels[pregResult.stageChanged.to]}。记得多多照顾配偶。`)
+  }
+  if (pregResult.miscarriage) {
+    addLog('很遗憾……这次没能迎来新生命。双方都需要一段时间来恢复。')
   }
 
-  // 检查子女事件
-  if (npcStore.checkChildEvent()) {
+  // 子女成长（已出生的子女）
+  npcStore.dailyChildUpdate()
+
+  // NPC 提议要孩子（不自动确认，玩家回家后回应）
+  if (npcStore.checkChildProposal()) {
+    npcStore.triggerChildProposal()
     const spouseDef2 = getNpcById(npcStore.getSpouse()?.npcId ?? '')
-    addLog(`${spouseDef2?.name ?? '配偶'}提议要个孩子……（下次对话时确认）`)
-    npcStore.confirmChild()
+    addLog(`${spouseDef2?.name ?? '配偶'}似乎有话想和你说……`)
   }
 
   // 出货箱结算

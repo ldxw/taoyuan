@@ -2,7 +2,7 @@
   <div>
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Wallet :size="14" />
         <span>钱袋</span>
       </div>
@@ -10,7 +10,7 @@
     </div>
     <p class="text-xs text-muted mb-3">永久被动加成，满足条件后自动解锁。</p>
 
-    <div class="flex flex-col gap-1.5">
+    <div class="flex flex-col space-y-1.5">
       <div
         v-for="item in WALLET_ITEMS"
         :key="item.id"
@@ -52,7 +52,7 @@
             <p class="text-xs">{{ selectedItem.unlockCondition }}</p>
           </div>
           <div class="border rounded-xs p-2" :class="walletStore.has(selectedItem.id) ? 'border-success/30' : 'border-accent/10'">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck v-if="walletStore.has(selectedItem.id)" :size="12" class="text-success" />
               <Lock v-else :size="12" class="text-muted" />
               <span class="text-xs" :class="walletStore.has(selectedItem.id) ? 'text-success' : 'text-muted'">

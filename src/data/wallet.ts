@@ -7,7 +7,7 @@ export const WALLET_ITEMS: WalletItemDef[] = [
     name: '商人印章',
     description: '商店购物价格降低10%。',
     effect: { type: 'shopDiscount', value: 0.1 },
-    unlockCondition: '累计消费10000文'
+    unlockCondition: '累计赚取10000文'
   },
   {
     id: 'herb_guide',

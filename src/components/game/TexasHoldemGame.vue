@@ -1,7 +1,7 @@
 <template>
   <div class="game-panel max-w-sm w-full">
     <p class="text-sm text-accent text-center mb-1">—— 瀚海扑克 · {{ tier.name }} ——</p>
-    <div class="flex items-center justify-center gap-2 mb-2">
+    <div class="flex items-center justify-center space-x-2 mb-2">
       <span class="text-xs text-muted">第 {{ currentRound }}/{{ tier.rounds }} 手</span>
       <span class="text-xs text-muted">入场费 {{ tier.entryFee }}文</span>
       <span class="text-xs text-muted">抽水 {{ tier.rake }}文</span>
@@ -16,7 +16,7 @@
     <!-- 公共牌 -->
     <div class="mb-2">
       <p class="text-xs text-muted mb-1">公共牌</p>
-      <div class="flex justify-center gap-1">
+      <div class="flex justify-center space-x-1">
         <span
           v-for="(card, i) in currentCommunity"
           :key="i"
@@ -42,7 +42,7 @@
         <span class="text-xs text-muted">你的手牌</span>
         <span class="text-xs">筹码: {{ playerStack }}</span>
       </div>
-      <div class="flex justify-center gap-1">
+      <div class="flex justify-center space-x-1">
         <span
           v-for="(card, i) in currentPlayerHole"
           :key="i"
@@ -62,7 +62,7 @@
         <span class="text-xs text-muted">庄家手牌</span>
         <span class="text-xs">筹码: {{ dealerStack }}</span>
       </div>
-      <div class="flex justify-center gap-1">
+      <div class="flex justify-center space-x-1">
         <span
           v-for="(card, i) in currentDealerHole"
           :key="i"
@@ -84,20 +84,20 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div v-if="!handOver && isPlayerTurn && !animating" class="flex flex-wrap gap-1 mb-2">
+    <div v-if="!handOver && isPlayerTurn && !animating" class="flex flex-wrap space-x-1 mb-2">
       <template v-if="toCall <= 0">
-        <button class="btn text-xs flex-1 justify-center" @click="doCheck">过牌</button>
-        <button class="btn text-xs flex-1 justify-center" @click="doRaise(tier.blind * 2)">加注{{ tier.blind * 2 }}</button>
-        <button class="btn text-xs flex-1 justify-center" @click="doRaise(tier.blind * 4)">加注{{ tier.blind * 4 }}</button>
+        <Button class="flex-1 justify-center" @click="doCheck">过牌</Button>
+        <Button class="flex-1 justify-center" @click="doRaise(tier.blind * 2)">加注{{ tier.blind * 2 }}</Button>
+        <Button class="flex-1 justify-center" @click="doRaise(tier.blind * 4)">加注{{ tier.blind * 4 }}</Button>
       </template>
       <template v-else>
-        <button class="btn text-xs flex-1 justify-center" @click="doCall">跟注{{ toCall }}</button>
-        <button v-if="playerStack > toCall" class="btn text-xs flex-1 justify-center" @click="doRaise(toCall + tier.blind * 2)">
+        <Button class="flex-1 justify-center" @click="doCall">跟注{{ toCall }}</Button>
+        <Button v-if="playerStack > toCall" class="flex-1 justify-center" @click="doRaise(toCall + tier.blind * 2)">
           加注{{ toCall + tier.blind * 2 }}
-        </button>
+        </Button>
       </template>
-      <button class="btn text-xs flex-1 justify-center" @click="doAllIn">全押</button>
-      <button class="btn text-xs flex-1 justify-center text-danger" @click="doFold">弃牌</button>
+      <Button class="flex-1 justify-center" @click="doAllIn">全押</Button>
+      <Button class="flex-1 justify-center text-danger" @click="doFold">弃牌</Button>
     </div>
 
     <!-- 庄家思考中 -->
@@ -120,7 +120,7 @@
         <p class="text-xs text-muted mt-0.5">荷官小费 {{ tier.rake }}文</p>
         <p class="text-xs text-muted mt-0.5">共 {{ currentRound }} 手 · 最终筹码 {{ playerStack }}</p>
       </div>
-      <button class="btn text-xs w-full justify-center" @click="emit('complete', playerStack, tier.name)">确定</button>
+      <Button class="w-full justify-center" @click="emit('complete', playerStack, tier.name)">确定</Button>
     </template>
   </div>
 </template>
@@ -130,6 +130,7 @@
   import { SUIT_LABELS, RANK_LABELS, evaluateBestHand, compareHands, texasDealerAI, dealTexas } from '@/data/hanhai'
   import { usePlayerStore } from '@/stores/usePlayerStore'
   import { sfxChipBet, sfxFoldCards, sfxCardFlip, sfxCasinoWin, sfxCasinoLose } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
   import type { TexasSetup, TexasStreet, PokerSuit, PokerHandResult, PokerCard } from '@/types'
 
   const playerStore = usePlayerStore()
@@ -554,7 +555,7 @@
     justify-content: center;
     width: 2.5rem;
     height: 3rem;
-    border: 1px solid oklch(from var(--color-accent) l c h / 0.3);
+    border: 1px solid rgba(200, 164, 92, 0.3);
     border-radius: 2px;
     font-weight: bold;
     transition: all 0.3s;
@@ -574,7 +575,7 @@
   }
 
   .poker-card-hidden {
-    background: oklch(from var(--color-accent) l c h / 0.08);
+    background: rgba(200, 164, 92, 0.08);
     color: var(--color-muted);
     align-items: center;
     justify-content: center;
@@ -582,7 +583,7 @@
   }
 
   .poker-card-reveal {
-    background: oklch(from var(--color-text) l c h / 0.08);
+    background: rgba(232, 228, 217, 0.08);
     color: var(--color-text);
     animation: poker-flip 0.4s ease;
   }

@@ -1,28 +1,31 @@
 <template>
   <div>
     <!-- 返回按钮（在子商铺时显示） -->
-    <button v-if="shopStore.currentShopId" class="btn text-xs mb-3 w-full md:w-auto" @click="shopStore.currentShopId = null">
-      <ChevronLeft :size="14" />
+    <Button v-if="shopStore.currentShopId" class="mb-3 w-full md:w-auto" :icon="ChevronLeft" @click="shopStore.currentShopId = null">
       返回商圈
-    </button>
+    </Button>
 
     <!-- 移动端：购买/出售切换 -->
-    <div class="flex gap-1.5 mb-3 md:hidden">
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': mobileTab === 'buy' }" @click="mobileTab = 'buy'">
-        <ShoppingCart :size="14" />
+    <div class="flex space-x-1.5 mb-3 md:hidden">
+      <Button
+        class="flex-1 justify-center"
+        :class="{ '!bg-accent !text-bg': mobileTab === 'buy' }"
+        :icon="ShoppingCart"
+        @click="mobileTab = 'buy'"
+      >
         购买
-      </button>
-      <button
-        class="btn text-xs flex-1 justify-center"
-        :class="{ 'bg-accent! text-bg!': mobileTab === 'sell' }"
+      </Button>
+      <Button
+        class="flex-1 justify-center"
+        :class="{ '!bg-accent !text-bg': mobileTab === 'sell' }"
+        :icon="Coins"
         @click="mobileTab = 'sell'"
       >
-        <Coins :size="14" />
         出售
-      </button>
+      </Button>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+    <div class="flex flex-col md:flex-row space-x-4 md:space-y-6">
       <!-- 左侧：购买区 -->
       <div class="flex-1" :class="{ 'hidden md:block': mobileTab === 'sell' }">
         <!-- 折扣提示 -->
@@ -43,7 +46,7 @@
               旅行商人 · 限时特卖
             </h4>
             <p class="text-muted text-xs mb-2">旅行商人今天在桃源村摆摊，带来了稀有货物！</p>
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col space-y-2">
               <div
                 v-for="item in shopStore.travelingStock"
                 :key="item.itemId"
@@ -72,7 +75,7 @@
           </div>
 
           <!-- 六大商铺卡片 -->
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="shop in SHOPS"
               :key="shop.id"
@@ -99,7 +102,7 @@
             <Sprout :size="14" class="inline" />
             当季种子
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="seed in shopStore.availableSeeds"
               :key="seed.seedId"
@@ -117,8 +120,13 @@
               "
             >
               <div>
-                <p class="text-sm">{{ seed.cropName }}种子</p>
-                <p class="text-muted text-xs">{{ seed.growthDays }}天 → 售{{ seed.sellPrice }}文</p>
+                <p class="text-sm">
+                  {{ seed.cropName }}种子
+                  <span v-if="seed.regrowth" class="text-success text-xs ml-1">[再生]</span>
+                </p>
+                <p class="text-muted text-xs">
+                  {{ seed.growthDays }}天{{ seed.regrowth ? ` · 每${seed.regrowthDays}天再收` : '' }} → 售{{ seed.sellPrice }}文
+                </p>
               </div>
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(seed.price) }}文</span>
             </div>
@@ -133,7 +141,7 @@
             <Package :size="14" class="inline" />
             杂货
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <!-- 背包扩容 -->
             <div
               v-if="inventoryStore.capacity < 60"
@@ -297,7 +305,7 @@
         <template v-else-if="shopStore.currentShopId === 'tiejiangpu'">
           <ShopHeader name="铁匠铺" npc="孙铁匠" />
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="item in shopStore.blacksmithItems"
               :key="item.itemId"
@@ -327,7 +335,7 @@
             <CircleDot :size="14" class="inline" />
             戒指合成
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="ring in craftableRings"
               :key="ring.id"
@@ -354,7 +362,7 @@
             <Crown :size="14" class="inline" />
             帽子合成
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="hat in CRAFTABLE_HATS"
               :key="hat.id"
@@ -377,7 +385,7 @@
             <Footprints :size="14" class="inline" />
             鞋子合成
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="shoe in CRAFTABLE_SHOES"
               :key="shoe.id"
@@ -405,7 +413,7 @@
             <Sword :size="14" class="inline" />
             武器
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="w in SHOP_WEAPONS"
               :key="w.id"
@@ -422,36 +430,6 @@
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(w.shopPrice!) }}文</span>
             </div>
           </div>
-
-          <!-- 炸弹 -->
-          <h4 class="text-accent text-sm mb-2 mt-4">
-            <Bomb :size="14" class="inline" />
-            炸弹
-          </h4>
-          <div class="flex flex-col gap-2">
-            <div
-              v-for="b in shopBombs"
-              :key="b.id"
-              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
-              @click="
-                openBatchBuyModal(
-                  b.name,
-                  b.description,
-                  discounted(b.shopPrice!),
-                  () => handleBuyItem(b.id, b.shopPrice!, b.name),
-                  () => playerStore.money >= discounted(b.shopPrice!),
-                  count => handleBatchBuyItem(b.id, b.shopPrice!, b.name, count),
-                  () => getMaxBuyable(discounted(b.shopPrice!))
-                )
-              "
-            >
-              <div>
-                <p class="text-sm">{{ b.name }}</p>
-                <p class="text-muted text-xs">{{ b.description }}</p>
-              </div>
-              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(b.shopPrice!) }}文</span>
-            </div>
-          </div>
         </template>
 
         <!-- ====== 渔具铺 ====== -->
@@ -463,7 +441,7 @@
             <Fish :size="14" class="inline" />
             鱼饵
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="b in shopStore.shopBaits"
               :key="b.id"
@@ -493,7 +471,7 @@
             <Fish :size="14" class="inline" />
             浮漂
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="t in shopStore.shopTackles"
               :key="t.id"
@@ -517,6 +495,36 @@
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(t.price) }}文</span>
             </div>
           </div>
+
+          <!-- 其他 -->
+          <h4 class="text-accent text-sm mb-2 mt-4">
+            <Fish :size="14" class="inline" />
+            其他
+          </h4>
+          <div class="flex flex-col space-y-2">
+            <div
+              v-for="item in shopStore.fishingShopItems"
+              :key="item.itemId"
+              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
+              @click="
+                openBatchBuyModal(
+                  item.name,
+                  item.description,
+                  discounted(item.price),
+                  () => handleBuyItem(item.itemId, item.price, item.name),
+                  () => playerStore.money >= discounted(item.price),
+                  count => handleBatchBuyItem(item.itemId, item.price, item.name, count),
+                  () => getMaxBuyable(discounted(item.price))
+                )
+              "
+            >
+              <div>
+                <p class="text-sm">{{ item.name }}</p>
+                <p class="text-muted text-xs">{{ item.description }}</p>
+              </div>
+              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(item.price) }}文</span>
+            </div>
+          </div>
         </template>
 
         <!-- ====== 药铺 ====== -->
@@ -528,7 +536,7 @@
             <Leaf :size="14" class="inline" />
             肥料
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="f in shopStore.shopFertilizers"
               :key="f.id"
@@ -558,7 +566,7 @@
             <Sprout :size="14" class="inline" />
             草药
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="item in shopStore.apothecaryItems"
               :key="item.itemId"
@@ -588,7 +596,7 @@
         <template v-else-if="shopStore.currentShopId === 'chouduanzhuang'">
           <ShopHeader name="绸缎庄" npc="素素" />
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="item in shopStore.textileItems"
               :key="item.itemId"
@@ -618,7 +626,7 @@
             <Crown :size="14" class="inline" />
             帽子
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="hat in SHOP_HATS"
               :key="hat.id"
@@ -641,7 +649,7 @@
             <Footprints :size="14" class="inline" />
             鞋子
           </h4>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col space-y-2">
             <div
               v-for="shoe in SHOP_SHOES"
               :key="shoe.id"
@@ -668,10 +676,7 @@
             <TrendingUp :size="14" class="inline" />
             出售物品
           </h3>
-          <button v-if="sellableItems.length > 0" class="btn btn-danger text-xs" @click="handleSellAll()">
-            <Coins :size="14" />
-            一键全部出售
-          </button>
+          <Button v-if="sellableItems.length > 0" class="btn-danger" :icon="Coins" @click="handleSellAll()">一键全部出售</Button>
         </div>
         <!-- 售价加成提示 -->
         <p v-if="hasSellBonus" class="text-success text-xs mb-2">戒指加成中：所有售价 +{{ sellBonusPercent }}%</p>
@@ -689,7 +694,7 @@
             </span>
           </div>
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col space-y-2">
           <div
             v-for="item in sellableItems"
             :key="item.itemId + item.quality"
@@ -700,7 +705,7 @@
               <span class="text-sm" :class="qualityTextClass(item.quality)">{{ item.def?.name }}</span>
               <span class="text-muted text-xs ml-1">×{{ item.quantity }}</span>
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <span class="text-xs text-accent whitespace-nowrap">{{ shopStore.calculateSellPrice(item.itemId, 1, item.quality) }}文</span>
               <span v-if="getItemTrend(item.itemId) === 'rising' || getItemTrend(item.itemId) === 'boom'" class="text-[10px] text-success">
                 ↑{{ Math.round((getItemMultiplier(item.itemId) - 1) * 100) }}%
@@ -754,37 +759,37 @@
               <span class="text-xs text-muted">数量</span>
               <span class="text-xs text-accent">{{ buyQuantity }}</span>
             </div>
-            <div class="flex gap-1">
-              <button class="btn flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = Math.max(1, buyQuantity - 1)">
+            <div class="flex space-x-1">
+              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = Math.max(1, buyQuantity - 1)">
                 -1
-              </button>
-              <button
-                class="btn flex-1 justify-center"
+              </Button>
+              <Button
+                class="flex-1 justify-center"
                 :disabled="buyQuantity >= maxBuyQuantity"
                 @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 1)"
               >
                 +1
-              </button>
-              <button
-                class="btn flex-1 justify-center"
+              </Button>
+              <Button
+                class="flex-1 justify-center"
                 :disabled="buyQuantity >= maxBuyQuantity"
                 @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 5)"
               >
                 +5
-              </button>
-              <button
-                class="btn flex-1 justify-center"
+              </Button>
+              <Button
+                class="flex-1 justify-center"
                 :disabled="buyQuantity >= maxBuyQuantity"
                 @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 10)"
               >
                 +10
-              </button>
+              </Button>
             </div>
-            <div class="flex mt-2 gap-1">
-              <button class="btn flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = 1">最少</button>
-              <button class="btn flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="buyQuantity = maxBuyQuantity">
+            <div class="flex mt-2 space-x-1">
+              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = 1">最少</Button>
+              <Button class="flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="buyQuantity = maxBuyQuantity">
                 最多
-              </button>
+              </Button>
             </div>
             <div class="flex items-center justify-between mt-1.5">
               <span class="text-xs text-muted">总价</span>
@@ -792,28 +797,28 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <button
+          <div class="flex flex-col space-y-1.5">
+            <Button
               v-if="buyModalData.batchBuy"
-              class="btn text-xs w-full justify-center"
-              :class="{ 'bg-accent! text-bg!': buyModalData.canBuy() }"
+              class="w-full justify-center"
+              :class="{ '!bg-accent !text-bg': buyModalData.canBuy() }"
               :disabled="!buyModalData.canBuy()"
+              :icon="ShoppingCart"
               @click="buyModalData.batchBuy!.onBuy(buyQuantity)"
             >
-              <ShoppingCart :size="14" />
               购买 ×{{ buyQuantity }} · {{ buyTotalPrice }}文
-            </button>
-            <button
+            </Button>
+            <Button
               v-else
-              class="btn text-xs w-full justify-center"
-              :class="{ 'bg-accent! text-bg!': buyModalData.canBuy() }"
+              class="w-full justify-center"
+              :class="{ '!bg-accent !text-bg': buyModalData.canBuy() }"
               :disabled="!buyModalData.canBuy()"
               @click="buyModalData.onBuy()"
             >
               <Hammer v-if="buyModalData.buttonText" :size="14" />
               <ShoppingCart v-else :size="14" />
-              {{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文
-            </button>
+              <span>{{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文</span>
+            </Button>
           </div>
         </div>
 
@@ -841,7 +846,7 @@
             </div>
             <div class="flex items-center justify-between mt-0.5">
               <span class="text-xs text-muted">售价</span>
-              <span class="text-xs flex items-center gap-1">
+              <span class="text-xs flex items-center space-x-1">
                 <span
                   v-if="getItemTrend(sellModalData!.itemId) && getItemTrend(sellModalData!.itemId) !== 'stable'"
                   class="line-through text-muted/40"
@@ -866,18 +871,13 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <button class="btn text-xs w-full justify-center" @click="handleModalSell(1)">
-              <Coins :size="14" />
+          <div class="flex flex-col space-y-1.5">
+            <Button class="w-full justify-center" :icon="Coins" @click="handleModalSell(1)">
               出售1个 · {{ shopStore.calculateSellPrice(sellModalData!.itemId, 1, sellModalData!.quality) }}文
-            </button>
-            <button
-              v-if="sellModalItem.quantity > 1"
-              class="btn text-xs w-full justify-center"
-              @click="handleModalSell(sellModalItem!.quantity)"
-            >
+            </Button>
+            <Button v-if="sellModalItem.quantity > 1" class="w-full justify-center" @click="handleModalSell(sellModalItem!.quantity)">
               全部出售 · {{ shopStore.calculateSellPrice(sellModalData!.itemId, sellModalItem.quantity, sellModalData!.quality) }}文
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -900,13 +900,13 @@
     ChevronRight,
     ChevronLeft,
     Store,
-    Bomb,
     CircleDot,
     Hammer,
     X,
     Crown,
     Footprints
   } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import {
     useShopStore,
     usePlayerStore,
@@ -923,7 +923,6 @@
   import { SHOP_WEAPONS, WEAPON_TYPE_NAMES } from '@/data/weapons'
   import type { WeaponDef, RingDef, RingEffectType, Season, Quality, HatDef, ShoeDef } from '@/types'
   import { FRUIT_TREE_DEFS } from '@/data/fruitTrees'
-  import { BOMBS } from '@/data/processing'
   import { CRAFTABLE_RINGS } from '@/data/rings'
   import { SHOP_HATS, CRAFTABLE_HATS } from '@/data/hats'
   import { SHOP_SHOES, CRAFTABLE_SHOES } from '@/data/shoes'
@@ -1334,8 +1333,6 @@
 
   // === 镖局 ===
 
-  const shopBombs = computed(() => BOMBS.filter(b => b.shopPrice !== null))
-
   const hasWeaponMaterials = (w: WeaponDef): boolean => {
     for (const mat of w.shopMaterials) {
       if (inventoryStore.getItemCount(mat.itemId) < mat.quantity) return false
@@ -1597,7 +1594,9 @@
     },
     setup(props) {
       return () =>
-        h('div', { class: 'flex items-center gap-2 mb-3' }, [h('h3', { class: 'text-accent text-sm' }, [`${props.name} · ${props.npc}`])])
+        h('div', { class: 'flex items-center space-x-2 mb-3' }, [
+          h('h3', { class: 'text-accent text-sm' }, [`${props.name} · ${props.npc}`])
+        ])
     }
   })
 

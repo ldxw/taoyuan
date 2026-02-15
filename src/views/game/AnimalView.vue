@@ -11,12 +11,11 @@
       <template v-if="animalStore.pet">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs text-accent">{{ animalStore.pet.type === 'cat' ? '猫' : '狗' }} — {{ animalStore.pet.name }}</span>
-          <button class="btn text-xs py-0 px-1" :disabled="animalStore.pet.wasPetted" @click="handlePetThePet">
-            <Hand :size="14" />
+          <Button class="py-0 px-1" :icon="Hand" :disabled="animalStore.pet.wasPetted" @click="handlePetThePet">
             {{ animalStore.pet.wasPetted ? '已摸' : '抚摸' }}
-          </button>
+          </Button>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center space-x-1">
           <span class="text-[10px] text-muted w-6">好感</span>
           <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
             <div class="h-full rounded-xs bg-danger transition-all" :style="{ width: Math.floor(animalStore.pet.friendship / 10) + '%' }" />
@@ -36,17 +35,11 @@
     <div v-for="bDef in mainBuildings" :key="bDef.type" class="mb-4 border border-accent/20 rounded-xs p-3">
       <div class="flex items-center justify-between mb-2">
         <span class="text-sm text-accent">{{ getBuildingDisplayName(bDef.type) }}</span>
-        <div v-if="isBuildingBuilt(bDef.type)" class="flex items-center gap-2">
+        <div v-if="isBuildingBuilt(bDef.type)" class="flex items-center space-x-2">
           <span class="text-xs text-muted">{{ getAnimalsInBuilding(bDef.type).length }}/{{ getBuildingCapacity(bDef.type) }}</span>
-          <button v-if="getBuildingLevel(bDef.type) < 3" class="btn text-xs" @click="openUpgradeModal(bDef.type)">
-            <ArrowUp :size="14" />
-            升级
-          </button>
+          <Button v-if="getBuildingLevel(bDef.type) < 3" :icon="ArrowUp" @click="openUpgradeModal(bDef.type)">升级</Button>
         </div>
-        <button v-else class="btn text-xs" @click="handleBuildBuilding(bDef.type)">
-          <Hammer :size="14" />
-          建造 ({{ bDef.cost }}文)
-        </button>
+        <Button v-else :icon="Hammer" @click="handleBuildBuilding(bDef.type)">建造 ({{ bDef.cost }}文)</Button>
       </div>
 
       <template v-if="isBuildingBuilt(bDef.type)">
@@ -61,7 +54,7 @@
               正在孵化：{{ getAnimalName(animalStore.incubating.animalType) }}（剩余{{ animalStore.incubating.daysLeft }}天）
             </p>
           </div>
-          <div v-else-if="coopIncubatableEggs.length > 0" class="flex flex-col gap-1">
+          <div v-else-if="coopIncubatableEggs.length > 0" class="flex flex-col space-y-1">
             <div
               v-for="eggItem in coopIncubatableEggs"
               :key="eggItem.itemId"
@@ -86,7 +79,7 @@
               正在孵化：{{ getAnimalName(animalStore.barnIncubating.animalType) }}（剩余{{ animalStore.barnIncubating.daysLeft }}天）
             </p>
           </div>
-          <div v-else-if="barnIncubatableEggs.length > 0" class="flex flex-col gap-1">
+          <div v-else-if="barnIncubatableEggs.length > 0" class="flex flex-col space-y-1">
             <div
               v-for="eggItem in barnIncubatableEggs"
               :key="eggItem.itemId"
@@ -101,35 +94,30 @@
         </div>
 
         <!-- 购买动物按钮 -->
-        <button class="btn w-full md:w-auto text-xs mb-3" @click="buyListBuilding = bDef.type">
-          <ShoppingCart :size="14" />
-          购买动物
-        </button>
+        <Button class="w-full md:w-auto mb-3" :icon="ShoppingCart" @click="buyListBuilding = bDef.type">购买动物</Button>
 
         <!-- 动物列表 -->
-        <div v-if="getAnimalsInBuilding(bDef.type).length > 0" class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+        <div v-if="getAnimalsInBuilding(bDef.type).length > 0" class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
           <div v-for="animal in getAnimalsInBuilding(bDef.type)" :key="animal.id" class="border border-accent/10 rounded-xs p-2">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-accent">{{ animal.name }}</span>
-              <div class="flex items-center gap-1">
-                <button class="btn text-xs py-0 px-1" :disabled="animal.wasPetted" @click="handlePetAnimal(animal.id)">
-                  <Hand :size="14" />
+              <div class="flex items-center space-x-1">
+                <Button class="py-0 px-1" :icon="Hand" :disabled="animal.wasPetted" @click="handlePetAnimal(animal.id)">
                   {{ animal.wasPetted ? '已摸' : '抚摸' }}
-                </button>
-                <button class="btn text-xs py-0 px-1" @click="sellTarget = { id: animal.id, name: animal.name, type: animal.type }">
-                  <Coins :size="14" />
+                </Button>
+                <Button class="py-0 px-1" :icon="Coins" @click="sellTarget = { id: animal.id, name: animal.name, type: animal.type }">
                   出售
-                </button>
+                </Button>
               </div>
             </div>
             <div class="space-y-0.5">
-              <div class="flex items-center gap-1">
+              <div class="flex items-center space-x-1">
                 <span class="text-[10px] text-muted w-6">好感</span>
                 <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                   <div class="h-full rounded-xs bg-danger transition-all" :style="{ width: Math.floor(animal.friendship / 10) + '%' }" />
                 </div>
               </div>
-              <div class="flex items-center gap-1">
+              <div class="flex items-center space-x-1">
                 <span class="text-[10px] text-muted w-6">心情</span>
                 <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                   <div
@@ -140,7 +128,7 @@
                 </div>
                 <span class="text-[10px] text-muted w-6">{{ getMoodText(animal.mood) }}</span>
               </div>
-              <div v-if="animal.hunger > 0" class="flex items-center gap-1">
+              <div v-if="animal.hunger > 0" class="flex items-center space-x-1">
                 <span class="text-[10px] text-muted w-6">饥饿</span>
                 <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                   <div class="h-full rounded-xs bg-danger transition-all" :style="{ width: Math.floor((animal.hunger / 7) * 100) + '%' }" />
@@ -150,10 +138,9 @@
             </div>
             <div v-if="animal.sick" class="flex items-center justify-between mt-0.5">
               <p class="text-[10px] text-danger">生病中({{ animal.sickDays }}/5天)</p>
-              <button class="btn text-xs py-0 px-1" :disabled="medicineCount <= 0" @click="handleHealAnimal(animal.id, animal.name)">
-                <Syringe :size="14" />
+              <Button class="py-0 px-1" :icon="Syringe" :disabled="medicineCount <= 0" @click="handleHealAnimal(animal.id, animal.name)">
                 治疗
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -171,39 +158,36 @@
     <div class="mb-4 border border-accent/20 rounded-xs p-3">
       <div class="flex items-center justify-between mb-2">
         <span class="text-sm text-accent">马厩</span>
-        <div v-if="animalStore.stableBuilt" class="flex items-center gap-2">
+        <div v-if="animalStore.stableBuilt" class="flex items-center space-x-2">
           <span class="text-xs text-muted">{{ animalStore.getHorse ? '1/1' : '0/1' }}</span>
         </div>
-        <button v-else class="btn text-xs" @click="handleBuildBuilding('stable')">
-          <Hammer :size="14" />
-          建造 ({{ stableDef?.cost ?? 10000 }}文)
-        </button>
+        <Button v-else :icon="Hammer" @click="handleBuildBuilding('stable')">建造 ({{ stableDef?.cost ?? 10000 }}文)</Button>
       </div>
 
       <template v-if="animalStore.stableBuilt">
         <div v-if="animalStore.getHorse" class="border border-accent/10 rounded-xs p-2">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-accent">{{ animalStore.getHorse.name }}</span>
-            <div class="flex items-center gap-1">
-              <button
-                class="btn text-xs py-0 px-1"
+            <div class="flex items-center space-x-1">
+              <Button
+                class="py-0 px-1"
+                :icon="Hand"
                 :disabled="animalStore.getHorse.wasPetted"
                 @click="handlePetAnimal(animalStore.getHorse.id)"
               >
-                <Hand :size="14" />
                 {{ animalStore.getHorse.wasPetted ? '已摸' : '抚摸' }}
-              </button>
-              <button
-                class="btn text-xs py-0 px-1"
+              </Button>
+              <Button
+                class="py-0 px-1"
+                :icon="Coins"
                 @click="sellTarget = { id: animalStore.getHorse!.id, name: animalStore.getHorse!.name, type: animalStore.getHorse!.type }"
               >
-                <Coins :size="14" />
                 出售
-              </button>
+              </Button>
             </div>
           </div>
           <div class="space-y-0.5">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <span class="text-[10px] text-muted w-6">好感</span>
               <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                 <div
@@ -212,7 +196,7 @@
                 />
               </div>
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <span class="text-[10px] text-muted w-6">心情</span>
               <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                 <div
@@ -223,7 +207,7 @@
               </div>
               <span class="text-[10px] text-muted w-6">{{ getMoodText(animalStore.getHorse.mood) }}</span>
             </div>
-            <div v-if="animalStore.getHorse.hunger > 0" class="flex items-center gap-1">
+            <div v-if="animalStore.getHorse.hunger > 0" class="flex items-center space-x-1">
               <span class="text-[10px] text-muted w-6">饥饿</span>
               <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                 <div
@@ -236,14 +220,14 @@
           </div>
           <div v-if="animalStore.getHorse.sick" class="flex items-center justify-between mt-0.5">
             <p class="text-[10px] text-danger">生病中({{ animalStore.getHorse.sickDays }}/5天)</p>
-            <button
-              class="btn text-xs py-0 px-1"
+            <Button
+              class="py-0 px-1"
+              :icon="Syringe"
               :disabled="medicineCount <= 0"
               @click="handleHealAnimal(animalStore.getHorse!.id, animalStore.getHorse!.name)"
             >
-              <Syringe :size="14" />
               治疗
-            </button>
+            </Button>
           </div>
           <p class="text-xs text-success mt-1">骑马出行，旅行时间减少30%。</p>
         </div>
@@ -290,7 +274,7 @@
       <!-- 饲料选择 -->
       <div class="mb-3">
         <p class="text-xs text-muted mb-1">饲料选择</p>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col space-y-1">
           <div
             v-for="feed in feedCounts"
             :key="feed.id"
@@ -298,7 +282,7 @@
             :class="selectedFeed === feed.id ? 'border-accent bg-accent/10' : 'border-accent/20 hover:bg-accent/5'"
             @click="selectedFeed = feed.id"
           >
-            <div class="flex items-center gap-2">
+            <div class="flex items-center space-x-2">
               <span class="text-xs" :class="selectedFeed === feed.id ? 'text-accent' : ''">{{ feed.name }}</span>
               <span class="text-[10px] text-muted">{{ feed.description }}</span>
             </div>
@@ -313,7 +297,7 @@
           <p class="text-xs text-muted">喂食</p>
           <span class="text-xs text-muted">{{ selectedFeedName }}库存：{{ selectedFeedCount }}</span>
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col space-y-1">
           <div
             class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5"
             :class="unfedCount > 0 ? 'cursor-pointer hover:bg-accent/5' : 'opacity-50'"
@@ -373,11 +357,9 @@
         <div class="game-panel max-w-xs w-full">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-accent">购买动物</p>
-            <button class="btn text-xs py-0 px-1" @click="buyListBuilding = null">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="buyListBuilding = null" />
           </div>
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col space-y-1">
             <div
               v-for="aDef in getAnimalDefsForBuilding(buyListBuilding)"
               :key="aDef.type"
@@ -398,9 +380,7 @@
         <div class="game-panel max-w-xs w-full">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-accent">{{ buyModal.name }}</p>
-            <button class="btn text-xs py-0 px-1" @click="buyModal = null">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="buyModal = null" />
           </div>
           <div class="text-xs space-y-1 mb-3 border-b border-accent/20 pb-2">
             <p v-if="buyModal.productName && buyModal.productName !== '无'" class="text-muted">
@@ -409,10 +389,7 @@
             <p v-else class="text-muted">旅行时间减少30%</p>
             <p>价格：{{ buyModal.cost }}文</p>
           </div>
-          <button class="btn text-xs w-full" :disabled="!buyModal.canBuy()" @click="handleBuyFromModal">
-            <ShoppingCart :size="14" />
-            购买
-          </button>
+          <Button class="w-full" :icon="ShoppingCart" :disabled="!buyModal.canBuy()" @click="handleBuyFromModal">购买</Button>
         </div>
       </div>
     </Transition>
@@ -435,12 +412,9 @@
             <span class="text-accent">{{ sellTargetRefund }}文</span>
             （原价一半）。
           </p>
-          <div class="flex gap-2">
-            <button class="btn text-xs flex-1" @click="sellTarget = null">取消</button>
-            <button class="btn text-xs flex-1 bg-danger! text-text!" @click="confirmSellAnimal">
-              <Coins :size="12" />
-              确认出售
-            </button>
+          <div class="flex space-x-2">
+            <Button class="flex-1" @click="sellTarget = null">取消</Button>
+            <Button class="flex-1 !bg-danger !text-text" :icon="Coins" :icon-size="12" @click="confirmSellAnimal">确认出售</Button>
           </div>
         </div>
       </div>
@@ -499,15 +473,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="canConfirmUpgrade ? 'bg-accent! text-bg!' : 'opacity-50'"
+          <Button
+            class="w-full justify-center"
+            :class="canConfirmUpgrade ? '!bg-accent !text-bg' : 'opacity-50'"
+            :icon="ArrowUp"
+            :icon-size="12"
             :disabled="!canConfirmUpgrade"
             @click="confirmUpgradeBuilding"
           >
-            <ArrowUp :size="12" />
             确认升级
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -517,6 +492,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { Hammer, ShoppingCart, Hand, Apple, Home, ArrowUp, Egg, X, Coins, Syringe } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useAnimalStore, useInventoryStore, usePlayerStore, useGameStore } from '@/stores'
   import { ANIMAL_BUILDINGS, ANIMAL_DEFS, HAY_ITEM_ID, getItemById, getBuildingUpgrade, INCUBATION_MAP, FEED_DEFS } from '@/data'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'

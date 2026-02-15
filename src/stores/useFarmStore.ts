@@ -147,7 +147,7 @@ export const useFarmStore = defineStore('farm', () => {
       } else {
         plot.state = 'growing'
         plot.growthDays = crop.growthDays - crop.regrowthDays
-        plot.watered = false
+        plot.watered = getAllWateredBySprinklers().has(plotId) || useGameStore().isRainy
         plot.unwateredDays = 0
         // seedGenetics 保留（再生作物继续使用同一基因）
       }

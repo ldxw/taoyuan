@@ -2,7 +2,7 @@
   <div>
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <User :size="14" />
         <span>角色信息</span>
       </div>
@@ -16,9 +16,9 @@
         <span class="text-xs text-muted">{{ genderLabel }}</span>
       </div>
 
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col space-y-1.5">
         <!-- 体力 -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center space-x-2">
           <span class="text-xs text-muted shrink-0">体力</span>
           <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
             <div
@@ -30,7 +30,7 @@
           <span class="text-xs whitespace-nowrap">{{ playerStore.stamina }}/{{ playerStore.maxStamina }}</span>
         </div>
         <!-- 生命 -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center space-x-2">
           <span class="text-xs text-muted shrink-0">生命</span>
           <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
             <div
@@ -106,7 +106,7 @@
           <!-- 武器弹窗 -->
           <template v-if="activeSlot === 'weapon'">
             <p class="text-sm text-accent mb-2">选择武器</p>
-            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
               <div
                 v-for="(weapon, index) in inventoryStore.ownedWeapons"
                 :key="index"
@@ -131,7 +131,7 @@
           <!-- 戒指弹窗 -->
           <template v-else-if="activeSlot === 'ring1' || activeSlot === 'ring2'">
             <p class="text-sm text-accent mb-2">选择{{ activeSlot === 'ring1' ? '戒指1' : '戒指2' }}</p>
-            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
               <!-- 卸下按钮 -->
               <div
                 v-if="(activeSlot === 'ring1' ? inventoryStore.equippedRingSlot1 : inventoryStore.equippedRingSlot2) >= 0"
@@ -166,7 +166,7 @@
           <!-- 帽子弹窗 -->
           <template v-else-if="activeSlot === 'hat'">
             <p class="text-sm text-accent mb-2">选择帽子</p>
-            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
               <div
                 v-if="inventoryStore.equippedHatIndex >= 0"
                 class="flex items-center border border-danger/20 rounded-xs px-2 py-1.5 cursor-pointer hover:bg-danger/5"
@@ -196,7 +196,7 @@
           <!-- 鞋子弹窗 -->
           <template v-else-if="activeSlot === 'shoe'">
             <p class="text-sm text-accent mb-2">选择鞋子</p>
-            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
               <div
                 v-if="inventoryStore.equippedShoeIndex >= 0"
                 class="flex items-center border border-danger/20 rounded-xs px-2 py-1.5 cursor-pointer hover:bg-danger/5"
@@ -234,7 +234,7 @@
         <p class="text-xs text-muted">工具</p>
         <button class="text-xs text-accent hover:underline" @click="goToUpgrade">前往升级</button>
       </div>
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col space-y-1">
         <div
           v-for="tool in inventoryStore.tools"
           :key="tool.type"
@@ -255,10 +255,10 @@
         <p class="text-xs text-muted">技能</p>
         <button class="text-xs text-accent hover:underline" @click="goToSkills">查看详情</button>
       </div>
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col space-y-0.5">
         <div v-for="skill in skillStore.skills" :key="skill.type" class="flex items-center justify-between">
           <span class="text-xs text-muted">{{ SKILL_NAMES[skill.type] }}</span>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center space-x-1.5">
             <span class="text-xs text-accent">Lv.{{ skill.level }}</span>
             <span v-if="skill.perk5" class="text-[10px] text-success">{{ PERK_NAMES[skill.perk5] }}</span>
             <span v-if="skill.perk10" class="text-[10px] text-success">{{ PERK_NAMES[skill.perk10] }}</span>
@@ -270,7 +270,7 @@
     <!-- 被动加成 -->
     <div v-if="unlockedWalletItems.length > 0" class="border border-accent/20 rounded-xs p-2 mb-3">
       <p class="text-xs text-muted mb-1.5">被动加成</p>
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col space-y-0.5">
         <div v-for="item in unlockedWalletItems" :key="item.id" class="flex items-center justify-between">
           <span class="text-xs text-accent">{{ item.name }}</span>
           <span class="text-xs text-muted">{{ item.description }}</span>
@@ -281,7 +281,7 @@
     <!-- 家庭 -->
     <div v-if="spouseInfo" class="border border-accent/20 rounded-xs p-2">
       <p class="text-xs text-muted mb-1.5">家庭</p>
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col space-y-0.5">
         <div class="flex items-center justify-between">
           <span class="text-xs text-muted">配偶</span>
           <span class="text-xs text-accent">{{ spouseInfo.name }}</span>

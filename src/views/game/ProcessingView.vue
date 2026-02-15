@@ -3,7 +3,7 @@
     <!-- 制造区 -->
     <div class="border border-accent/20 rounded-xs p-3 mb-4">
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-1.5 text-sm text-accent">
+        <div class="flex items-center space-x-1.5 text-sm text-accent">
           <Hammer :size="14" />
           <span>制造</span>
         </div>
@@ -12,7 +12,7 @@
 
       <div v-for="cat in craftCategories" :key="cat.label" class="mb-3 last:mb-0">
         <p class="text-xs text-muted mb-1">{{ cat.label }}</p>
-        <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+        <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
           <div
             v-for="item in cat.items"
             :key="item.id"
@@ -31,7 +31,7 @@
 
     <!-- 加工区 -->
     <div class="border border-accent/20 rounded-xs p-3">
-      <div class="flex items-center gap-1.5 text-sm text-accent mb-2">
+      <div class="flex items-center space-x-1.5 text-sm text-accent mb-2">
         <Boxes :size="14" />
         <span>加工区</span>
       </div>
@@ -43,7 +43,7 @@
       </div>
 
       <!-- 机器列表 -->
-      <div v-else class="flex flex-col gap-1.5">
+      <div v-else class="flex flex-col space-y-1.5">
         <div
           v-for="(slot, idx) in processingStore.machines"
           :key="idx"
@@ -59,11 +59,10 @@
 
           <!-- 空闲：选择配方 -->
           <div v-if="!slot.recipeId">
-            <div v-if="processingStore.getAvailableRecipes(slot.machineType).length > 0" class="flex flex-wrap gap-1">
-              <button
+            <div v-if="processingStore.getAvailableRecipes(slot.machineType).length > 0" class="grid space-y-1">
+              <Button
                 v-for="recipe in processingStore.getAvailableRecipes(slot.machineType)"
                 :key="recipe.id"
-                class="btn text-xs"
                 :disabled="recipe.inputItemId !== null && !inventoryStore.hasItem(recipe.inputItemId, recipe.inputQuantity)"
                 @click="handleStartProcessing(idx, recipe.id)"
               >
@@ -71,7 +70,7 @@
                 <span v-if="recipe.inputItemId" class="text-muted">
                   ({{ getItemName(recipe.inputItemId) }} {{ inventoryStore.getItemCount(recipe.inputItemId) }}/{{ recipe.inputQuantity }})
                 </span>
-              </button>
+              </Button>
             </div>
             <p v-else class="text-xs text-muted">无可用配方</p>
           </div>
@@ -82,20 +81,20 @@
               <span class="text-muted">{{ getRecipeName(slot.recipeId) }}</span>
               <span class="text-muted">{{ slot.daysProcessed }}/{{ slot.totalDays }}天</span>
             </div>
-            <div class="h-1 bg-bg rounded-xs border border-accent/10">
+            <div class="h-1 bg-bg rounded-xs border border-accent/10 mb-1.5">
               <div
                 class="h-full bg-accent rounded-xs transition-all"
                 :style="{ width: Math.floor((slot.daysProcessed / slot.totalDays) * 100) + '%' }"
               />
             </div>
+            <Button class="w-full justify-center" :icon="X" :icon-size="10" @click="handleCancelProcessing(idx)">取消加工</Button>
           </div>
 
           <!-- 完成 -->
           <div v-else>
-            <button class="btn text-xs w-full justify-center bg-accent! text-bg!" @click="handleCollect(idx)">
-              <Package :size="12" />
+            <Button class="w-full justify-center !bg-accent !text-bg" :icon="Package" :icon-size="12" @click="handleCollect(idx)">
               收取 {{ getRecipeOutputName(slot.recipeId) }}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -130,15 +129,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': craftModal.canCraft() }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': craftModal.canCraft() }"
+            :icon="Hammer"
+            :icon-size="12"
             :disabled="!craftModal.canCraft()"
             @click="handleCraftFromModal"
           >
-            <Hammer :size="12" />
             制造
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -148,6 +148,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { Hammer, Trash2, Package, Boxes, X } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import type { MachineType } from '@/types'
   import { useProcessingStore, useInventoryStore, usePlayerStore, useGameStore, useFarmStore } from '@/stores'
   import {
@@ -157,6 +158,7 @@
     BAITS,
     TACKLES,
     TAPPER,
+    CRAB_POT_CRAFT,
     LIGHTNING_ROD,
     SCARECROW,
     BOMBS,
@@ -282,7 +284,16 @@
           cost: t.craftMoney,
           onCraft: () => handleCraftTackle(t.id),
           canCraft: () => processingStore.canCraft(t.craftCost, t.craftMoney)
-        }))
+        })),
+        {
+          id: CRAB_POT_CRAFT.id,
+          name: CRAB_POT_CRAFT.name,
+          description: CRAB_POT_CRAFT.description,
+          materials: CRAB_POT_CRAFT.craftCost,
+          cost: CRAB_POT_CRAFT.craftMoney,
+          onCraft: () => handleCraftCrabPot(),
+          canCraft: () => processingStore.canCraft(CRAB_POT_CRAFT.craftCost, CRAB_POT_CRAFT.craftMoney)
+        }
       ]
     },
     {
@@ -292,14 +303,11 @@
           id: b.id,
           name: b.name,
           description: b.description,
-          materials: b.id === 'mega_bomb'
-            ? [{ itemId: 'mega_bomb_recipe', quantity: 1 }, ...b.craftCost]
-            : b.craftCost,
+          materials: b.id === 'mega_bomb' ? [{ itemId: 'mega_bomb_recipe', quantity: 1 }, ...b.craftCost] : b.craftCost,
           cost: b.craftMoney,
           onCraft: () => handleCraftBomb(b.id),
           canCraft: () =>
-            (b.id !== 'mega_bomb' || inventoryStore.hasItem('mega_bomb_recipe')) &&
-            processingStore.canCraft(b.craftCost, b.craftMoney)
+            (b.id !== 'mega_bomb' || inventoryStore.hasItem('mega_bomb_recipe')) && processingStore.canCraft(b.craftCost, b.craftMoney)
         })),
         {
           id: 'jade_ring',
@@ -409,6 +417,21 @@
       sfxClick()
       const name = TACKLES.find(t => t.id === tackleId)?.name ?? tackleId
       addLog(`制造了${name}，已放入背包。`)
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
+      if (tr.message) addLog(tr.message)
+      if (tr.passedOut) {
+        handleEndDay()
+        return
+      }
+    } else {
+      addLog('材料不足。')
+    }
+  }
+
+  const handleCraftCrabPot = () => {
+    if (processingStore.craftCrabPot()) {
+      sfxClick()
+      addLog(`制造了${CRAB_POT_CRAFT.name}，已放入背包。`)
       const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
       if (tr.message) addLog(tr.message)
       if (tr.passedOut) {
@@ -530,6 +553,15 @@
     const name = getMachineName(slot.machineType)
     if (processingStore.removeMachine(slotIndex)) {
       addLog(`拆除了${name}。`)
+    }
+  }
+
+  const handleCancelProcessing = (slotIndex: number) => {
+    const slot = processingStore.machines[slotIndex]
+    if (!slot) return
+    const name = getMachineName(slot.machineType)
+    if (processingStore.cancelProcessing(slotIndex)) {
+      addLog(`${name}已停止加工，原料已退回。`)
     }
   }
 </script>

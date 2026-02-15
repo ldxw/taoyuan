@@ -21,36 +21,26 @@
           </button>
         </div>
 
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col space-y-3">
           <!-- ===== 通用 ===== -->
           <template v-if="activeTab === 'general'">
             <!-- 时间控制 -->
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-xs text-muted mb-2">时间控制</p>
-              <div class="flex items-center justify-center gap-2">
-                <button class="btn text-xs py-1 px-3" @click="togglePause">
-                  <Pause v-if="!isPaused" :size="12" />
-                  <Play v-else :size="12" />
+              <div class="flex items-center justify-center space-x-2">
+                <Button :icon="isPaused ? Play : Pause" :icon-size="12" class="py-1 px-3" @click="togglePause">
                   {{ isPaused ? '继续' : '暂停' }}
-                </button>
-                <button class="btn text-xs py-1 px-3" @click="cycleSpeed">速度 {{ gameSpeed }}×</button>
+                </Button>
+                <Button class="py-1 px-3" @click="cycleSpeed">速度 {{ gameSpeed }}×</Button>
               </div>
             </div>
 
             <!-- 音频控制 -->
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-xs text-muted mb-2">音频</p>
-              <div class="flex items-center justify-center gap-2">
-                <button class="btn text-xs py-1 px-3" @click="toggleSfx">
-                  <Volume2 v-if="sfxEnabled" :size="12" />
-                  <VolumeX v-else :size="12" />
-                  音效
-                </button>
-                <button class="btn text-xs py-1 px-3" @click="toggleBgm">
-                  <Headphones v-if="bgmEnabled" :size="12" />
-                  <HeadphoneOff v-else :size="12" />
-                  音乐
-                </button>
+              <div class="flex items-center justify-center space-x-2">
+                <Button :icon="sfxEnabled ? Volume2 : VolumeX" :icon-size="12" class="py-1 px-3" @click="toggleSfx">音效</Button>
+                <Button :icon="bgmEnabled ? Headphones : HeadphoneOff" :icon-size="12" class="py-1 px-3" @click="toggleBgm">音乐</Button>
               </div>
             </div>
           </template>
@@ -60,21 +50,29 @@
             <!-- 字体大小 -->
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-xs text-muted mb-2">字体大小</p>
-              <div class="flex items-center justify-center gap-3">
-                <button class="btn text-xs py-1 px-3" :disabled="settingsStore.fontSize <= 12" @click="settingsStore.changeFontSize(-1)">
-                  <Minus :size="12" />
-                </button>
+              <div class="flex items-center justify-center space-x-3">
+                <Button
+                  class="py-1 px-3"
+                  :icon="Minus"
+                  :icon-size="12"
+                  :disabled="settingsStore.fontSize <= 12"
+                  @click="settingsStore.changeFontSize(-1)"
+                />
                 <span class="text-sm w-8 text-center">{{ settingsStore.fontSize }}</span>
-                <button class="btn text-xs py-1 px-3" :disabled="settingsStore.fontSize >= 24" @click="settingsStore.changeFontSize(1)">
-                  <Plus :size="12" />
-                </button>
+                <Button
+                  class="py-1 px-3"
+                  :icon="Plus"
+                  :icon-size="12"
+                  :disabled="settingsStore.fontSize >= 24"
+                  @click="settingsStore.changeFontSize(1)"
+                />
               </div>
             </div>
 
             <!-- 配色主题 -->
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-xs text-muted mb-2">配色主题</p>
-              <div class="flex items-center justify-center gap-2">
+              <div class="flex items-center justify-center space-x-2">
                 <button
                   v-for="t in THEMES"
                   :key="t.key"
@@ -92,7 +90,7 @@
 
           <!-- ===== 通知 ===== -->
           <template v-if="activeTab === 'notification'">
-            <div class="max-h-[20vh] overflow-y-auto flex flex-col gap-3">
+            <div class="max-h-[20vh] overflow-y-auto flex flex-col space-y-3">
               <!-- 通知位置 -->
               <div class="border border-accent/20 rounded-xs p-3">
                 <p class="text-xs text-muted mb-2">弹出位置</p>
@@ -115,103 +113,119 @@
               <!-- 持续时间 -->
               <div class="border border-accent/20 rounded-xs p-3">
                 <p class="text-xs text-muted mb-2">持续时间</p>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn text-xs py-0 px-1.5" :disabled="settingsStore.qmsgTimeout <= 500" @click="changeTimeout(-500)">
-                    <Minus :size="10" />
-                  </button>
+                <div class="flex items-center justify-center space-x-2">
+                  <Button
+                    class="py-0 px-1.5"
+                    :icon="Minus"
+                    :icon-size="10"
+                    :disabled="settingsStore.qmsgTimeout <= 500"
+                    @click="changeTimeout(-500)"
+                  />
                   <span class="text-xs w-12 text-center">{{ (settingsStore.qmsgTimeout / 1000).toFixed(1) }}s</span>
-                  <button class="btn text-xs py-0 px-1.5" :disabled="settingsStore.qmsgTimeout >= 10000" @click="changeTimeout(500)">
-                    <Plus :size="10" />
-                  </button>
+                  <Button
+                    class="py-0 px-1.5"
+                    :icon="Plus"
+                    :icon-size="10"
+                    :disabled="settingsStore.qmsgTimeout >= 10000"
+                    @click="changeTimeout(500)"
+                  />
                 </div>
               </div>
 
               <!-- 最大数量 -->
               <div class="border border-accent/20 rounded-xs p-3">
                 <p class="text-xs text-muted mb-2">最大数量</p>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn text-xs py-0 px-1.5" :disabled="settingsStore.qmsgMaxNums <= 1" @click="changeMaxNums(-1)">
-                    <Minus :size="10" />
-                  </button>
+                <div class="flex items-center justify-center space-x-2">
+                  <Button
+                    class="py-0 px-1.5"
+                    :icon="Minus"
+                    :icon-size="10"
+                    :disabled="settingsStore.qmsgMaxNums <= 1"
+                    @click="changeMaxNums(-1)"
+                  />
                   <span class="text-xs w-6 text-center">{{ settingsStore.qmsgMaxNums }}</span>
-                  <button class="btn text-xs py-0 px-1.5" :disabled="settingsStore.qmsgMaxNums >= 20" @click="changeMaxNums(1)">
-                    <Plus :size="10" />
-                  </button>
+                  <Button
+                    class="py-0 px-1.5"
+                    :icon="Plus"
+                    :icon-size="10"
+                    :disabled="settingsStore.qmsgMaxNums >= 20"
+                    @click="changeMaxNums(1)"
+                  />
                 </div>
               </div>
 
               <!-- 宽度限制 -->
               <div class="border border-accent/20 rounded-xs p-3">
                 <p class="text-xs text-muted mb-2">限制宽度</p>
-                <div class="flex items-center justify-center gap-1 mb-2">
-                  <button
-                    class="btn text-xs py-0 px-2"
-                    :class="settingsStore.qmsgIsLimitWidth ? 'bg-accent/20! text-accent! border-accent!' : ''"
+                <div class="flex items-center justify-center space-x-1 mb-2">
+                  <Button
+                    class="py-0 px-2"
+                    :class="settingsStore.qmsgIsLimitWidth ? '!bg-accent/20 !text-accent !border-accent' : ''"
                     @click="setBool('qmsgIsLimitWidth', true)"
                   >
                     开
-                  </button>
-                  <button
-                    class="btn text-xs py-0 px-2"
-                    :class="!settingsStore.qmsgIsLimitWidth ? 'bg-accent/20! text-accent! border-accent!' : ''"
+                  </Button>
+                  <Button
+                    class="py-0 px-2"
+                    :class="!settingsStore.qmsgIsLimitWidth ? '!bg-accent/20 !text-accent !border-accent' : ''"
                     @click="setBool('qmsgIsLimitWidth', false)"
                   >
                     关
-                  </button>
+                  </Button>
                 </div>
                 <template v-if="settingsStore.qmsgIsLimitWidth">
                   <p class="text-xs text-muted mb-2">宽度(px)</p>
-                  <div class="flex items-center justify-center gap-2 mb-2">
-                    <button
-                      class="btn text-xs py-0 px-1.5"
+                  <div class="flex items-center justify-center space-x-2 mb-2">
+                    <Button
+                      class="py-0 px-1.5"
+                      :icon="Minus"
+                      :icon-size="10"
                       :disabled="settingsStore.qmsgLimitWidthNum <= 100"
                       @click="changeLimitWidth(-50)"
-                    >
-                      <Minus :size="10" />
-                    </button>
+                    />
                     <span class="text-xs w-10 text-center">{{ settingsStore.qmsgLimitWidthNum }}</span>
-                    <button
-                      class="btn text-xs py-0 px-1.5"
+                    <Button
+                      class="py-0 px-1.5"
+                      :icon="Plus"
+                      :icon-size="10"
                       :disabled="settingsStore.qmsgLimitWidthNum >= 800"
                       @click="changeLimitWidth(50)"
-                    >
-                      <Plus :size="10" />
-                    </button>
+                    />
                   </div>
                   <p class="text-xs text-muted mb-2">超出处理</p>
-                  <div class="flex items-center justify-center gap-1">
-                    <button
+                  <div class="flex items-center justify-center space-x-1">
+                    <Button
                       v-for="opt in WRAP_OPTIONS"
                       :key="opt.value"
-                      class="btn text-[10px] py-0 px-1.5"
-                      :class="settingsStore.qmsgLimitWidthWrap === opt.value ? 'bg-accent/20! text-accent! border-accent!' : ''"
+                      class="!text-[10px] py-0 px-1.5"
+                      :class="settingsStore.qmsgLimitWidthWrap === opt.value ? '!bg-accent/20 !text-accent !border-accent' : ''"
                       @click="changeWrap(opt.value)"
                     >
                       {{ opt.label }}
-                    </button>
+                    </Button>
                   </div>
                 </template>
               </div>
 
               <!-- 开关选项 -->
-              <div class="border border-accent/20 rounded-xs p-3 flex flex-col gap-2">
-                <div v-for="opt in TOGGLE_OPTIONS" :key="opt.key" class="flex flex-col items-center gap-1">
+              <div class="border border-accent/20 rounded-xs p-3 flex flex-col space-y-2">
+                <div v-for="opt in TOGGLE_OPTIONS" :key="opt.key" class="flex flex-col items-center space-y-1">
                   <span class="text-xs text-muted">{{ opt.label }}</span>
-                  <div class="flex items-center gap-1">
-                    <button
-                      class="btn text-xs py-0 px-2"
-                      :class="settingsStore[opt.key] ? 'bg-accent/20! text-accent! border-accent!' : ''"
+                  <div class="flex items-center space-x-1">
+                    <Button
+                      class="py-0 px-2"
+                      :class="settingsStore[opt.key] ? '!bg-accent/20 !text-accent !border-accent' : ''"
                       @click="setBool(opt.key, true)"
                     >
                       开
-                    </button>
-                    <button
-                      class="btn text-xs py-0 px-2"
-                      :class="!settingsStore[opt.key] ? 'bg-accent/20! text-accent! border-accent!' : ''"
+                    </Button>
+                    <Button
+                      class="py-0 px-2"
+                      :class="!settingsStore[opt.key] ? '!bg-accent/20 !text-accent !border-accent' : ''"
                       @click="setBool(opt.key, false)"
                     >
                       关
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -220,10 +234,9 @@
         </div>
 
         <!-- 存档管理（全局底部） -->
-        <button class="btn text-xs py-1 px-3 w-full justify-center mt-3" @click="showSaveManager = true">
-          <FolderOpen :size="12" />
+        <Button :icon="FolderOpen" :icon-size="12" class="py-1 px-3 w-full justify-center mt-3" @click="showSaveManager = true">
           存档管理
-        </button>
+        </Button>
       </div>
     </div>
   </Transition>
@@ -260,6 +273,7 @@
     Palette,
     Bell
   } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useAudio } from '@/composables/useAudio'
   import { useGameClock } from '@/composables/useGameClock'
   import { useSettingsStore, type QmsgPosition, type QmsgLimitWidthWrap } from '@/stores/useSettingsStore'

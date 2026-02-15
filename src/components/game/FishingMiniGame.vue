@@ -5,7 +5,7 @@
       实时钓鱼 — {{ fishName }}
     </p>
 
-    <div class="flex gap-2 items-end justify-center">
+    <div class="flex space-x-2 items-end justify-center">
       <!-- 进度条 (左侧竖条) -->
       <div class="w-3 h-62.5 bg-bg border border-accent/30 rounded-xs relative overflow-hidden">
         <div class="absolute bottom-0 w-full bg-success rounded-[1px]" :style="{ height: score + '%' }" />
@@ -39,7 +39,7 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div class="flex gap-2 mt-3 justify-center">
+    <div class="flex space-x-2 mt-3 justify-center">
       <button
         class="btn text-xs flex-1"
         style="touch-action: none"
@@ -50,7 +50,7 @@
         @touchend="stopHold"
       >
         <ArrowUp :size="14" />
-        长按收线
+        <span>长按收线</span>
       </button>
     </div>
     <p class="text-xs text-muted text-center mt-1">按住空格键或↑键也可收线</p>

@@ -1,8 +1,8 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Fish :size="14" />
-      钓鱼大赛
+      <span>钓鱼大赛</span>
     </h3>
 
     <!-- 准备 -->
@@ -28,7 +28,7 @@
       </div>
 
       <p class="text-xs text-muted mb-2">第 {{ currentRound }} / 3 轮</p>
-      <button class="btn text-xs w-full" @click="castLine">下竿！</button>
+      <Button class="w-full" @click="castLine">下竿！</Button>
     </div>
 
     <!-- 抛竿动画 -->
@@ -45,7 +45,7 @@
         <Waves :size="28" class="text-accent/50" />
       </div>
       <p class="text-xs text-muted">等待鱼上钩...</p>
-      <div class="flex justify-center gap-1.5 mt-2">
+      <div class="flex justify-center space-x-1.5 mt-2">
         <span class="w-1.5 h-1.5 bg-accent/40 dot-loading" />
         <span class="w-1.5 h-1.5 bg-accent/40 dot-loading" style="animation-delay: 0.2s" />
         <span class="w-1.5 h-1.5 bg-accent/40 dot-loading" style="animation-delay: 0.4s" />
@@ -56,7 +56,7 @@
     <div v-else-if="phase === 'tension'">
       <p class="text-xs text-center mb-2 text-accent bite-flash">鱼上钩了！注意张力！</p>
 
-      <div class="flex gap-3 items-stretch mb-3">
+      <div class="flex space-x-3 items-stretch mb-3">
         <!-- 张力条 (竖条) -->
         <div class="w-8 h-44 bg-bg border border-accent/30 relative overflow-hidden shrink-0">
           <!-- 最佳区 60-72% -->
@@ -85,10 +85,7 @@
         </div>
       </div>
 
-      <button class="btn text-xs w-full py-2.5" @click="pullRod">
-        <ArrowUp :size="14" />
-        收竿！
-      </button>
+      <Button class="w-full py-2.5" :icon="ArrowUp" @click="pullRod">收竿！</Button>
       <p class="text-xs text-muted text-center mt-1">绿色区域收竿效果最佳，红色区域鱼线会断！</p>
     </div>
 
@@ -154,7 +151,7 @@
         <span v-else class="text-muted">很遗憾，没有获得名次。下次再努力吧！</span>
       </div>
 
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -175,6 +172,7 @@
     sfxRankThird,
     sfxRankLose
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

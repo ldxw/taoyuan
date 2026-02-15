@@ -8,7 +8,7 @@
       <div v-for="skill in skillStore.skills" :key="skill.type" class="game-panel">
         <!-- 标题行：图标 + 名称等级 + 经验 -->
         <div class="flex justify-between items-center mb-1.5">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center space-x-1.5">
             <component :is="SKILL_ICONS[skill.type]" :size="14" class="text-accent" />
             <span class="text-sm">{{ SKILL_NAMES[skill.type] }}</span>
             <span class="text-xs text-accent">Lv.{{ skill.level }}</span>
@@ -31,13 +31,13 @@
         </div>
 
         <!-- 天赋 -->
-        <div v-if="skill.perk5 || skill.perk10" class="flex flex-col gap-1">
-          <div v-if="skill.perk5" class="flex items-center gap-1.5 border border-water rounded-xs px-2 py-1">
+        <div v-if="skill.perk5 || skill.perk10" class="flex flex-col space-y-1">
+          <div v-if="skill.perk5" class="flex items-center space-x-1.5 border border-water rounded-xs px-2 py-1">
             <span class="text-[10px] text-water shrink-0">Lv5</span>
             <span class="text-xs text-water shrink-0">{{ PERK_NAMES[skill.perk5] }}</span>
             <span class="text-[10px] text-muted">{{ PERK_DESCS[skill.perk5] }}</span>
           </div>
-          <div v-if="skill.perk10" class="flex items-center gap-1.5 border border-water rounded-xs px-2 py-1">
+          <div v-if="skill.perk10" class="flex items-center space-x-1.5 border border-water rounded-xs px-2 py-1">
             <span class="text-[10px] text-water shrink-0">Lv10</span>
             <span class="text-xs text-water shrink-0">{{ PERK_NAMES[skill.perk10] }}</span>
             <span class="text-[10px] text-muted">{{ PERK_DESCS[skill.perk10] }}</span>

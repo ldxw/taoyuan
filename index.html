@@ -41,38 +41,6 @@
 
   <body>
     <div id="app"></div>
-    <noscript>
-      <p style="text-align:center;padding:2rem;color:#e8e4d9;background:#1a1a1a;min-height:100vh;">
-        桃源乡需要启用 JavaScript 才能运行。
-      </p>
-    </noscript>
-    <!-- WebView 兼容性检测：不支持 CSS 自定义属性则引导至网页版 -->
-    <script>
-      (function () {
-        var supported = true;
-        try {
-          // 检测 CSS 自定义属性 (CSS Custom Properties)
-          if (!window.CSS || !window.CSS.supports || !CSS.supports('color', 'var(--t)')) {
-            supported = false;
-          }
-        } catch (e) {
-          supported = false;
-        }
-        if (!supported) {
-          var app = document.getElementById('app');
-          if (app) app.style.display = 'none';
-          var mask = document.createElement('div');
-          mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a1a;color:#e8e4d9;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:sans-serif;';
-          mask.innerHTML = '<div style="text-align:center;padding:24px;max-width:360px;">'
-            + '<p style="font-size:20px;margin:0 0 16px;color:#c8a45c;">桃源乡</p>'
-            + '<p style="font-size:14px;line-height:1.6;margin:0 0 24px;">检测到当前浏览器版本较低，无法正常显示游戏样式。<br>请使用以下方式游玩：</p>'
-            + '<a href="https://taoyuan.wenzi.games" style="display:inline-block;padding:10px 24px;background:#c8a45c;color:#1a1a1a;text-decoration:none;font-size:14px;border-radius:2px;">前往网页版游玩</a>'
-            + '<p style="font-size:12px;color:#6b7280;margin:16px 0 0;">推荐使用 Chrome、Edge、Firefox<br>或 Safari 最新版本</p>'
-            + '</div>';
-          document.body.appendChild(mask);
-        }
-      })();
-    </script>
     <script type="module" src="/src/main.ts"></script>
     <!-- 统计勿删 -->
     <script>

@@ -2,7 +2,7 @@
   <div>
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Package :size="14" />
         <span>背包</span>
       </div>
@@ -13,33 +13,35 @@
     </div>
 
     <!-- 页签切换 -->
-    <div class="flex gap-1 mb-3">
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'items' }" @click="tab = 'items'">
-        物品
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'tools' }" @click="tab = 'tools'">
-        装备
-      </button>
-      <button
-        class="btn text-xs flex-1 justify-center"
-        :class="{ 'bg-danger! text-text!': tab === 'temp', 'text-danger': tab !== 'temp' && inventoryStore.tempItems.length > 0 }"
+    <div class="flex space-x-1 mb-3">
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'items' }" @click="tab = 'items'">物品</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'tools' }" @click="tab = 'tools'">装备</Button>
+      <Button
+        class="flex-1 justify-center"
+        :class="{ '!bg-danger !text-text': tab === 'temp', 'text-danger': tab !== 'temp' && inventoryStore.tempItems.length > 0 }"
         @click="tab = 'temp'"
       >
         临时{{ inventoryStore.tempItems.length > 0 ? `(${inventoryStore.tempItems.length})` : '' }}
-      </button>
+      </Button>
     </div>
 
     <!-- 物品页 -->
     <template v-if="tab === 'items'">
-      <div v-if="inventoryStore.items.length > 1" class="flex justify-end mb-1.5">
-        <button class="btn w-full md:w-auto text-xs py-0 px-1.5" @click="inventoryStore.sortItems()">
-          <ArrowDown01 :size="12" />
-          整理
-        </button>
+      <div v-if="inventoryStore.items.length > 1" class="flex justify-end mb-1.5 space-x-1">
+        <Button
+          class="py-0 px-1.5"
+          :class="{ '!bg-accent !text-bg': isFilterActive }"
+          :icon="Filter"
+          :icon-size="12"
+          @click="openFilterModal"
+        >
+          筛选
+        </Button>
+        <Button class="py-0 px-1.5" :icon="ArrowDown01" :icon-size="12" @click="inventoryStore.sortItems()">整理</Button>
       </div>
-      <div v-if="inventoryStore.items.length > 0" class="grid grid-cols-3 md:grid-cols-5 gap-1.5">
+      <div v-if="filteredItems.length > 0" class="grid grid-cols-3 md:grid-cols-5 gap-1.5">
         <div
-          v-for="(item, idx) in inventoryStore.items"
+          v-for="(item, idx) in filteredItems"
           :key="idx"
           class="border border-accent/20 rounded-xs p-1.5 text-center cursor-pointer hover:bg-accent/5 transition-colors"
           @click="activeItemKey = item.itemId + ':' + item.quality"
@@ -59,7 +61,7 @@
 
         <!-- 空格子 -->
         <div
-          v-for="i in Math.max(0, inventoryStore.capacity - inventoryStore.items.length)"
+          v-for="i in isFilterActive ? 0 : Math.max(0, inventoryStore.capacity - inventoryStore.items.length)"
           :key="'empty-' + i"
           class="border border-accent/10 rounded-xs p-1.5 text-center text-xs text-muted/30"
         >
@@ -77,7 +79,7 @@
       <div v-if="inventoryStore.tempItems.length > 0">
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[10px] text-muted">背包满时溢出的物品，请及时取回</span>
-          <button v-if="!inventoryStore.isFull" class="btn text-xs py-0 px-1.5" @click="handleMoveAllFromTemp">全部取回</button>
+          <Button v-if="!inventoryStore.isFull" class="py-0 px-1.5" @click="handleMoveAllFromTemp">全部取回</Button>
         </div>
         <div class="grid grid-cols-3 md:grid-cols-5 gap-1.5">
           <div
@@ -117,25 +119,16 @@
 
     <!-- 装备页 -->
     <template v-if="tab === 'tools'">
-      <!-- 工具 -->
-      <div class="border border-accent/20 rounded-xs p-2 mb-3">
-        <p class="text-xs text-muted mb-1">工具</p>
-        <div class="flex flex-col gap-1">
-          <div
-            v-for="tool in inventoryStore.tools"
-            :key="tool.type"
-            class="flex items-center justify-between border border-accent/10 rounded-xs px-2 py-1"
-          >
-            <span class="text-xs">{{ TOOL_NAMES[tool.type] }}</span>
-            <span class="text-xs text-muted">{{ TIER_NAMES[tool.tier] }}</span>
-          </div>
-        </div>
+      <!-- 方案按钮 -->
+      <div class="flex items-center justify-end mb-1.5 space-x-1.5">
+        <span v-if="activePresetName" class="text-[10px] text-success truncate">{{ activePresetName }}</span>
+        <Button class="py-0 px-1.5" :icon="BookMarked" :icon-size="12" @click="showPresetModal = true">方案</Button>
       </div>
 
       <!-- 武器 -->
       <div class="border border-accent/20 rounded-xs p-2 mb-3">
         <p class="text-xs text-muted mb-1">武器</p>
-        <div class="flex flex-col gap-1 max-h-40 overflow-y-auto">
+        <div class="flex flex-col space-y-1 max-h-40 overflow-y-auto">
           <div
             v-for="(weapon, idx) in inventoryStore.ownedWeapons"
             :key="idx"
@@ -155,7 +148,7 @@
       <!-- 帽子 -->
       <div class="border border-accent/20 rounded-xs p-2 mb-3">
         <p class="text-xs text-muted mb-1">帽子</p>
-        <div v-if="inventoryStore.ownedHats.length > 0" class="flex flex-col gap-1">
+        <div v-if="inventoryStore.ownedHats.length > 0" class="flex flex-col space-y-1">
           <!-- 槽位 -->
           <div class="border border-accent/10 rounded-xs px-2 py-1 text-center mb-1">
             <p class="text-[10px] text-muted">装备中</p>
@@ -164,7 +157,7 @@
             </p>
           </div>
           <!-- 拥有的帽子列表 -->
-          <div class="max-h-40 overflow-y-auto flex flex-col gap-1">
+          <div class="max-h-40 overflow-y-auto flex flex-col space-y-1">
             <div
               v-for="(hat, idx) in inventoryStore.ownedHats"
               :key="idx"
@@ -178,13 +171,13 @@
                 </span>
                 <p class="text-[10px] text-muted truncate">{{ getHatById(hat.defId)?.description }}</p>
               </div>
-              <button
-                class="btn text-xs py-0 px-1.5 shrink-0 ml-2"
-                :class="inventoryStore.equippedHatIndex === idx ? 'bg-accent! text-bg!' : ''"
+              <Button
+                class="py-0 px-1.5 shrink-0 ml-2"
+                :class="inventoryStore.equippedHatIndex === idx ? '!bg-accent !text-bg' : ''"
                 @click.stop="handleToggleHat(idx)"
               >
                 {{ inventoryStore.equippedHatIndex === idx ? '卸下' : '装备' }}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -194,7 +187,7 @@
       <!-- 鞋子 -->
       <div class="border border-accent/20 rounded-xs p-2 mb-3">
         <p class="text-xs text-muted mb-1">鞋子</p>
-        <div v-if="inventoryStore.ownedShoes.length > 0" class="flex flex-col gap-1">
+        <div v-if="inventoryStore.ownedShoes.length > 0" class="flex flex-col space-y-1">
           <!-- 槽位 -->
           <div class="border border-accent/10 rounded-xs px-2 py-1 text-center mb-1">
             <p class="text-[10px] text-muted">装备中</p>
@@ -203,7 +196,7 @@
             </p>
           </div>
           <!-- 拥有的鞋子列表 -->
-          <div class="max-h-40 overflow-y-auto flex flex-col gap-1">
+          <div class="max-h-40 overflow-y-auto flex flex-col space-y-1">
             <div
               v-for="(shoe, idx) in inventoryStore.ownedShoes"
               :key="idx"
@@ -217,13 +210,13 @@
                 </span>
                 <p class="text-[10px] text-muted truncate">{{ getShoeById(shoe.defId)?.description }}</p>
               </div>
-              <button
-                class="btn text-xs py-0 px-1.5 shrink-0 ml-2"
-                :class="inventoryStore.equippedShoeIndex === idx ? 'bg-accent! text-bg!' : ''"
+              <Button
+                class="py-0 px-1.5 shrink-0 ml-2"
+                :class="inventoryStore.equippedShoeIndex === idx ? '!bg-accent !text-bg' : ''"
                 @click.stop="handleToggleShoe(idx)"
               >
                 {{ inventoryStore.equippedShoeIndex === idx ? '卸下' : '装备' }}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -233,9 +226,9 @@
       <!-- 戒指 -->
       <div class="border border-accent/20 rounded-xs p-2">
         <p class="text-xs text-muted mb-1">戒指</p>
-        <div v-if="inventoryStore.ownedRings.length > 0" class="flex flex-col gap-1">
+        <div v-if="inventoryStore.ownedRings.length > 0" class="flex flex-col space-y-1">
           <!-- 槽位 -->
-          <div class="flex gap-1 mb-1">
+          <div class="flex space-x-1 mb-1">
             <div class="flex-1 border border-accent/10 rounded-xs px-2 py-1 text-center">
               <p class="text-[10px] text-muted">槽位1</p>
               <p class="text-xs" :class="equippedRing1Name ? 'text-accent' : 'text-muted/40'">
@@ -250,7 +243,7 @@
             </div>
           </div>
           <!-- 拥有的戒指列表 -->
-          <div class="max-h-40 overflow-y-auto flex flex-col gap-1">
+          <div class="max-h-40 overflow-y-auto flex flex-col space-y-1">
             <div
               v-for="(ring, idx) in inventoryStore.ownedRings"
               :key="idx"
@@ -264,28 +257,135 @@
                 </span>
                 <p class="text-[10px] text-muted truncate">{{ getRingById(ring.defId)?.description }}</p>
               </div>
-              <div class="flex gap-1 shrink-0 ml-2">
-                <button
-                  class="btn text-xs py-0 px-1.5"
-                  :class="inventoryStore.equippedRingSlot1 === idx ? 'bg-accent! text-bg!' : ''"
+              <div class="flex space-x-1 shrink-0 ml-2">
+                <Button
+                  class="py-0 px-1.5"
+                  :class="inventoryStore.equippedRingSlot1 === idx ? '!bg-accent !text-bg' : ''"
                   @click.stop="handleToggleRingSlot(idx, 0)"
                 >
                   槽1
-                </button>
-                <button
-                  class="btn text-xs py-0 px-1.5"
-                  :class="inventoryStore.equippedRingSlot2 === idx ? 'bg-accent! text-bg!' : ''"
+                </Button>
+                <Button
+                  class="py-0 px-1.5"
+                  :class="inventoryStore.equippedRingSlot2 === idx ? '!bg-accent !text-bg' : ''"
                   @click.stop="handleToggleRingSlot(idx, 1)"
                 >
                   槽2
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </div>
         <p v-else class="text-xs text-muted/40 text-center py-2">暂无戒指</p>
       </div>
+
+      <!-- 套装效果 -->
+      <div v-if="inventoryStore.activeSets.length > 0" class="border border-accent/20 rounded-xs p-2 mt-3">
+        <p class="text-xs text-muted mb-1">套装效果</p>
+        <div v-for="set in inventoryStore.activeSets" :key="set.id" class="border border-accent/10 rounded-xs p-2 mb-1.5 last:mb-0">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs text-accent">{{ set.name }}</span>
+            <span class="text-xs text-muted">{{ set.equippedCount }}/3</span>
+          </div>
+          <div v-for="bonus in set.bonuses" :key="bonus.count" class="text-[10px]" :class="bonus.active ? 'text-success' : 'text-muted/40'">
+            ({{ bonus.count }}件) {{ bonus.description }}
+          </div>
+        </div>
+      </div>
     </template>
+
+    <!-- 装备方案弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showPresetModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showPresetModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showPresetModal = false">
+            <X :size="14" />
+          </button>
+          <p class="text-sm text-accent mb-2">装备方案</p>
+          <div v-if="inventoryStore.equipmentPresets.length > 0" class="flex flex-col space-y-1.5 mb-3 max-h-60 overflow-y-auto">
+            <div
+              v-for="preset in inventoryStore.equipmentPresets"
+              :key="preset.id"
+              class="border rounded-xs p-2"
+              :class="activePresetId === preset.id ? 'border-accent/40' : 'border-accent/10'"
+            >
+              <div class="flex items-center justify-between mb-1">
+                <template v-if="renamingPresetId === preset.id">
+                  <input
+                    v-model="renameValue"
+                    class="bg-transparent border border-accent/30 rounded-xs px-1 py-0.5 text-xs text-text w-full mr-2 outline-none"
+                    @keyup.enter="confirmRename(preset.id)"
+                    @blur="confirmRename(preset.id)"
+                  />
+                </template>
+                <template v-else>
+                  <span class="text-xs text-accent truncate">{{ preset.name }}</span>
+                </template>
+                <span v-if="activePresetId === preset.id" class="text-[10px] text-success shrink-0 ml-1">使用中</span>
+              </div>
+              <div class="flex space-x-1">
+                <Button
+                  class="py-0 px-1.5 flex-1 justify-center"
+                  :disabled="activePresetId === preset.id"
+                  @click="handleApplyPreset(preset.id)"
+                >
+                  使用
+                </Button>
+                <Button class="py-0 px-1.5 flex-1 justify-center" @click="handleSaveToPreset(preset.id)">保存</Button>
+                <Button class="py-0 px-1.5" @click="startRename(preset)">改名</Button>
+                <Button class="py-0 px-1.5 text-danger" :disabled="activePresetId === preset.id" @click="handleDeletePreset(preset.id)">
+                  删除
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex flex-col items-center justify-center py-6 mb-3">
+            <BookMarked :size="24" class="text-muted/30" />
+            <p class="text-xs text-muted mt-1">暂无方案</p>
+            <p class="text-[10px] text-muted/60 mt-0.5">创建方案后可快速切换装备配置</p>
+          </div>
+          <Button class="w-full justify-center" :disabled="inventoryStore.equipmentPresets.length >= 3" @click="handleCreatePreset">
+            新建方案
+          </Button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 临时背包物品详情弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showFilterModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showFilterModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showFilterModal = false">
+            <X :size="14" />
+          </button>
+          <p class="text-sm text-accent mb-2">物品筛选</p>
+          <p class="text-[10px] text-muted mb-2">选择要显示的分类，不选则显示全部</p>
+          <div class="grid grid-cols-3 gap-1.5 mb-3">
+            <div
+              v-for="cat in FILTER_CATEGORIES"
+              :key="cat"
+              class="border rounded-xs px-1.5 py-1 text-center text-xs cursor-pointer transition-colors"
+              :class="tempFilter.has(cat) ? 'border-accent/50 bg-accent/10 text-accent' : 'border-accent/20 text-muted hover:bg-accent/5'"
+              @click="toggleCategory(cat)"
+            >
+              {{ CATEGORY_NAMES[cat] }}
+            </div>
+          </div>
+          <div class="flex space-x-1.5">
+            <Button class="flex-1 justify-center" @click="handleClearFilter">全部显示</Button>
+            <Button class="flex-1 justify-center !bg-accent !text-bg" @click="handleSaveFilter">保存</Button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 临时背包物品详情弹窗 -->
     <Transition name="panel-fade">
@@ -332,17 +432,18 @@
               </span>
             </div>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <button
-              class="btn text-xs w-full justify-center"
+          <div class="flex flex-col space-y-1.5">
+            <Button
+              class="w-full justify-center"
               :class="inventoryStore.isFull ? 'opacity-50' : ''"
+              :icon="ArrowRight"
+              :icon-size="12"
               :disabled="inventoryStore.isFull"
               @click="handleMoveFromTemp"
             >
-              <ArrowRight :size="12" />
               放入背包
-            </button>
-            <button class="btn text-xs w-full justify-center text-danger border-danger/40" @click="handleDiscardTemp">丢弃</button>
+            </Button>
+            <Button class="w-full justify-center text-danger border-danger/40" @click="handleDiscardTemp">丢弃</Button>
           </div>
         </div>
       </div>
@@ -405,25 +506,31 @@
               <span class="text-xs text-muted">增益</span>
               <span class="text-xs text-accent">{{ activeItemBuff.description }}</span>
             </div>
+            <div class="flex items-center justify-between mt-0.5">
+              <span class="text-xs text-muted">来源</span>
+              <span class="text-xs text-muted">{{ getItemSource(activeItem.itemId) }}</span>
+            </div>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <button
+          <div class="flex flex-col space-y-1.5">
+            <Button
               v-if="isEdible(activeItem.itemId)"
-              class="btn text-xs w-full justify-center"
+              class="w-full justify-center"
+              :icon="Apple"
+              :icon-size="12"
               @click="handleEat(activeItem.itemId, activeItem.quality)"
             >
-              <Apple :size="12" />
               食用
-            </button>
-            <button
+            </Button>
+            <Button
               v-if="isUsable(activeItem.itemId)"
-              class="btn text-xs w-full justify-center"
+              class="w-full justify-center"
+              :icon="Zap"
+              :icon-size="12"
               @click="handleUse(activeItem.itemId, activeItem.quality)"
             >
-              <Zap :size="12" />
               使用
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -466,21 +573,17 @@
               <span class="text-xs text-accent">{{ activeWeaponPrice }}文</span>
             </div>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <button
-              v-if="activeWeaponIdx !== inventoryStore.equippedWeaponIndex"
-              class="btn text-xs w-full justify-center"
-              @click="handleEquipWeapon"
-            >
+          <div class="flex flex-col space-y-1.5">
+            <Button v-if="activeWeaponIdx !== inventoryStore.equippedWeaponIndex" class="w-full justify-center" @click="handleEquipWeapon">
               装备
-            </button>
-            <button
+            </Button>
+            <Button
               v-if="activeWeaponIdx !== inventoryStore.equippedWeaponIndex && inventoryStore.ownedWeapons.length > 1"
-              class="btn text-xs w-full justify-center text-danger border-danger/40"
+              class="w-full justify-center text-danger border-danger/40"
               @click="handleSellWeapon"
             >
               卖出 · {{ activeWeaponPrice }}文
-            </button>
+            </Button>
             <p v-if="activeWeaponIdx === inventoryStore.equippedWeaponIndex" class="text-[10px] text-muted text-center">
               当前装备中，请先切换其他武器再卖出
             </p>
@@ -514,18 +617,18 @@
               <span class="text-xs text-accent">{{ activeRingDef.sellPrice }}文</span>
             </div>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <div class="flex gap-1.5">
-              <button class="btn text-xs flex-1 justify-center" @click="handleEquipRingFromPopup(0)">
+          <div class="flex flex-col space-y-1.5">
+            <div class="flex space-x-1.5">
+              <Button class="flex-1 justify-center" @click="handleEquipRingFromPopup(0)">
                 {{ inventoryStore.equippedRingSlot1 === activeRingIdx ? '卸下槽1' : '装备槽1' }}
-              </button>
-              <button class="btn text-xs flex-1 justify-center" @click="handleEquipRingFromPopup(1)">
+              </Button>
+              <Button class="flex-1 justify-center" @click="handleEquipRingFromPopup(1)">
                 {{ inventoryStore.equippedRingSlot2 === activeRingIdx ? '卸下槽2' : '装备槽2' }}
-              </button>
+              </Button>
             </div>
-            <button class="btn text-xs w-full justify-center text-danger border-danger/40" @click="handleSellRing">
+            <Button class="w-full justify-center text-danger border-danger/40" @click="handleSellRing">
               卖出 · {{ activeRingDef.sellPrice }}文
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -556,13 +659,13 @@
               <span class="text-xs text-accent">{{ activeHatDef.sellPrice }}文</span>
             </div>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <button class="btn text-xs w-full justify-center" @click="handleToggleHatFromPopup">
+          <div class="flex flex-col space-y-1.5">
+            <Button class="w-full justify-center" @click="handleToggleHatFromPopup">
               {{ inventoryStore.equippedHatIndex === activeHatIdx ? '卸下' : '装备' }}
-            </button>
-            <button class="btn text-xs w-full justify-center text-danger border-danger/40" @click="handleSellHat">
+            </Button>
+            <Button class="w-full justify-center text-danger border-danger/40" @click="handleSellHat">
               卖出 · {{ activeHatDef.sellPrice }}文
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -593,13 +696,13 @@
               <span class="text-xs text-accent">{{ activeShoeDef.sellPrice }}文</span>
             </div>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <button class="btn text-xs w-full justify-center" @click="handleToggleShoeFromPopup">
+          <div class="flex flex-col space-y-1.5">
+            <Button class="w-full justify-center" @click="handleToggleShoeFromPopup">
               {{ inventoryStore.equippedShoeIndex === activeShoeIdx ? '卸下' : '装备' }}
-            </button>
-            <button class="btn text-xs w-full justify-center text-danger border-danger/40" @click="handleSellShoe">
+            </Button>
+            <Button class="w-full justify-center text-danger border-danger/40" @click="handleSellShoe">
               卖出 · {{ activeShoeDef.sellPrice }}文
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -609,9 +712,10 @@
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { Apple, Archive, ArrowDown01, ArrowRight, Package, X, Zap } from 'lucide-vue-next'
-  import { useInventoryStore, usePlayerStore, useSkillStore, useGameStore, useCookingStore } from '@/stores'
-  import { getItemById, TOOL_NAMES, TIER_NAMES } from '@/data'
+  import { Apple, Archive, ArrowDown01, ArrowRight, BookMarked, Filter, Package, X, Zap } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
+  import { useInventoryStore, usePlayerStore, useSkillStore, useGameStore, useCookingStore, useSettingsStore } from '@/stores'
+  import { getItemById, getItemSource } from '@/data'
   import { getRecipeById } from '@/data/recipes'
   import { getWeaponById, getWeaponDisplayName, getWeaponSellPrice, getEnchantmentById, WEAPON_TYPE_NAMES } from '@/data/weapons'
   import { getRingById } from '@/data/rings'
@@ -619,17 +723,149 @@
   import { getShoeById } from '@/data/shoes'
   import { QUALITY_NAMES } from '@/composables/useFarmActions'
   import { addLog } from '@/composables/useGameLog'
-  import type { Quality, RingEffectType } from '@/types'
+  import type { Quality, RingEffectType, ItemCategory } from '@/types'
 
   const inventoryStore = useInventoryStore()
   const playerStore = usePlayerStore()
   const skillStore = useSkillStore()
   const gameStore = useGameStore()
   const cookingStore = useCookingStore()
+  const settingsStore = useSettingsStore()
 
   // === 页签 ===
 
   const tab = ref<'items' | 'tools' | 'temp'>('items')
+
+  // === 物品筛选 ===
+
+  const FILTER_CATEGORIES: ItemCategory[] = [
+    'seed',
+    'crop',
+    'fruit',
+    'fish',
+    'animal_product',
+    'processed',
+    'food',
+    'ore',
+    'gem',
+    'material',
+    'machine',
+    'sprinkler',
+    'fertilizer',
+    'bait',
+    'tackle',
+    'bomb',
+    'sapling',
+    'gift',
+    'fossil',
+    'artifact',
+    'misc'
+  ]
+
+  const CATEGORY_NAMES: Partial<Record<ItemCategory, string>> = {
+    seed: '种子',
+    crop: '作物',
+    fruit: '水果',
+    fish: '鱼类',
+    animal_product: '畜产',
+    processed: '加工品',
+    food: '料理',
+    ore: '矿石',
+    gem: '宝石',
+    material: '材料',
+    machine: '机器',
+    sprinkler: '洒水器',
+    fertilizer: '肥料',
+    bait: '鱼饵',
+    tackle: '钓具',
+    bomb: '炸弹',
+    sapling: '树苗',
+    gift: '礼物',
+    fossil: '化石',
+    artifact: '文物',
+    misc: '杂货'
+  }
+
+  const showFilterModal = ref(false)
+  const tempFilter = ref<Set<ItemCategory>>(new Set())
+
+  const isFilterActive = computed(() => settingsStore.inventoryFilter.length > 0)
+
+  const filteredItems = computed(() => {
+    if (settingsStore.inventoryFilter.length === 0) return inventoryStore.items
+    const allowed = new Set(settingsStore.inventoryFilter)
+    return inventoryStore.items.filter(item => {
+      const def = getItemById(item.itemId)
+      return def && allowed.has(def.category)
+    })
+  })
+
+  const openFilterModal = () => {
+    tempFilter.value = new Set(settingsStore.inventoryFilter)
+    showFilterModal.value = true
+  }
+
+  const toggleCategory = (cat: ItemCategory) => {
+    if (tempFilter.value.has(cat)) {
+      tempFilter.value.delete(cat)
+    } else {
+      tempFilter.value.add(cat)
+    }
+  }
+
+  const handleSaveFilter = () => {
+    settingsStore.inventoryFilter = [...tempFilter.value]
+    showFilterModal.value = false
+  }
+
+  const handleClearFilter = () => {
+    tempFilter.value = new Set()
+  }
+
+  // === 装备方案 ===
+
+  const showPresetModal = ref(false)
+  const renamingPresetId = ref<string | null>(null)
+  const renameValue = ref('')
+
+  const activePresetId = computed(() => inventoryStore.activePresetId)
+
+  const activePresetName = computed(() => {
+    if (!activePresetId.value) return null
+    return inventoryStore.equipmentPresets.find(p => p.id === activePresetId.value)?.name ?? null
+  })
+
+  const handleCreatePreset = () => {
+    inventoryStore.createEquipmentPreset('方案' + (inventoryStore.equipmentPresets.length + 1))
+  }
+
+  const startRename = (preset: { id: string; name: string }) => {
+    renamingPresetId.value = preset.id
+    renameValue.value = preset.name
+  }
+
+  const confirmRename = (id: string) => {
+    if (renamingPresetId.value === null) return
+    inventoryStore.renameEquipmentPreset(id, renameValue.value)
+    renamingPresetId.value = null
+  }
+
+  const handleSaveToPreset = (id: string) => {
+    if (renamingPresetId.value) confirmRename(renamingPresetId.value)
+    inventoryStore.saveCurrentToPreset(id)
+    addLog('已保存当前装备到方案。')
+  }
+
+  const handleApplyPreset = (id: string) => {
+    if (renamingPresetId.value) confirmRename(renamingPresetId.value)
+    const result = inventoryStore.applyEquipmentPreset(id)
+    addLog(result.message)
+  }
+
+  const handleDeletePreset = (id: string) => {
+    if (renamingPresetId.value) confirmRename(renamingPresetId.value)
+    inventoryStore.deleteEquipmentPreset(id)
+  }
 
   // === 戒指辅助 ===
 

@@ -1,14 +1,14 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Lightbulb :size="14" />
-      七夕猜灯谜
+      <span>七夕猜灯谜</span>
     </h3>
 
     <!-- 准备 -->
     <div v-if="phase === 'ready'">
       <p class="text-xs text-muted mb-3">广场上挂满了灯笼，每个灯笼下都有一条灯谜。共5题，每题限时，答对有奖！</p>
-      <button class="btn text-xs w-full" @click="startGame">开始猜谜！</button>
+      <Button class="w-full" @click="startGame">开始猜谜！</Button>
     </div>
 
     <!-- 展示灯笼 -->
@@ -20,7 +20,7 @@
         </div>
       </div>
       <!-- 进度点 -->
-      <div class="flex justify-center gap-2 mt-2">
+      <div class="flex justify-center space-x-2 mt-2">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="dotClass(i - 1)" />
       </div>
     </div>
@@ -29,7 +29,7 @@
     <div v-else-if="phase === 'answering'">
       <!-- 进度点 + 倒计时 -->
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center space-x-1.5">
           <div v-for="i in 5" :key="i" class="w-2 h-2" :class="dotClass(i - 1)" />
         </div>
         <p class="text-xs" :class="countdown <= 3 ? 'text-danger time-pulse' : 'text-accent'">
@@ -54,25 +54,25 @@
       </div>
 
       <!-- 选项 -->
-      <div class="flex flex-col gap-2">
-        <button
+      <div class="flex flex-col space-y-2">
+        <Button
           v-for="(opt, i) in currentRiddle.options"
           :key="i"
-          class="btn text-xs text-left w-full"
+          class="text-left w-full"
           :disabled="answered"
           :class="{ 'opacity-50': answered }"
           @click="answer(i)"
         >
           <span class="text-accent mr-1">{{ ['甲', '乙', '丙', '丁'][i] }}.</span>
           {{ opt }}
-        </button>
+        </Button>
       </div>
     </div>
 
     <!-- 单题结果 -->
     <div v-else-if="phase === 'result'" class="text-center">
       <!-- 进度点 -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="dotClass(i - 1)" />
       </div>
 
@@ -97,7 +97,7 @@
       <p class="text-xs text-muted mb-2">灯谜会结束！</p>
 
       <!-- 进度点（最终状态） -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="dotClass(i - 1)" />
       </div>
 
@@ -114,7 +114,7 @@
           <span v-if="correctCount === 5" class="text-accent finish-flash">（全对+300文！）</span>
         </p>
       </div>
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -132,6 +132,7 @@
     sfxMiniGood,
     sfxMiniPerfect
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

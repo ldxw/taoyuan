@@ -33,7 +33,7 @@
       </div>
       <div v-else-if="homeStore.caveChoice === 'none'">
         <p class="text-xs text-muted mb-2">选择山洞用途（选定后不可更改）：</p>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col space-y-1">
           <div
             class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
             @click="handleChooseCave('mushroom')"
@@ -105,7 +105,7 @@
       <!-- 已解锁 -->
       <template v-else>
         <!-- 仓库物品列表 -->
-        <div v-if="warehouseStore.items.length > 0" class="flex flex-col gap-1 mb-2 max-h-36 overflow-y-auto">
+        <div v-if="warehouseStore.items.length > 0" class="flex flex-col space-y-1 mb-2 max-h-36 overflow-y-auto">
           <div
             v-for="(item, idx) in warehouseStore.items"
             :key="idx"
@@ -115,9 +115,9 @@
               {{ getItemName(item.itemId) }}
               <span v-if="item.quality !== 'normal'" class="text-[10px]">({{ QUALITY_LABEL[item.quality] }})</span>
             </span>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center space-x-1.5">
               <span class="text-xs text-muted">&times;{{ item.quantity }}</span>
-              <button class="btn text-xs py-0 px-1" @click="handleWithdraw(item.itemId, item.quality)">取出</button>
+              <Button class="py-0 px-1" @click="handleWithdraw(item.itemId, item.quality)">取出</Button>
             </div>
           </div>
         </div>
@@ -127,10 +127,9 @@
         </div>
 
         <!-- 存入按钮 -->
-        <button v-if="depositableItems.length > 0" class="btn w-full text-xs" @click="showDepositModal = true">
-          <ArrowDown :size="12" />
+        <Button v-if="depositableItems.length > 0" class="w-full" :icon="ArrowDown" :icon-size="12" @click="showDepositModal = true">
           存入物品
-        </button>
+        </Button>
       </template>
     </div>
 
@@ -140,35 +139,117 @@
         <Users :size="14" class="inline" />
         家人
       </p>
-      <div v-if="npcStore.children.length === 0 && !npcStore.pendingChild">
+
+      <!-- 提议通知 -->
+      <div v-if="npcStore.childProposalPending" class="border border-accent/30 rounded-xs p-2 mb-2">
+        <p class="text-xs text-accent mb-1.5">配偶有话想和你说……</p>
+        <Button class="w-full justify-center" @click="showChildProposalDialog">回应</Button>
+      </div>
+
+      <!-- 孕期面板 -->
+      <div v-if="npcStore.pregnancy" class="border border-success/20 rounded-xs p-2 mb-2">
+        <p class="text-xs text-success mb-2">孕期 · {{ PREGNANCY_STAGE_LABELS[npcStore.pregnancy.stage] }}</p>
+        <!-- 阶段进度条 -->
+        <div class="flex items-center space-x-1 mb-1.5">
+          <span class="text-[10px] text-muted w-8 shrink-0">进度</span>
+          <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
+            <div
+              class="h-full rounded-xs bg-success transition-all"
+              :style="{ width: Math.floor((npcStore.pregnancy.daysInStage / npcStore.pregnancy.stageDays) * 100) + '%' }"
+            />
+          </div>
+          <span class="text-[10px] text-muted shrink-0">{{ npcStore.pregnancy.daysInStage }}/{{ npcStore.pregnancy.stageDays }}天</span>
+        </div>
+        <!-- 安产率条 -->
+        <div class="flex items-center space-x-1 mb-2">
+          <span class="text-[10px] text-muted w-8 shrink-0">安产</span>
+          <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
+            <div
+              class="h-full rounded-xs transition-all"
+              :class="npcStore.pregnancy.careScore >= 70 ? 'bg-success' : npcStore.pregnancy.careScore >= 40 ? 'bg-accent' : 'bg-danger'"
+              :style="{ width: npcStore.pregnancy.careScore + '%' }"
+            />
+          </div>
+          <span class="text-[10px] text-muted shrink-0">{{ npcStore.pregnancy.careScore }}%</span>
+        </div>
+        <!-- 阶段提示 -->
+        <p class="text-[10px] text-muted/60 mb-2">{{ STAGE_TIPS[npcStore.pregnancy.stage] }}</p>
+        <!-- 照料操作 -->
+        <div class="grid grid-cols-2 gap-1 mb-1">
+          <Button
+            class="py-0.5 px-1 text-[10px] justify-center"
+            :disabled="npcStore.pregnancy.giftedForPregnancy"
+            @click="handlePregnancyCare('gift')"
+          >
+            {{ npcStore.pregnancy.giftedForPregnancy ? '已送礼' : '送礼物' }}
+          </Button>
+          <Button
+            class="py-0.5 px-1 text-[10px] justify-center"
+            :disabled="npcStore.pregnancy.companionToday"
+            @click="handlePregnancyCare('companion')"
+          >
+            {{ npcStore.pregnancy.companionToday ? '已陪伴' : '陪伴聊天' }}
+          </Button>
+          <Button class="py-0.5 px-1 text-[10px] justify-center" @click="handlePregnancyCare('supplement')">服用补品</Button>
+          <Button
+            class="py-0.5 px-1 text-[10px] justify-center"
+            :disabled="npcStore.pregnancy.caredToday"
+            @click="handlePregnancyCare('rest')"
+          >
+            {{ npcStore.pregnancy.caredToday ? '已休息' : '安排休息' }}
+          </Button>
+        </div>
+        <!-- 医疗方案（待产期） -->
+        <div v-if="npcStore.pregnancy.stage === 'ready'" class="border border-accent/20 rounded-xs p-2 mt-2">
+          <p class="text-[10px] text-accent mb-1.5">选择接生方式</p>
+          <div v-if="!npcStore.pregnancy.medicalPlan" class="flex flex-col space-y-1">
+            <Button class="py-0.5 px-1 text-[10px] w-full justify-center" @click="handleChooseMedical('normal')">
+              普通接生（1000文 · 80%安全）
+            </Button>
+            <Button class="py-0.5 px-1 text-[10px] w-full justify-center" @click="handleChooseMedical('advanced')">
+              高级接生（5000文 · 95%安全）
+            </Button>
+            <Button class="py-0.5 px-1 text-[10px] w-full justify-center text-accent" @click="handleChooseMedical('luxury')">
+              豪华接生（15000文 · 100%安全）
+            </Button>
+          </div>
+          <p v-else class="text-[10px] text-success">已选择：{{ MEDICAL_LABELS[npcStore.pregnancy.medicalPlan] }}</p>
+        </div>
+      </div>
+
+      <!-- 无子女无孕期 -->
+      <div v-if="npcStore.children.length === 0 && !npcStore.pregnancy && !npcStore.childProposalPending">
         <div class="flex flex-col items-center justify-center py-6 text-muted">
           <Users :size="32" class="mb-2" />
           <p class="text-xs">婚后生活安稳，也许将来会有小生命到来。</p>
         </div>
       </div>
-      <div v-if="npcStore.pendingChild" class="mb-2">
-        <p class="text-xs text-success">新生命即将到来……（{{ npcStore.childCountdown }}天后）</p>
-      </div>
-      <div v-if="npcStore.children.length > 0" class="flex flex-col gap-1">
+
+      <!-- 子女列表 -->
+      <div v-if="npcStore.children.length > 0" class="flex flex-col space-y-1">
         <div v-for="child in npcStore.children" :key="child.id" class="border border-accent/10 rounded-xs p-2">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-accent">{{ child.name }}</span>
-            <div class="flex items-center gap-1">
-              <button
+            <span class="text-xs text-accent">
+              {{ child.name }}
+              <span v-if="child.birthQuality === 'healthy'" class="text-[10px] text-success ml-0.5">[健康]</span>
+              <span v-else-if="child.birthQuality === 'premature'" class="text-[10px] text-muted/60 ml-0.5">[早产]</span>
+            </span>
+            <div class="flex items-center space-x-1">
+              <Button
                 v-if="child.stage !== 'baby' && !child.interactedToday"
-                class="btn text-xs py-0 px-1"
+                class="py-0 px-1"
+                :icon="Heart"
                 @click="handleInteractChild(child.id)"
               >
-                <Heart :size="14" />
                 互动
-              </button>
+              </Button>
               <span v-else-if="child.stage !== 'baby'" class="text-xs text-muted">已互动</span>
               <span v-else class="text-xs text-muted">还太小</span>
-              <button class="btn text-xs py-0 px-1 text-danger" @click="releaseConfirmChildId = child.id">送走</button>
+              <Button class="py-0 px-1 text-danger" @click="releaseConfirmChildId = child.id">送走</Button>
             </div>
           </div>
           <p class="text-[10px] text-muted mb-0.5">{{ CHILD_STAGE_NAMES[child.stage] }} · {{ child.daysOld }}天</p>
-          <div v-if="child.stage !== 'baby'" class="flex gap-0.5">
+          <div v-if="child.stage !== 'baby'" class="flex space-x-0.5">
             <span v-for="h in 10" :key="h" class="text-xs" :class="child.friendship >= h * 30 ? 'text-danger' : 'text-muted/30'">
               &#x2665;
             </span>
@@ -178,9 +259,9 @@
       <!-- 送走子女确认 -->
       <div v-if="releaseConfirmChildId !== null" class="mt-2 game-panel border-danger/40">
         <p class="text-xs text-danger mb-2">确定将{{ getChildName(releaseConfirmChildId) }}送往远方亲戚家吗？（花费10000文）</p>
-        <div class="flex gap-2">
-          <button class="btn text-xs text-danger" @click="handleReleaseChild">确认</button>
-          <button class="btn text-xs" @click="releaseConfirmChildId = null">取消</button>
+        <div class="flex space-x-2">
+          <Button class="text-danger" @click="handleReleaseChild">确认</Button>
+          <Button @click="releaseConfirmChildId = null">取消</Button>
         </div>
       </div>
     </div>
@@ -194,7 +275,7 @@
       <p class="text-xs text-muted mb-2">放入酒类陈酿14天可提升一档品质。</p>
 
       <!-- 陈酿中的酒 -->
-      <div v-if="homeStore.cellarSlots.length > 0" class="flex flex-col gap-1 mb-3">
+      <div v-if="homeStore.cellarSlots.length > 0" class="flex flex-col space-y-1 mb-3">
         <div v-for="(slot, idx) in homeStore.cellarSlots" :key="idx" class="border border-accent/10 rounded-xs p-2">
           <div class="flex items-center justify-between mb-1">
             <span
@@ -208,9 +289,9 @@
             >
               {{ getItemName(slot.itemId) }}
             </span>
-            <button class="btn text-xs py-0 px-1" @click="handleRemoveAging(idx)">取出</button>
+            <Button class="py-0 px-1" @click="handleRemoveAging(idx)">取出</Button>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center space-x-1">
             <span class="text-[10px] text-muted w-6">陈酿</span>
             <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
               <div
@@ -228,9 +309,7 @@
       </div>
 
       <!-- 放入新酒 -->
-      <button v-if="homeStore.cellarSlots.length < 6 && ageableInInventory.length > 0" class="btn text-xs" @click="showAgingModal = true">
-        放入陈酿
-      </button>
+      <Button v-if="homeStore.cellarSlots.length < 6 && ageableInInventory.length > 0" @click="showAgingModal = true">放入陈酿</Button>
     </div>
 
     <!-- 升级农舍弹窗 -->
@@ -268,15 +347,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': canUpgradeFarmhouse }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': canUpgradeFarmhouse }"
             :disabled="!canUpgradeFarmhouse"
+            :icon="ArrowUp"
+            :icon-size="12"
             @click="handleUpgradeFromModal"
           >
-            <ArrowUp :size="12" />
             升级
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -315,15 +395,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': canUnlockGreenhouse }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': canUnlockGreenhouse }"
             :disabled="!canUnlockGreenhouse"
+            :icon="Unlock"
+            :icon-size="12"
             @click="handleUnlockFromModal"
           >
-            <Unlock :size="12" />
             解锁
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -338,11 +419,9 @@
         <div class="game-panel max-w-xs w-full">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-accent">放入陈酿</p>
-            <button class="btn text-xs py-0 px-1" @click="showAgingModal = false">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showAgingModal = false" />
           </div>
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col space-y-1">
             <div
               v-for="item in ageableInInventory"
               :key="item.itemId + item.quality"
@@ -376,11 +455,9 @@
         <div class="game-panel max-w-sm w-full">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-accent">存入仓库</p>
-            <button class="btn text-xs py-0 px-1" @click="showDepositModal = false">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showDepositModal = false" />
           </div>
-          <div class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+          <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
             <div
               v-for="item in depositableItems"
               :key="item.itemId + item.quality"
@@ -431,15 +508,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': canUnlockWarehouse }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': canUnlockWarehouse }"
             :disabled="!canUnlockWarehouse"
+            :icon="Unlock"
+            :icon-size="12"
             @click="handleUnlockWarehouse"
           >
-            <Unlock :size="12" />
             解锁
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -453,9 +531,11 @@
   import { getItemById } from '@/data'
   import { GREENHOUSE_UNLOCK_COST, GREENHOUSE_MATERIAL_COST, WAREHOUSE_UNLOCK_MATERIALS } from '@/data/buildings'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
-  import type { Quality, ChildStage } from '@/types'
+  import type { Quality, ChildStage, PregnancyStage } from '@/types'
   import { addLog } from '@/composables/useGameLog'
+  import { showChildProposal } from '@/composables/useDialogs'
   import { handleEndDay } from '@/composables/useEndDay'
+  import Button from '@/components/game/Button.vue'
 
   const homeStore = useHomeStore()
   const inventoryStore = useInventoryStore()
@@ -476,6 +556,26 @@
     toddler: '幼儿',
     child: '孩童',
     teen: '少年'
+  }
+
+  const PREGNANCY_STAGE_LABELS: Record<PregnancyStage, string> = {
+    early: '初期（需要营养）',
+    mid: '中期（需要陪伴）',
+    late: '后期（需要休息）',
+    ready: '待产期（准备迎接）'
+  }
+
+  const STAGE_TIPS: Record<PregnancyStage, string> = {
+    early: '孕初期需要注意营养，送些食物或补品效果最好。',
+    mid: '孕中期需要更多陪伴，多聊天可以大幅提升安产率。',
+    late: '孕后期要注意休息，让配偶好好休养。',
+    ready: '即将临盆，请选择接生方式并做好最后的准备。'
+  }
+
+  const MEDICAL_LABELS: Record<string, string> = {
+    normal: '普通接生',
+    advanced: '高级接生',
+    luxury: '豪华接生'
   }
 
   const AGEABLE_ITEMS = ['watermelon_wine', 'osmanthus_wine', 'peach_wine', 'jujube_wine', 'corn_wine', 'rice_vinegar']
@@ -553,6 +653,21 @@
     const result = npcStore.releaseChild(releaseConfirmChildId.value)
     addLog(result.message)
     releaseConfirmChildId.value = null
+  }
+
+  const showChildProposalDialog = () => {
+    showChildProposal()
+  }
+
+  const handlePregnancyCare = (action: 'gift' | 'companion' | 'supplement' | 'rest') => {
+    const result = npcStore.performPregnancyCare(action)
+    addLog(result.message)
+    if (result.careGain > 0) addLog(`安产率 +${result.careGain}%`)
+  }
+
+  const handleChooseMedical = (plan: 'normal' | 'advanced' | 'luxury') => {
+    const result = npcStore.chooseMedicalPlan(plan)
+    addLog(result.message)
   }
 
   const handleStartAgingFromModal = (itemId: string, quality: Quality) => {

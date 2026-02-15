@@ -1,8 +1,8 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Wheat :size="14" />
-      农展会
+      <span>农展会</span>
     </h3>
 
     <!-- 选择展品阶段 -->
@@ -21,7 +21,7 @@
           <p class="text-xs">尚未选择任何物品</p>
           <p class="text-xs opacity-60">从下方列表中选取展品</p>
         </div>
-        <div v-else class="flex flex-col gap-1.5">
+        <div v-else class="flex flex-col space-y-1.5">
           <button
             v-for="(sel, i) in selectedItems"
             :key="i"
@@ -30,7 +30,7 @@
             @click="removeSelection(i)"
           >
             <span class="truncate" :class="qualityClass(sel.quality)">{{ getItemById(sel.itemId)?.name }}</span>
-            <span class="flex items-center gap-2 shrink-0 ml-2">
+            <span class="flex items-center space-x-2 shrink-0 ml-2">
               <span class="text-muted">{{ getItemById(sel.itemId)?.sellPrice }}文</span>
               <span class="text-danger">移除</span>
             </span>
@@ -51,7 +51,7 @@
           <p class="text-xs">背包中没有可参展的物品</p>
           <p class="text-xs opacity-60">农产品、鱼获、宝石等均可参展</p>
         </div>
-        <div v-else class="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+        <div v-else class="flex flex-col space-y-1.5 max-h-48 overflow-y-auto pr-1">
           <button
             v-for="item in selectableItems"
             :key="item.itemId + item.quality"
@@ -60,7 +60,7 @@
             @click="addSelection(item)"
           >
             <span class="truncate" :class="qualityClass(item.quality)">{{ getItemById(item.itemId)?.name }}</span>
-            <span class="flex items-center gap-2 shrink-0 ml-2">
+            <span class="flex items-center space-x-2 shrink-0 ml-2">
               <span class="text-muted">×{{ item.quantity }}</span>
               <span class="text-muted">{{ getItemById(item.itemId)?.sellPrice }}文</span>
             </span>
@@ -68,9 +68,9 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button class="btn text-xs flex-1" :disabled="selectedItems.length === 0" @click="handleSubmit">参展！</button>
-        <button class="btn text-xs flex-1 opacity-60 hover:opacity-100" @click="handleQuit">放弃参赛</button>
+      <div class="flex space-x-2">
+        <Button class="flex-1" :disabled="selectedItems.length === 0" @click="handleSubmit">参展！</Button>
+        <Button class="flex-1 opacity-60 hover:opacity-100" @click="handleQuit">放弃参赛</Button>
       </div>
     </div>
 
@@ -125,7 +125,7 @@
         <span v-else class="text-muted">很遗憾，没有获得名次。明年再来吧！</span>
       </div>
 
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -146,6 +146,7 @@
     sfxRankThird,
     sfxRankLose
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{
     complete: [prize: number]

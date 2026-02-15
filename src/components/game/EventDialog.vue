@@ -13,8 +13,8 @@
         </p>
       </div>
       <div class="flex justify-end">
-        <button v-if="!allLinesShown" class="btn text-xs" @click="showNextLine">继续</button>
-        <button v-else class="btn text-xs" @click="emit('close')">关闭</button>
+        <Button v-if="!allLinesShown" @click="showNextLine">继续</Button>
+        <Button v-else @click="emit('close')">关闭</Button>
       </div>
     </div>
   </div>
@@ -23,6 +23,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import type { SeasonEventDef } from '@/data/events'
+  import Button from '@/components/game/Button.vue'
 
   const props = defineProps<{
     event: SeasonEventDef

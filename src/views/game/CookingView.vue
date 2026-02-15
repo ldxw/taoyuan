@@ -7,7 +7,7 @@
       <div
         v-for="recipe in cookingStore.recipes"
         :key="recipe.id"
-        class="game-panel flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+        class="game-panel flex flex-col md:flex-row md:items-center md:justify-between space-y-2"
       >
         <div>
           <p class="text-sm">{{ recipe.name }}</p>
@@ -25,10 +25,9 @@
             <span v-if="recipe.effect.buff" class="text-water ml-1">{{ recipe.effect.buff.description }}</span>
           </p>
         </div>
-        <button class="btn text-xs shrink-0" :disabled="!cookingStore.canCook(recipe.id)" @click="handleCook(recipe.id)">
-          <UtensilsCrossed :size="14" />
+        <Button class="shrink-0" :icon="UtensilsCrossed" :disabled="!cookingStore.canCook(recipe.id)" @click="handleCook(recipe.id)">
           烹饪
-        </button>
+        </Button>
       </div>
       <p v-if="cookingStore.recipes.length === 0" class="text-xs text-muted">还没有食谱。</p>
     </div>
@@ -51,6 +50,7 @@
   import { sfxClick } from '@/composables/useAudio'
   import { addLog } from '@/composables/useGameLog'
   import { handleEndDay } from '@/composables/useEndDay'
+  import Button from '@/components/game/Button.vue'
 
   const cookingStore = useCookingStore()
   const inventoryStore = useInventoryStore()

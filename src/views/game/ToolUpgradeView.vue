@@ -2,7 +2,7 @@
   <div>
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Wrench :size="14" />
         <span>工具升级</span>
       </div>
@@ -12,7 +12,7 @@
 
     <!-- 正在升级提示 -->
     <div v-if="inventoryStore.pendingUpgrade" class="border border-accent/30 rounded-xs px-3 py-2 mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center space-x-1.5">
         <Clock :size="12" class="text-accent shrink-0" />
         <span class="text-xs text-accent">
           锻造中「{{ TOOL_NAMES[inventoryStore.pendingUpgrade.toolType] }}」→ {{ TIER_NAMES[inventoryStore.pendingUpgrade.targetTier] }}
@@ -21,7 +21,7 @@
       <span class="text-xs text-muted whitespace-nowrap ml-2">剩{{ inventoryStore.pendingUpgrade.daysRemaining }}天</span>
     </div>
 
-    <div class="flex flex-col gap-1.5">
+    <div class="flex flex-col space-y-1.5">
       <div
         v-for="tool in inventoryStore.tools"
         :key="tool.type"
@@ -81,7 +81,7 @@
               <span class="text-xs text-muted">锻造目标</span>
               <span class="text-xs text-accent">{{ TIER_NAMES[inventoryStore.pendingUpgrade!.targetTier] }}</span>
             </div>
-            <div v-if="isUpgrading(selectedTool)" class="flex items-center gap-2 mt-1.5">
+            <div v-if="isUpgrading(selectedTool)" class="flex items-center space-x-2 mt-1.5">
               <span class="text-xs text-muted shrink-0">进度</span>
               <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
                 <div
@@ -156,7 +156,7 @@
 
             <button
               class="btn text-xs w-full justify-center"
-              :class="{ 'bg-accent! text-bg!': canUpgrade(selectedTool) }"
+              :class="{ '!bg-accent !text-bg': canUpgrade(selectedTool) }"
               :disabled="!canUpgrade(selectedTool)"
               @click="handleUpgradeAndClose(selectedTool)"
             >
@@ -167,7 +167,7 @@
 
           <!-- 满级 -->
           <div v-else-if="!isUpgrading(selectedTool)" class="border border-success/30 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck :size="12" class="text-success" />
               <span class="text-xs text-success">已达到最高等级</span>
             </div>

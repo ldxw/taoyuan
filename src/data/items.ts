@@ -1,4 +1,4 @@
-import type { ItemDef } from '@/types/item'
+import type { ItemDef, ItemCategory } from '@/types/item'
 import { CROPS } from './crops'
 import { FISH } from './fish'
 import { RECIPES } from './recipes'
@@ -10,9 +10,9 @@ import { HATS } from './hats'
 import { SHOES } from './shoes'
 
 /** 从作物定义自动生成种子物品（排除已手动定义的种子） */
-const SEED_ITEMS: ItemDef[] = CROPS
-  .filter(crop => crop.seedId !== 'ancient_seed' && crop.seedId !== 'hanhai_cactus_seed' && crop.seedId !== 'hanhai_date_seed')
-  .map(crop => ({
+const SEED_ITEMS: ItemDef[] = CROPS.filter(
+  crop => crop.seedId !== 'ancient_seed' && crop.seedId !== 'hanhai_cactus_seed' && crop.seedId !== 'hanhai_date_seed'
+).map(crop => ({
   id: crop.seedId,
   name: `${crop.name}种子`,
   category: 'seed',
@@ -114,7 +114,23 @@ const MISC_ITEMS: ItemDef[] = [
     edible: false
   },
   { id: 'scarecrow', name: '稻草人', category: 'machine', description: '放置在农场，驱赶偷吃作物的乌鸦。', sellPrice: 75, edible: false },
-  { id: 'rain_totem', name: '雨图腾', category: 'misc', description: '使用后可以让明天下雨。', sellPrice: 30, edible: false }
+  { id: 'rain_totem', name: '雨图腾', category: 'misc', description: '使用后可以让明天下雨。', sellPrice: 30, edible: false },
+  {
+    id: 'fish_feed',
+    name: '鱼饲料',
+    category: 'material',
+    description: '鱼塘专用饲料，维持鱼塘水质和鱼的健康。',
+    sellPrice: 10,
+    edible: false
+  },
+  {
+    id: 'water_purifier',
+    name: '水质改良剂',
+    category: 'material',
+    description: '改善鱼塘水质，降低鱼生病概率。',
+    sellPrice: 50,
+    edible: false
+  }
 ]
 
 /** 从鱼定义自动生成鱼物品 */
@@ -513,7 +529,7 @@ const BAIT_ITEMS: ItemDef[] = BAITS.map(b => ({
   name: b.name,
   category: 'bait' as const,
   description: b.description,
-  sellPrice: b.shopPrice ?? 5,
+  sellPrice: b.shopPrice ? Math.floor(b.shopPrice * 0.4) : 5,
   edible: false
 }))
 
@@ -749,7 +765,7 @@ const BOMB_ITEMS: ItemDef[] = BOMBS.map(b => ({
   name: b.name,
   category: 'bomb' as const,
   description: b.description,
-  sellPrice: b.shopPrice ?? 25,
+  sellPrice: 25,
   edible: false
 }))
 
@@ -1206,7 +1222,14 @@ export const ITEMS: ItemDef[] = [
   { id: 'ancient_coin', name: '远古铜钱', category: 'artifact', description: '不知名朝代的古铜钱。', sellPrice: 150, edible: false },
   { id: 'oracle_bone', name: '甲骨片', category: 'artifact', description: '刻有卜辞的远古甲骨。', sellPrice: 300, edible: false },
   { id: 'jade_pendant', name: '玉佩', category: 'artifact', description: '温润如玉的远古佩饰。', sellPrice: 220, edible: false },
-  { id: 'ancient_seed', name: '远古种子', category: 'artifact', description: '蕴含远古生命力的神秘种子，据说能种出远古水果。', sellPrice: 400, edible: false },
+  {
+    id: 'ancient_seed',
+    name: '远古种子',
+    category: 'artifact',
+    description: '蕴含远古生命力的神秘种子，据说能种出远古水果。',
+    sellPrice: 400,
+    edible: false
+  },
   { id: 'bamboo_scroll', name: '竹简', category: 'artifact', description: '刻有古文的竹简残片。', sellPrice: 180, edible: false },
   { id: 'stone_axe_head', name: '石斧头', category: 'artifact', description: '远古先民使用的石斧头。', sellPrice: 120, edible: false },
   { id: 'painted_pottery', name: '彩陶碎片', category: 'artifact', description: '绘有精美纹饰的彩陶碎片。', sellPrice: 200, edible: false },
@@ -1265,7 +1288,14 @@ export const ITEMS: ItemDef[] = [
     sellPrice: 250,
     edible: false
   },
-  { id: 'hanhai_date_seed', name: '红枣种子', category: 'seed', description: '丝绸之路带来的果树种子，夏/秋季可种植。', sellPrice: 200, edible: false },
+  {
+    id: 'hanhai_date_seed',
+    name: '红枣种子',
+    category: 'seed',
+    description: '丝绸之路带来的果树种子，夏/秋季可种植。',
+    sellPrice: 200,
+    edible: false
+  },
   { id: 'hanhai_spice', name: '西域香料', category: 'material', description: '异域风情的香料，烹饪佳品。', sellPrice: 150, edible: false },
   { id: 'hanhai_silk', name: '丝绸', category: 'material', description: '细腻光滑的上等丝绸。', sellPrice: 400, edible: false },
   { id: 'hanhai_turquoise', name: '绿松石', category: 'gem', description: '西域特产的珍贵宝石。', sellPrice: 300, edible: false },
@@ -1283,4 +1313,146 @@ export const ITEMS: ItemDef[] = [
 /** 根据ID查找物品 */
 export const getItemById = (id: string): ItemDef | undefined => {
   return ITEMS.find(i => i.id === id)
+}
+
+/** 物品分类默认来源 */
+const CATEGORY_SOURCE: Record<ItemCategory, string> = {
+  seed: '商店购买',
+  crop: '种植收获',
+  fish: '钓鱼获得',
+  ore: '矿洞采集',
+  gem: '矿洞采集',
+  material: '采集/合成',
+  food: '烹饪制作',
+  processed: '加工制作',
+  machine: '合成制作',
+  sprinkler: '合成制作',
+  fertilizer: '合成制作',
+  bait: '商店购买',
+  tackle: '商店购买',
+  animal_product: '畜牧产出',
+  fruit: '果树收获',
+  sapling: '商店购买',
+  bomb: '合成制作',
+  gift: '采集/商店',
+  fossil: '矿洞挖掘',
+  artifact: '矿洞挖掘',
+  weapon: '商店/掉落',
+  ring: '商店/合成',
+  hat: '商店/合成',
+  shoe: '铁匠铺合成',
+  misc: '多种途径'
+}
+
+/** 特定物品来源覆写 */
+const ITEM_SOURCE_OVERRIDES: Record<string, string> = {
+  // 材料类
+  wood: '砍树获得',
+  bamboo: '砍竹获得',
+  herb: '山间采集',
+  firewood: '砍树获得',
+  pine_cone: '砍树掉落',
+  battery: '避雷针（雷雨天气）',
+  copper_bar: '熔炉冶炼',
+  iron_bar: '熔炉冶炼',
+  gold_bar: '熔炉冶炼',
+  iridium_bar: '熔炉冶炼',
+  charcoal: '窑炉烧制',
+  rice_flour: '石磨加工',
+  wheat_flour: '石磨加工',
+  cornmeal: '石磨加工',
+  cloth: '织布机加工',
+  silk_cloth: '织布机加工',
+  alpaca_cloth: '织布机加工',
+  felt: '织布机加工',
+  fish_feed: '商店购买',
+  water_purifier: '商店购买',
+  // 采集类
+  wild_mushroom: '矿洞蘑菇层/秋季觅食',
+  winter_bamboo_shoot: '冬季觅食',
+  ginseng: '秋季觅食',
+  wild_berry: '夏季觅食',
+  camphor_seed: '野树掉落',
+  mulberry: '桑树收获',
+  pine_resin: '树液采集器',
+  // 野树相关
+  tapper: '合成制作',
+  lightning_rod: '合成制作',
+  // 机器
+  scarecrow: '合成制作',
+  crab_pot: '合成制作',
+  // 蟹笼捕获
+  snail: '蟹笼捕获',
+  freshwater_shrimp: '蟹笼捕获',
+  crab: '蟹笼捕获',
+  lobster: '蟹笼捕获',
+  cave_shrimp: '蟹笼捕获',
+  swamp_crab: '蟹笼捕获',
+  trash: '蟹笼捕获',
+  driftwood: '蟹笼捕获',
+  broken_cd: '蟹笼捕获',
+  soggy_newspaper: '蟹笼捕获',
+  // 蜂蜜
+  chrysanthemum_honey: '蜂箱产出',
+  osmanthus_honey: '蜂箱产出',
+  rapeseed_honey: '蜂箱产出',
+  snow_lotus_honey: '蜂箱产出',
+  // 奶酪
+  cheese: '奶酪机加工',
+  goat_cheese: '奶酪机加工',
+  buffalo_cheese: '奶酪机加工',
+  yak_cheese: '奶酪机加工',
+  // 松露油
+  truffle_oil: '榨油机加工',
+  // 豆腐
+  tofu: '石磨加工',
+  peanut_tofu: '石磨加工',
+  sesame_paste: '石磨加工',
+  // 茶饮
+  green_tea_drink: '加工制作',
+  chrysanthemum_tea: '加工制作',
+  ginseng_tea: '加工制作',
+  // 礼物
+  jade_ring: '商店购买',
+  silk_ribbon: '商店购买',
+  zhiji_jade: '商店购买',
+  wintersweet: '冬季觅食',
+  pine_incense: '合成制作',
+  camphor_incense: '合成制作',
+  osmanthus_incense: '合成制作',
+  // 杂货
+  rain_totem: '合成制作',
+  gold_nugget: '河边淘金',
+  // 公会商店
+  combat_tonic: '冒险家公会',
+  fortify_brew: '冒险家公会',
+  ironhide_potion: '冒险家公会',
+  warriors_feast: '冒险家公会',
+  slayer_charm: '冒险家公会',
+  monster_lure: '冒险家公会',
+  guild_badge: '冒险家公会',
+  // 瀚海物品
+  hanhai_cactus_seed: '瀚海沙漠商人',
+  hanhai_date_seed: '瀚海沙漠商人',
+  hanhai_spice: '瀚海沙漠商人',
+  hanhai_silk: '瀚海沙漠商人',
+  hanhai_turquoise: '瀚海沙漠商人',
+  hanhai_map: '瀚海沙漠',
+  hanhai_fossil: '瀚海沙漠',
+  mega_bomb_recipe: '瀚海沙漠',
+  // 远古种子
+  ancient_seed: '矿洞挖掘（可种植）',
+  // 草药加工品
+  herbal_paste: '加工制作',
+  ginseng_extract: '加工制作',
+  antler_powder: '加工制作'
+}
+
+/** 获取物品来源描述 */
+export const getItemSource = (itemId: string): string => {
+  const override = ITEM_SOURCE_OVERRIDES[itemId]
+  if (override) return override
+  const def = getItemById(itemId)
+  if (!def) return '未知'
+  return CATEGORY_SOURCE[def.category]
 }

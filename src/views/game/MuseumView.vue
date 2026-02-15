@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <Landmark :size="14" />
         <span>博物馆</span>
       </div>
@@ -11,7 +11,7 @@
     <!-- 空状态 -->
     <div
       v-if="museumStore.donatedCount === 0 && museumStore.donatableItems.length === 0"
-      class="flex flex-col items-center justify-center py-10 gap-3"
+      class="flex flex-col items-center justify-center py-10 space-y-3"
     >
       <Landmark :size="48" class="text-accent/30" />
       <p class="text-sm text-muted">博物馆空空如也</p>
@@ -20,16 +20,15 @@
 
     <template v-else>
       <!-- 分类标签 -->
-      <div class="flex gap-1 mb-3 flex-wrap">
-        <button
+      <div class="flex space-x-1 mb-3 flex-wrap">
+        <Button
           v-for="cat in MUSEUM_CATEGORIES"
           :key="cat.key"
-          class="btn text-xs"
-          :class="{ 'bg-accent! text-bg!': activeCategory === cat.key }"
+          :class="{ '!bg-accent !text-bg': activeCategory === cat.key }"
           @click="activeCategory = cat.key"
         >
           {{ cat.label }} ({{ getCategoryCount(cat.key) }}/{{ getCategoryTotal(cat.key) }})
-        </button>
+        </Button>
       </div>
 
       <!-- 收藏格子 -->
@@ -53,22 +52,21 @@
       <!-- 快捷捐赠区 -->
       <div v-if="museumStore.donatableItems.length > 0" class="border border-accent/20 rounded-xs p-2 mb-3">
         <p class="text-xs text-accent mb-1">可捐赠物品</p>
-        <div class="flex flex-wrap gap-1">
-          <button v-for="itemId in museumStore.donatableItems" :key="itemId" class="btn text-xs" @click="handleDonate(itemId)">
-            <Send :size="10" />
+        <div class="flex flex-wrap space-x-1">
+          <Button v-for="itemId in museumStore.donatableItems" :key="itemId" :icon="Send" :icon-size="10" @click="handleDonate(itemId)">
             {{ getItemName(itemId) }}
-          </button>
+          </Button>
         </div>
       </div>
 
       <!-- 里程碑 -->
       <div class="border border-accent/20 rounded-xs p-2">
         <p class="text-xs text-muted mb-2">里程碑奖励</p>
-        <div class="flex flex-col gap-1 max-h-52 overflow-y-auto">
+        <div class="flex flex-col space-y-1 max-h-52 overflow-y-auto">
           <div
             v-for="ms in MUSEUM_MILESTONES"
             :key="ms.count"
-            class="flex items-center gap-2 text-xs border border-accent/10 rounded-xs px-2 py-1"
+            class="flex items-center space-x-2 text-xs border border-accent/10 rounded-xs px-2 py-1"
           >
             <CircleCheck v-if="isMilestoneClaimed(ms.count)" :size="12" class="text-success shrink-0" />
             <Circle v-else :size="12" class="shrink-0" :class="museumStore.donatedCount >= ms.count ? 'text-accent' : 'text-muted'" />
@@ -76,20 +74,20 @@
               {{ ms.name }} ({{ ms.count }}件)
             </span>
             <span class="text-muted">{{ ms.reward.money }}文{{ ms.reward.items ? '+物品' : '' }}</span>
-            <button
+            <Button
               v-if="museumStore.donatedCount >= ms.count && !isMilestoneClaimed(ms.count)"
-              class="btn text-xs bg-accent! text-bg! px-2 py-0.5"
+              class="!bg-accent !text-bg px-2 py-0.5"
               @click="museumStore.claimMilestone(ms.count)"
             >
               领取
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       <!-- 底部进度 -->
       <div class="mt-3 border border-accent/20 rounded-xs p-2">
-        <div class="flex items-center gap-2 text-xs mb-1.5">
+        <div class="flex items-center space-x-2 text-xs mb-1.5">
           <span class="text-muted shrink-0">捐赠进度</span>
           <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
             <div
@@ -154,21 +152,22 @@
 
           <!-- 操作 -->
           <div v-if="museumStore.isDonated(selectedItem.id)" class="border border-success/30 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck :size="12" class="text-success" />
               <span class="text-xs text-success">已捐赠至博物馆</span>
             </div>
           </div>
-          <button
+          <Button
             v-else-if="museumStore.canDonate(selectedItem.id)"
-            class="btn text-xs w-full justify-center bg-accent! text-bg!"
+            class="w-full justify-center !bg-accent !text-bg"
+            :icon="Send"
+            :icon-size="12"
             @click="handleDonateAndClose(selectedItem.id)"
           >
-            <Send :size="12" />
             捐赠
-          </button>
+          </Button>
           <div v-else class="border border-accent/10 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <Package :size="12" class="text-muted" />
               <span class="text-xs text-muted">背包中没有此物品</span>
             </div>
@@ -182,6 +181,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { Landmark, Send, X, CircleCheck, Circle, Package, Lock } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useMuseumStore } from '@/stores'
   import { MUSEUM_ITEMS, MUSEUM_CATEGORIES, MUSEUM_MILESTONES } from '@/data/museum'
   import type { MuseumItemDef, MuseumCategory } from '@/types'

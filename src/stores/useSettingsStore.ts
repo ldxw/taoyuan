@@ -3,13 +3,14 @@ import { defineStore } from 'pinia'
 import { useAudio } from '@/composables/useAudio'
 import { getThemeByKey, type ThemeKey } from '@/data/themes'
 import { applyQmsgConfig } from '@/composables/useGameLog'
+import type { ItemCategory } from '@/types'
 
 export type QmsgPosition = 'topleft' | 'top' | 'topright' | 'left' | 'center' | 'right' | 'bottomleft' | 'bottom' | 'bottomright'
 export type QmsgLimitWidthWrap = 'no-wrap' | 'wrap' | 'ellipsis'
 
 const DEFAULT_FONT_SIZE = 16
 const DEFAULT_THEME: ThemeKey = 'dark'
-const DEFAULT_QMSG_POSITION: QmsgPosition = 'bottom'
+const DEFAULT_QMSG_POSITION: QmsgPosition = 'top'
 
 export const useSettingsStore = defineStore('settings', () => {
   const fontSize = ref(DEFAULT_FONT_SIZE)
@@ -25,6 +26,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const qmsgShowClose = ref(false)
   const qmsgShowIcon = ref(false)
   const qmsgShowReverse = ref(false)
+
+  /** 背包物品筛选：选中的分类（空数组 = 显示全部） */
+  const inventoryFilter = ref<ItemCategory[]>([])
 
   const applyFontSize = () => {
     document.documentElement.style.fontSize = fontSize.value + 'px'
@@ -86,7 +90,8 @@ export const useSettingsStore = defineStore('settings', () => {
       qmsgAutoClose: qmsgAutoClose.value,
       qmsgShowClose: qmsgShowClose.value,
       qmsgShowIcon: qmsgShowIcon.value,
-      qmsgShowReverse: qmsgShowReverse.value
+      qmsgShowReverse: qmsgShowReverse.value,
+      inventoryFilter: inventoryFilter.value
     }
   }
 
@@ -106,6 +111,7 @@ export const useSettingsStore = defineStore('settings', () => {
     qmsgShowClose.value = data?.qmsgShowClose ?? false
     qmsgShowIcon.value = data?.qmsgShowIcon ?? false
     qmsgShowReverse.value = data?.qmsgShowReverse ?? false
+    inventoryFilter.value = data?.inventoryFilter ?? []
     syncQmsgConfig()
     const { sfxEnabled, bgmEnabled } = useAudio()
     sfxEnabled.value = data?.sfxEnabled ?? true
@@ -126,6 +132,7 @@ export const useSettingsStore = defineStore('settings', () => {
     qmsgShowClose,
     qmsgShowIcon,
     qmsgShowReverse,
+    inventoryFilter,
     changeFontSize,
     changeTheme,
     changeQmsgPosition,

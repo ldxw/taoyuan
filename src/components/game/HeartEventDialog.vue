@@ -15,18 +15,18 @@
 
         <!-- 选择项 -->
         <div v-if="currentScene.choices && !hasChosen" class="space-y-2 mt-3">
-          <button v-for="(choice, ci) in currentScene.choices" :key="ci" class="btn text-xs w-full text-left" @click="handleChoice(choice)">
+          <Button v-for="(choice, ci) in currentScene.choices" :key="ci" class="w-full text-left" @click="handleChoice(choice)">
             {{ choice.text }}
-          </button>
+          </Button>
         </div>
 
         <!-- 选择后的回应 -->
         <p v-if="choiceResponse" class="text-xs text-accent mt-2 ml-2">→ {{ choiceResponse }}</p>
 
         <!-- 继续按钮（无选择或已选择后） -->
-        <button v-if="!currentScene.choices || hasChosen" class="btn text-xs mt-3" @click="nextScene">
+        <Button v-if="!currentScene.choices || hasChosen" class="mt-3" @click="nextScene">
           {{ isLastScene ? '结束' : '继续' }}
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -35,6 +35,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import type { HeartEventDef, HeartEventScene } from '@/types'
+  import Button from '@/components/game/Button.vue'
 
   const props = defineProps<{
     event: HeartEventDef

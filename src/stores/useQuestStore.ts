@@ -111,7 +111,6 @@ export const useQuestStore = defineStore('quest', () => {
 
     // 发放金币奖励
     playerStore.earnMoney(quest.moneyReward)
-    achievementStore.recordMoneyEarned(quest.moneyReward)
     npcStore.adjustFriendship(quest.npcId, quest.friendshipReward)
 
     // 发放物品奖励
@@ -142,6 +141,19 @@ export const useQuestStore = defineStore('quest', () => {
       if (quest.type === 'delivery') continue // 送货类不自动追踪
       if (quest.targetItemId === itemId && quest.collectedQuantity < quest.targetQuantity) {
         quest.collectedQuantity = Math.min(quest.collectedQuantity + quantity, quest.targetQuantity)
+      }
+    }
+
+    // 同步刷新主线任务中 deliverItem 目标的进度
+    if (mainQuest.value?.accepted) {
+      const def = getStoryQuestById(mainQuest.value.questId)
+      if (def) {
+        for (let i = 0; i < def.objectives.length; i++) {
+          const obj = def.objectives[i]!
+          if (obj.type === 'deliverItem' && obj.itemId === itemId && !mainQuest.value.objectiveProgress[i]) {
+            mainQuest.value.objectiveProgress[i] = evaluateObjective(obj)
+          }
+        }
       }
     }
   }
@@ -306,9 +318,20 @@ export const useQuestStore = defineStore('quest', () => {
     }
   }
 
-  /** 检查主线任务是否可提交 */
+  /** 检查主线任务是否可提交（实时评估未完成的目标） */
   const canSubmitMainQuest = (): boolean => {
     if (!mainQuest.value || !mainQuest.value.accepted) return false
+
+    const def = getStoryQuestById(mainQuest.value.questId)
+    if (!def) return false
+
+    // 实时刷新未完成目标的进度，使 UI 同步显示最新状态
+    for (let i = 0; i < def.objectives.length; i++) {
+      if (!mainQuest.value.objectiveProgress[i]) {
+        mainQuest.value.objectiveProgress[i] = evaluateObjective(def.objectives[i]!)
+      }
+    }
+
     return mainQuest.value.objectiveProgress.every(p => p)
   }
 
@@ -340,7 +363,6 @@ export const useQuestStore = defineStore('quest', () => {
 
     // 发放金币奖励
     playerStore.earnMoney(def.moneyReward)
-    achievementStore.recordMoneyEarned(def.moneyReward)
 
     // 发放好感奖励
     if (def.friendshipReward) {

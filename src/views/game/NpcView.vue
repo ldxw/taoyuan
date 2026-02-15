@@ -20,7 +20,7 @@
             {{ heartCount(npc.id) }}&#x2665;
             <span class="text-muted/50">{{ npcStore.getNpcState(npc.id)?.friendship ?? 0 }}</span>
           </p>
-          <div class="flex items-center justify-center gap-1 mt-0.5 min-h-3.5">
+          <div class="flex items-center justify-center space-x-1 mt-0.5 min-h-3.5">
             <MessageCircle :size="10" :class="npcStore.getNpcState(npc.id)?.talkedToday ? 'text-muted/20' : 'text-success'" />
             <Gift :size="10" :class="npcGiftClass(npc.id)" />
             <Heart v-if="npcStore.getNpcState(npc.id)?.married" :size="10" class="text-danger" />
@@ -39,7 +39,7 @@
               <span v-else-if="npcStore.getNpcState(npc.id)?.dating" class="text-danger/70 text-[10px] ml-0.5">[约会中]</span>
               <span v-else-if="npcStore.getNpcState(npc.id)?.zhiji" class="text-accent text-[10px] ml-0.5">[知己]</span>
             </span>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <MessageCircle :size="10" :class="npcStore.getNpcState(npc.id)?.talkedToday ? 'text-muted/20' : 'text-success'" />
               <Gift :size="10" :class="npcGiftClass(npc.id)" />
               <span v-if="npc.marriageable" class="text-danger/50"><Heart :size="10" /></span>
@@ -48,7 +48,7 @@
           </div>
           <p class="text-[10px] text-muted truncate">{{ npc.role }}</p>
           <div class="flex items-center justify-between mt-0.5">
-            <div class="flex gap-px">
+            <div class="flex space-x-px">
               <span
                 v-for="h in 10"
                 :key="h"
@@ -86,13 +86,13 @@
               </p>
               <p class="text-[10px] text-muted/60 mt-0.5">{{ selectedNpcDef?.personality }}</p>
             </div>
-            <button class="btn text-xs" @click="selectedNpc = null">关闭</button>
+            <Button @click="selectedNpc = null">关闭</Button>
           </div>
 
           <!-- 好感度条 -->
           <div class="border border-accent/10 rounded-xs p-2 mb-2">
             <div class="flex items-center justify-between mb-1">
-              <div class="flex gap-px">
+              <div class="flex space-x-px">
                 <span
                   v-for="h in 10"
                   :key="h"
@@ -108,24 +108,24 @@
               </span>
             </div>
             <!-- 状态标签 -->
-            <div class="flex items-center gap-1.5 flex-wrap">
+            <div class="flex items-center space-x-1.5 flex-wrap">
               <span
-                class="text-[10px] border rounded-xs px-1 flex items-center gap-0.5"
+                class="text-[10px] border rounded-xs px-1 flex items-center space-x-0.5"
                 :class="selectedNpcState?.talkedToday ? 'text-muted/40 border-muted/10' : 'text-success border-success/30'"
               >
                 <MessageCircle :size="10" />
-                {{ selectedNpcState?.talkedToday ? '已聊天' : '可聊天' }}
+                <span>{{ selectedNpcState?.talkedToday ? '已聊天' : '可聊天' }}</span>
               </span>
-              <span class="text-[10px] border rounded-xs px-1 flex items-center gap-0.5" :class="giftTagClass">
+              <span class="text-[10px] border rounded-xs px-1 flex items-center space-x-0.5" :class="giftTagClass">
                 <Gift :size="10" />
-                {{ giftTagText }}
+                <span>{{ giftTagText }}</span>
               </span>
               <span
                 v-if="selectedNpcDef?.birthday"
-                class="text-[10px] border border-muted/10 rounded-xs px-1 text-muted flex items-center gap-0.5"
+                class="text-[10px] border border-muted/10 rounded-xs px-1 text-muted flex items-center space-x-0.5"
               >
                 <Cake :size="10" />
-                {{ SEASON_NAMES_MAP[selectedNpcDef.birthday.season] }}{{ selectedNpcDef.birthday.day }}日
+                <span>{{ SEASON_NAMES_MAP[selectedNpcDef.birthday.season] }}{{ selectedNpcDef.birthday.day }}日</span>
               </span>
               <span v-if="npcStore.isBirthday(selectedNpc!)" class="text-[10px] text-danger border border-danger/30 rounded-xs px-1">
                 生日! 送礼×8
@@ -136,7 +136,7 @@
           <!-- 已触发的心事件 -->
           <div v-if="selectedNpcState && selectedNpcState.triggeredHeartEvents.length > 0" class="mb-3">
             <p class="text-xs text-muted mb-1">回忆：</p>
-            <div class="flex gap-1 flex-wrap">
+            <div class="flex space-x-1 flex-wrap">
               <span v-for="eid in selectedNpcState.triggeredHeartEvents" :key="eid" class="text-xs border border-accent/20 rounded-xs px-1">
                 {{ getHeartEventTitle(eid) }}
               </span>
@@ -144,29 +144,24 @@
           </div>
 
           <!-- 对话 -->
-          <div class="mb-3 flex gap-2 flex-wrap">
-            <button class="btn text-xs w-full" :disabled="selectedNpcState?.talkedToday" @click="handleTalk">
-              <MessageCircle :size="14" />
+          <div class="mb-3 flex space-y-2 flex-wrap">
+            <Button class="w-full" :icon="MessageCircle" :disabled="selectedNpcState?.talkedToday" @click="handleTalk">
               {{ selectedNpcState?.talkedToday ? '今天已聊过' : '聊天' }}
-            </button>
+            </Button>
             <!-- 每日提示按钮 -->
-            <button
+            <Button
               v-if="selectedNpc && npcStore.hasDailyTip(selectedNpc)"
-              class="btn text-xs w-full text-success border-success/40"
+              class="w-full text-success border-success/40"
+              :icon="Lightbulb"
               :disabled="!!(selectedNpc && npcStore.isTipGivenToday(selectedNpc))"
               @click="handleDailyTip"
             >
-              <Lightbulb :size="14" />
               {{ selectedNpc && npcStore.isTipGivenToday(selectedNpc) ? '今天已提示' : TIP_NPC_LABELS[selectedNpc as TipNpcId] }}
-            </button>
+            </Button>
             <!-- 离婚按钮 -->
-            <button
-              v-if="selectedNpcState?.married"
-              class="btn w-full text-xs text-danger border-danger/40"
-              @click="showDivorceConfirm = true"
-            >
+            <Button v-if="selectedNpcState?.married" class="w-full text-danger border-danger/40" @click="showDivorceConfirm = true">
               休书
-            </button>
+            </Button>
           </div>
 
           <!-- 婚礼倒计时 -->
@@ -179,44 +174,43 @@
             v-if="selectedNpcDef?.marriageable && !selectedNpcState?.married && selectedNpcDef.gender !== playerStore.gender"
             class="border border-danger/20 rounded-xs p-2 mb-3"
           >
-            <p class="text-xs text-danger/80 mb-1.5 flex items-center gap-1">
+            <p class="text-xs text-danger/80 mb-1.5 flex items-center space-x-1">
               <Heart :size="12" />
-              姻缘
+              <span>姻缘</span>
             </p>
             <template v-if="!selectedNpcState?.dating && !(npcStore.weddingCountdown > 0 && npcStore.weddingNpcId === selectedNpc)">
               <p v-if="npcStore.npcStates.some(s => s.married)" class="text-[10px] text-muted/50 mb-1">你已有伴侣，无法再赠帕。</p>
               <template v-else>
-                <div class="flex flex-col gap-0.5 mb-1.5">
+                <div class="flex flex-col space-y-0.5 mb-1.5">
                   <span
-                    class="text-[10px] flex items-center gap-0.5"
+                    class="text-[10px] flex items-center space-x-1"
                     :class="(selectedNpcState?.friendship ?? 0) >= 2000 ? 'text-success' : 'text-muted/50'"
                   >
                     <CircleCheck v-if="(selectedNpcState?.friendship ?? 0) >= 2000" :size="10" />
                     <Circle v-else :size="10" />
-                    好感≥2000（8心）
+                    <span>好感≥2000（8心）</span>
                     <span class="text-muted/40">— 当前{{ selectedNpcState?.friendship ?? 0 }}</span>
                   </span>
                   <span
-                    class="text-[10px] flex items-center gap-0.5"
+                    class="text-[10px] flex items-center space-x-1"
                     :class="inventoryStore.hasItem('silk_ribbon') ? 'text-success' : 'text-muted/50'"
                   >
                     <CircleCheck v-if="inventoryStore.hasItem('silk_ribbon')" :size="10" />
                     <Circle v-else :size="10" />
-                    持有丝帕
+                    <span>持有丝帕</span>
                     <span class="text-muted/40">— 绸缎庄有售</span>
                   </span>
                 </div>
-                <button class="btn w-full text-xs text-danger border-danger/40" :disabled="!canStartDating" @click="handleStartDating">
-                  <Heart :size="14" />
+                <Button class="w-full text-danger border-danger/40" :icon="Heart" :disabled="!canStartDating" @click="handleStartDating">
                   赠帕（开始约会）
-                </button>
+                </Button>
               </template>
             </template>
             <template v-else-if="selectedNpcState?.dating">
               <p class="text-[10px] text-danger/60 mb-1">约会中 ♥</p>
-              <div class="flex flex-col gap-0.5 mb-1.5">
+              <div class="flex flex-col space-y-0.5 mb-1.5">
                 <span
-                  class="text-[10px] flex items-center gap-0.5"
+                  class="text-[10px] flex items-center space-x-0.5"
                   :class="(selectedNpcState?.friendship ?? 0) >= 2500 ? 'text-success' : 'text-muted/50'"
                 >
                   <CircleCheck v-if="(selectedNpcState?.friendship ?? 0) >= 2500" :size="10" />
@@ -225,7 +219,7 @@
                   <span class="text-muted/40">— 当前{{ selectedNpcState?.friendship ?? 0 }}</span>
                 </span>
                 <span
-                  class="text-[10px] flex items-center gap-0.5"
+                  class="text-[10px] flex items-center space-x-0.5"
                   :class="inventoryStore.hasItem('jade_ring') ? 'text-success' : 'text-muted/50'"
                 >
                   <CircleCheck v-if="inventoryStore.hasItem('jade_ring')" :size="10" />
@@ -234,10 +228,7 @@
                   <span class="text-muted/40">— 绸缎庄有售</span>
                 </span>
               </div>
-              <button class="btn w-full text-xs text-danger border-danger/40" :disabled="!canPropose" @click="handlePropose">
-                <Heart :size="14" />
-                求婚
-              </button>
+              <Button class="w-full text-danger border-danger/40" :icon="Heart" :disabled="!canPropose" @click="handlePropose">求婚</Button>
             </template>
           </div>
 
@@ -251,21 +242,21 @@
             "
             class="border border-accent/20 rounded-xs p-2 mb-3"
           >
-            <p class="text-xs text-accent/80 mb-1.5 flex items-center gap-1">
+            <p class="text-xs text-accent/80 mb-1.5 flex items-center space-x-1">
               <Heart :size="12" />
-              知己
+              <span>知己</span>
             </p>
             <template v-if="selectedNpcState?.zhiji">
               <p class="text-[10px] text-accent/60 mb-1">{{ selectedNpcDef.gender === 'male' ? '蓝颜知己' : '红颜知己' }} ♦</p>
-              <button class="btn w-full text-xs text-danger border-danger/40" @click="showZhijiDissolveConfirm = true">断缘</button>
+              <Button class="w-full text-danger border-danger/40" @click="showZhijiDissolveConfirm = true">断缘</Button>
             </template>
             <template v-else-if="npcStore.npcStates.some(s => s.zhiji)">
               <p class="text-[10px] text-muted/50">你已有知己，无法再结缘。</p>
             </template>
             <template v-else>
-              <div class="flex flex-col gap-0.5 mb-1.5">
+              <div class="flex flex-col space-y-0.5 mb-1.5">
                 <span
-                  class="text-[10px] flex items-center gap-0.5"
+                  class="text-[10px] flex items-center space-x-0.5"
                   :class="(selectedNpcState?.friendship ?? 0) >= 2000 ? 'text-success' : 'text-muted/50'"
                 >
                   <CircleCheck v-if="(selectedNpcState?.friendship ?? 0) >= 2000" :size="10" />
@@ -274,7 +265,7 @@
                   <span class="text-muted/40">— 当前{{ selectedNpcState?.friendship ?? 0 }}</span>
                 </span>
                 <span
-                  class="text-[10px] flex items-center gap-0.5"
+                  class="text-[10px] flex items-center space-x-0.5"
                   :class="inventoryStore.hasItem('zhiji_jade') ? 'text-success' : 'text-muted/50'"
                 >
                   <CircleCheck v-if="inventoryStore.hasItem('zhiji_jade')" :size="10" />
@@ -283,28 +274,27 @@
                   <span class="text-muted/40">— 绸缎庄有售</span>
                 </span>
               </div>
-              <button class="btn w-full text-xs text-accent border-accent/40" :disabled="!canBecomeZhiji" @click="handleBecomeZhiji">
-                <Heart :size="14" />
+              <Button class="w-full text-accent border-accent/40" :icon="Heart" :disabled="!canBecomeZhiji" @click="handleBecomeZhiji">
                 赠玉（结为知己）
-              </button>
+              </Button>
             </template>
           </div>
 
           <!-- 断缘确认 -->
           <div v-if="showZhijiDissolveConfirm" class="game-panel mb-3 border-accent/40">
             <p class="text-xs text-danger mb-2">确定要与{{ selectedNpcDef?.name }}断缘吗？（花费10000文）</p>
-            <div class="flex gap-2">
-              <button class="btn text-xs text-danger" @click="handleDissolveZhiji">确认</button>
-              <button class="btn text-xs" @click="showZhijiDissolveConfirm = false">取消</button>
+            <div class="flex space-x-2">
+              <Button class="text-danger" @click="handleDissolveZhiji">确认</Button>
+              <Button @click="showZhijiDissolveConfirm = false">取消</Button>
             </div>
           </div>
 
           <!-- 离婚确认 -->
           <div v-if="showDivorceConfirm" class="game-panel mb-3 border-danger/40">
             <p class="text-xs text-danger mb-2">确定要与{{ selectedNpcDef?.name }}和离吗？（花费30000文）</p>
-            <div class="flex gap-2">
-              <button class="btn text-xs text-danger" @click="handleDivorce">确认</button>
-              <button class="btn text-xs" @click="showDivorceConfirm = false">取消</button>
+            <div class="flex space-x-2">
+              <Button class="text-danger" @click="handleDivorce">确认</Button>
+              <Button @click="showDivorceConfirm = false">取消</Button>
             </div>
           </div>
 
@@ -333,7 +323,7 @@
               </div>
             </template>
             <template v-else>
-              <div class="flex flex-col gap-1 max-h-40 overflow-y-auto">
+              <div class="flex flex-col space-y-1 max-h-40 overflow-y-auto">
                 <div
                   v-for="item in giftableItems"
                   :key="`${item.itemId}_${item.quality ?? 'normal'}`"
@@ -382,11 +372,10 @@
                     </span>
                   </div>
                 </div>
-                <div class="flex flex-col gap-1.5">
-                  <button class="btn text-xs w-full justify-center" @click="handleGift(activeGiftItem!.itemId, activeGiftItem!.quality)">
-                    <Gift :size="14" />
+                <div class="flex flex-col space-y-1.5">
+                  <Button :icon="Gift" class="w-full justify-center" @click="handleGift(activeGiftItem!.itemId, activeGiftItem!.quality)">
                     赠送给{{ selectedNpcDef?.name }}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -409,6 +398,7 @@
   import { triggerHeartEvent } from '@/composables/useDialogs'
   import { handleEndDay } from '@/composables/useEndDay'
   import type { FriendshipLevel, Quality } from '@/types'
+  import Button from '@/components/game/Button.vue'
 
   const npcStore = useNpcStore()
   const inventoryStore = useInventoryStore()

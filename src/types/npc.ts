@@ -81,4 +81,25 @@ export interface ChildState {
   stage: ChildStage
   friendship: number
   interactedToday: boolean
+  /** 出生品质 */
+  birthQuality: 'normal' | 'premature' | 'healthy'
+}
+
+/** 孕期阶段 */
+export type PregnancyStage = 'early' | 'mid' | 'late' | 'ready'
+
+/** 提议回应 */
+export type ProposalResponse = 'accept' | 'decline' | 'wait'
+
+/** 孕期状态 */
+export interface PregnancyState {
+  stage: PregnancyStage
+  daysInStage: number
+  stageDays: number
+  /** 安产分数 0-100 */
+  careScore: number
+  caredToday: boolean
+  giftedForPregnancy: boolean
+  companionToday: boolean
+  medicalPlan: 'normal' | 'advanced' | 'luxury' | null
 }

@@ -30,7 +30,7 @@
     <!-- 装备 -->
     <div class="border border-accent/20 rounded-xs p-3 mb-4">
       <p class="text-sm text-accent mb-2">装备</p>
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col space-y-1">
         <!-- 鱼竿 -->
         <div class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5">
           <span class="text-xs">鱼竿</span>
@@ -104,7 +104,7 @@
         <p class="text-sm text-accent">当前可钓鱼类</p>
         <span class="text-xs text-muted">{{ fishingStore.availableFish.length }}种</span>
       </div>
-      <div v-if="fishingStore.availableFish.length > 0" class="flex flex-col gap-1">
+      <div v-if="fishingStore.availableFish.length > 0" class="flex flex-col space-y-1">
         <div
           v-for="f in fishingStore.availableFish"
           :key="f.name"
@@ -132,13 +132,13 @@
         </p>
         <span class="text-xs text-muted">{{ fishingStore.crabPots.length }}/10</span>
       </div>
-      <div v-if="crabPotLocations.length > 0" class="flex flex-col gap-1 mb-2">
+      <div v-if="crabPotLocations.length > 0" class="flex flex-col space-y-1 mb-2">
         <div v-for="loc in crabPotLocations" :key="loc.id" class="border border-accent/10 rounded-xs p-2">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-accent">{{ loc.name }}</span>
-            <div class="flex gap-1">
-              <button class="btn text-xs py-0 px-1" @click="handleBaitCrabPots(loc.id)">装饵</button>
-              <button class="btn text-xs py-0 px-1" @click="handleRemoveCrabPot(loc.id)">回收</button>
+            <div class="flex space-x-1">
+              <Button class="py-0 px-1" @click="handleBaitCrabPots(loc.id)">装饵</Button>
+              <Button class="py-0 px-1" @click="handleRemoveCrabPot(loc.id)">回收</Button>
             </div>
           </div>
           <p class="text-[10px] text-muted">{{ loc.total }}个 · {{ loc.baited }}个已装饵</p>
@@ -200,13 +200,13 @@
             <p class="text-[10px] text-muted mb-1">当前装备</p>
             <div class="flex items-center justify-between">
               <span class="text-xs text-accent">{{ getBaitName(fishingStore.equippedBait) }}</span>
-              <button class="btn text-xs py-0 px-1" @click="handleUnequipBait">卸下</button>
+              <Button class="py-0 px-1" @click="handleUnequipBait">卸下</Button>
             </div>
           </div>
           <!-- 可用鱼饵列表 -->
           <div v-if="availableBaits.length > 0" class="border border-accent/10 rounded-xs p-2">
             <p class="text-[10px] text-muted mb-1">背包中的鱼饵</p>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col space-y-1">
               <div
                 v-for="b in availableBaits"
                 :key="b.id"
@@ -244,16 +244,16 @@
             <p class="text-[10px] text-muted mb-1">当前装备</p>
             <div class="flex items-center justify-between">
               <span class="text-xs text-accent">{{ getTackleName(fishingStore.equippedTackle) }}</span>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center space-x-2">
                 <span class="text-[10px] text-muted">耐久 {{ fishingStore.tackleDurability }}</span>
-                <button class="btn text-xs py-0 px-1" @click="handleUnequipTackle">卸下</button>
+                <Button class="py-0 px-1" @click="handleUnequipTackle">卸下</Button>
               </div>
             </div>
           </div>
           <!-- 可用浮漂列表 -->
           <div v-if="availableTackles.length > 0" class="border border-accent/10 rounded-xs p-2">
             <p class="text-[10px] text-muted mb-1">背包中的浮漂</p>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col space-y-1">
               <div
                 v-for="t in availableTackles"
                 :key="t.id"
@@ -292,9 +292,9 @@
           <!-- 放弃确认 -->
           <div v-if="showCloseConfirm" class="border border-danger/40 rounded-xs p-3 mb-3">
             <p class="text-xs text-danger mb-2">鱼还在咬钩，确定要放弃吗？</p>
-            <div class="flex gap-2">
-              <button class="btn text-xs text-danger" @click="handleConfirmClose">确认放弃</button>
-              <button class="btn text-xs" @click="showCloseConfirm = false">继续钓鱼</button>
+            <div class="flex space-x-2">
+              <Button class="text-danger" @click="handleConfirmClose">确认放弃</Button>
+              <Button @click="showCloseConfirm = false">继续钓鱼</Button>
             </div>
           </div>
           <FishingMiniGame v-bind="miniGameParams" @complete="handleMiniGameComplete" />
@@ -357,6 +357,7 @@
   import { addLog } from '@/composables/useGameLog'
   import { handleEndDay } from '@/composables/useEndDay'
   import FishingMiniGame from '@/components/game/FishingMiniGame.vue'
+  import Button from '@/components/game/Button.vue'
 
   const fishingStore = useFishingStore()
   const gameStore = useGameStore()

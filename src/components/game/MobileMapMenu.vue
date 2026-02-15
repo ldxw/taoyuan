@@ -24,7 +24,7 @@
         <div class="map-path">···</div>
 
         <!-- 野外 -->
-        <div class="flex gap-2">
+        <div class="flex space-x-2">
           <div class="map-area flex-1">
             <p class="map-area-title">村落</p>
             <div class="map-area-grid">
@@ -116,7 +116,7 @@
 
   const pick = (keys: PanelKey[]) => keys.map(k => tabMap.value.get(k)!).filter(Boolean)
 
-  const farmGroup = computed(() => pick(['farm', 'animal', 'home', 'breeding']))
+  const farmGroup = computed(() => pick(['farm', 'animal', 'home', 'breeding', 'fishpond']))
   const villageGroup = computed(() => pick(['village', 'shop', 'museum', 'guild']))
   const wildGroup = computed(() => pick(['forage', 'fishing', 'mining', 'hanhai']))
   const craftGroup = computed(() => pick(['cooking', 'workshop', 'upgrade']))
@@ -131,7 +131,7 @@
 <style scoped>
   /* 地图菜单 */
   .map-area {
-    border: 1px dashed oklch(from var(--color-accent) l c h / 0.3);
+    border: 1px dashed rgba(200, 164, 92, 0.3);
     border-radius: 2px;
     padding: 8px;
   }
@@ -148,21 +148,20 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    margin: 6px;
   }
 
   .map-loc {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    margin: 2px;
     padding: 6px 8px;
     min-width: 52px;
-    font-family: var(--font-game);
     font-size: 10px;
     color: var(--color-text);
     background: var(--color-bg);
-    border: 1px solid oklch(from var(--color-accent) l c h / 0.2);
+    border: 1px solid rgba(200, 164, 92, 0.2);
     border-radius: 2px;
     cursor: pointer;
     transition:
@@ -184,7 +183,7 @@
 
   .map-path {
     text-align: center;
-    color: oklch(from var(--color-accent) l c h / 0.3);
+    color: rgba(200, 164, 92, 0.3);
     font-size: 10px;
     line-height: 1;
     padding: 4px 0;

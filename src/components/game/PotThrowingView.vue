@@ -1,14 +1,14 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Target :size="14" />
-      重阳投壶
+      <span>重阳投壶</span>
     </h3>
 
     <!-- 准备 -->
     <div v-if="phase === 'ready'">
       <p class="text-xs text-muted mb-3">瞄准铜壶，投出箭矢！共5次机会，在指针移到中心时点击「投掷」，越准得分越高！</p>
-      <button class="btn text-xs w-full" @click="startGame">开始投壶！</button>
+      <Button class="w-full" @click="startGame">开始投壶！</Button>
     </div>
 
     <!-- 瞄准中 -->
@@ -22,7 +22,7 @@
       </div>
 
       <!-- 投掷进度点 -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="throwDotClass(i - 1)" />
       </div>
 
@@ -59,10 +59,7 @@
         </div>
       </div>
 
-      <button class="btn text-xs w-full py-2" @click="throwArrow">
-        <ArrowUp :size="14" />
-        投掷！
-      </button>
+      <Button class="w-full py-2" :icon="ArrowUp" @click="throwArrow">投掷！</Button>
     </div>
 
     <!-- 投掷动画 -->
@@ -75,7 +72,7 @@
     <!-- 单次结果 -->
     <div v-else-if="phase === 'hit'" class="text-center py-2">
       <!-- 投掷进度点 -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="throwDotClass(i - 1)" />
       </div>
 
@@ -108,7 +105,7 @@
       <p class="text-xs text-muted mb-2">投壶结束！</p>
 
       <!-- 投掷进度点（最终） -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="throwDotClass(i - 1)" />
       </div>
 
@@ -144,7 +141,7 @@
           文
         </p>
       </div>
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -162,6 +159,7 @@
     sfxRankSecond,
     sfxRewardClaim
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

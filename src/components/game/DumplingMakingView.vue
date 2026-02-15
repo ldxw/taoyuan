@@ -1,14 +1,14 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <ChefHat :size="14" />
-      冬至包饺子
+      <span>冬至包饺子</span>
     </h3>
 
     <!-- 准备 -->
     <div v-if="phase === 'ready'">
       <p class="text-xs text-muted mb-3">25秒内包尽可能多的饺子！每个饺子需要三步：擀皮 → 放馅 → 捏合。按顺序点击对应按钮！</p>
-      <button class="btn text-xs w-full" @click="startGame">开始包饺子！</button>
+      <Button class="w-full" @click="startGame">开始包饺子！</Button>
     </div>
 
     <!-- 制作中 -->
@@ -35,7 +35,7 @@
       </div>
 
       <!-- 饺子计数器 -->
-      <div v-if="dumplingCount > 0" class="flex flex-wrap gap-1 mb-2 justify-center">
+      <div v-if="dumplingCount > 0" class="flex flex-wrap space-x-1 mb-2 justify-center">
         <Cookie v-for="i in Math.min(dumplingCount, 10)" :key="i" :size="14" class="text-accent dumpling-icon" />
         <span v-if="dumplingCount > 10" class="text-xs text-muted">+{{ dumplingCount - 10 }}</span>
       </div>
@@ -45,7 +45,7 @@
         <p class="text-xs text-muted mb-2">第 {{ dumplingCount + 1 }} 个饺子</p>
 
         <!-- 步骤指示 -->
-        <div class="flex justify-center gap-1 mb-3">
+        <div class="flex justify-center space-x-1 mb-3">
           <div
             v-for="(s, i) in steps"
             :key="i"
@@ -77,7 +77,7 @@
           >
             馅
           </div>
-          <div v-else-if="currentStep === 2" :class="{ 'pinch-close': animating }" class="flex items-center gap-1">
+          <div v-else-if="currentStep === 2" :class="{ 'pinch-close': animating }" class="flex items-center space-x-1">
             <div class="w-6 h-9 border-2 border-accent/50 rounded-l-full" />
             <div class="w-6 h-9 border-2 border-accent/50 rounded-r-full" />
           </div>
@@ -87,7 +87,7 @@
         <p v-if="showError" class="text-danger text-xs mt-1 wrong-shake">顺序不对！重来！</p>
 
         <!-- 完成动画 -->
-        <div v-if="showComplete" class="dumpling-done text-sm text-success mt-1 flex items-center justify-center gap-1">
+        <div v-if="showComplete" class="dumpling-done text-sm text-success mt-1 flex items-center justify-center space-x-1">
           饺子完成！
           <Cookie :size="14" />
         </div>
@@ -97,13 +97,13 @@
       <p v-if="showShuffle" class="text-accent text-xs mb-2 text-center shuffle-flash">按钮顺序变了！注意看！</p>
 
       <!-- 操作按钮 -->
-      <div class="flex gap-2">
+      <div class="flex space-x-2">
         <button
           v-for="idx in buttonOrder"
           :key="idx"
           class="btn text-xs flex-1 py-2 transition-all duration-100"
           :class="{
-            'bg-accent/20! border-accent/50!': currentStep === idx,
+            '!bg-accent/20 !border-accent/50': currentStep === idx,
             'opacity-60': currentStep !== idx
           }"
           @click="doStep(idx)"
@@ -118,7 +118,7 @@
       <p class="text-xs text-muted mb-2">时间到！</p>
 
       <!-- 饺子展示 -->
-      <div v-if="dumplingCount > 0" class="flex flex-wrap gap-1 mb-3 justify-center border border-accent/20 p-2">
+      <div v-if="dumplingCount > 0" class="flex flex-wrap space-x-1 mb-3 justify-center border border-accent/20 p-2">
         <Cookie v-for="i in Math.min(dumplingCount, 10)" :key="i" :size="16" class="text-accent" />
         <span v-if="dumplingCount > 10" class="text-xs text-muted self-center">+{{ dumplingCount - 10 }}</span>
       </div>
@@ -135,7 +135,7 @@
           文
         </p>
       </div>
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -154,6 +154,7 @@
     sfxRankFirst,
     sfxRankSecond
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 
@@ -366,10 +367,10 @@
 
   @keyframes pinch-close {
     0% {
-      gap: 8px;
+      margin: 8px;
     }
     100% {
-      gap: 4px;
+      margin: 4px;
     }
   }
 

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <BookOpen :size="14" />
         <span>图鉴与成就</span>
       </div>
@@ -9,30 +9,30 @@
     </div>
 
     <!-- 四栏切换 -->
-    <div class="flex gap-1 mb-3">
-      <button
-        class="btn text-xs flex-1 justify-center"
-        :class="{ 'bg-accent! text-bg!': tab === 'collection' }"
+    <div class="flex space-x-1 mb-3">
+      <Button
+        class="flex-1 justify-center"
+        :class="{ '!bg-accent !text-bg': tab === 'collection' }"
         @click="tab = 'collection'"
       >
         图鉴
-      </button>
-      <button
-        class="btn text-xs flex-1 justify-center"
-        :class="{ 'bg-accent! text-bg!': tab === 'achievements' }"
+      </Button>
+      <Button
+        class="flex-1 justify-center"
+        :class="{ '!bg-accent !text-bg': tab === 'achievements' }"
         @click="tab = 'achievements'"
       >
         成就
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'bundles' }" @click="tab = 'bundles'">
+      </Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'bundles' }" @click="tab = 'bundles'">
         社区
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'shipping' }" @click="tab = 'shipping'">
+      </Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'shipping' }" @click="tab = 'shipping'">
         出货
-      </button>
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'notes' }" @click="tab = 'notes'">
+      </Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'notes' }" @click="tab = 'notes'">
         笔记
-      </button>
+      </Button>
     </div>
 
     <!-- 物品图鉴 -->
@@ -155,7 +155,7 @@
           </button>
 
           <!-- 标题 + 完成状态 -->
-          <div class="flex items-center gap-1.5 mb-2">
+          <div class="flex items-center space-x-1.5 mb-2">
             <CircleCheck v-if="isCompleted(activeAchievement.id)" :size="14" class="text-success shrink-0" />
             <Circle v-else :size="14" class="text-muted/40 shrink-0" />
             <span class="text-sm" :class="isCompleted(activeAchievement.id) ? 'text-success' : 'text-text'">
@@ -188,7 +188,7 @@
           <!-- 奖励 -->
           <div class="border border-accent/10 rounded-xs p-2">
             <p class="text-xs text-muted mb-1">奖励</p>
-            <div class="flex flex-wrap gap-x-3 gap-y-0.5">
+            <div class="flex flex-wrap space-x-3">
               <span v-if="activeAchievement.reward.money" class="text-xs text-accent">{{ activeAchievement.reward.money }}文</span>
               <span v-for="ri in activeAchievement.reward.items ?? []" :key="ri.itemId" class="text-xs text-text">
                 {{ getItemName(ri.itemId) }}×{{ ri.quantity }}
@@ -201,7 +201,7 @@
 
     <!-- 社区任务板 -->
     <template v-if="tab === 'bundles'">
-      <div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+      <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto">
         <div
           v-for="bundle in COMMUNITY_BUNDLES"
           :key="bundle.id"
@@ -210,7 +210,7 @@
           @click="activeBundle = bundle"
         >
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center space-x-1.5">
               <CircleCheck v-if="achievementStore.isBundleComplete(bundle.id)" :size="12" class="text-success shrink-0" />
               <Circle v-else :size="12" class="text-muted shrink-0" />
               <span class="text-xs" :class="achievementStore.isBundleComplete(bundle.id) ? 'text-success' : 'text-accent'">
@@ -264,22 +264,23 @@
           </div>
 
           <!-- 提交按钮 -->
-          <div v-if="!achievementStore.isBundleComplete(activeBundle.id)" class="flex flex-col gap-1">
-            <button
+          <div v-if="!achievementStore.isBundleComplete(activeBundle.id)" class="flex flex-col space-y-1">
+            <Button
               v-for="req in activeBundle.requiredItems.filter(r => getSubmittedCount(activeBundle!.id, r.itemId) < r.quantity)"
               :key="'submit_' + req.itemId"
-              class="btn text-xs w-full justify-center"
+              class="w-full justify-center"
+              :icon="Send"
+              :icon-size="12"
               :disabled="!inventoryStore.hasItem(req.itemId)"
               @click="handleSubmit(activeBundle!.id, req.itemId)"
             >
-              <Send :size="12" />
               提交{{ getItemName(req.itemId) }}
-            </button>
+            </Button>
           </div>
 
           <!-- 已完成 -->
           <div v-else class="border border-success/30 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck :size="12" class="text-success" />
               <span class="text-xs text-success">已完成</span>
             </div>
@@ -291,7 +292,7 @@
     <!-- 出货收集 -->
     <template v-if="tab === 'shipping'">
       <p class="text-xs text-muted mb-2">出货记录 {{ shopStore.shippedItems.length }}/{{ shippableItems.length }}</p>
-      <div class="flex flex-col gap-2 max-h-72 overflow-y-auto">
+      <div class="flex flex-col space-y-2 max-h-72 overflow-y-auto">
         <div v-for="(items, category) in itemsByCategory" :key="category" class="border border-accent/20 rounded-xs p-2">
           <p class="text-xs text-muted mb-1">{{ CATEGORY_NAMES[category] ?? category }}</p>
           <div class="grid grid-cols-3 md:grid-cols-5 gap-1">
@@ -355,7 +356,7 @@
 
     <!-- 秘密笔记 -->
     <template v-if="tab === 'notes'">
-      <div v-if="secretNoteStore.collectedCount === 0" class="flex flex-col items-center justify-center py-10 gap-3">
+      <div v-if="secretNoteStore.collectedCount === 0" class="flex flex-col items-center justify-center py-10 space-y-3">
         <ScrollText :size="48" class="text-accent/30" />
         <p class="text-sm text-muted">尚未收集到秘密笔记</p>
         <p class="text-xs text-muted/60 text-center max-w-60">在挖矿、钓鱼、采集时有概率获得秘密笔记</p>
@@ -395,7 +396,7 @@
             <X :size="14" />
           </button>
 
-          <div class="flex items-center gap-1.5 mb-2">
+          <div class="flex items-center space-x-1.5 mb-2">
             <ScrollText :size="14" class="text-accent" />
             <p class="text-sm text-accent">#{{ activeNote.id }} {{ activeNote.title }}</p>
           </div>
@@ -406,10 +407,10 @@
           </div>
 
           <div v-if="activeNote.usable && !secretNoteStore.isUsed(activeNote.id)" class="mt-2">
-            <button class="btn text-xs w-full justify-center bg-accent! text-bg!" @click="handleUseNote(activeNote.id)">使用笔记</button>
+            <Button class="w-full justify-center !bg-accent !text-bg" @click="handleUseNote(activeNote.id)">使用笔记</Button>
           </div>
           <div v-else-if="activeNote.usable && secretNoteStore.isUsed(activeNote.id)" class="border border-success/30 rounded-xs p-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center space-x-1">
               <CircleCheck :size="12" class="text-success" />
               <span class="text-xs text-success">已使用</span>
             </div>
@@ -420,7 +421,7 @@
 
     <!-- 完成度 -->
     <div class="mt-3 border border-accent/20 rounded-xs p-2">
-      <div class="flex items-center gap-2 text-xs mb-1.5">
+      <div class="flex items-center space-x-2 text-xs mb-1.5">
         <span class="text-xs text-muted shrink-0">完成度</span>
         <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
           <div class="h-full bg-accent rounded-xs transition-all" :style="{ width: achievementStore.perfectionPercent + '%' }" />
@@ -473,6 +474,7 @@
 
 <script setup lang="ts">
   import { BookOpen, CircleCheck, Circle, Send, X, ScrollText, Lock } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { ref, computed } from 'vue'
   import {
     useAchievementStore,

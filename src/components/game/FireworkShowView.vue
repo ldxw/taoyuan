@@ -1,14 +1,14 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Sparkles :size="14" />
-      年末烟花会
+      <span>年末烟花会</span>
     </h3>
 
     <!-- 准备 -->
     <div v-if="phase === 'ready'">
       <p class="text-xs text-muted mb-3">记住烟花绽放的顺序，然后按顺序点击复现！共5轮，每轮多一个位置，考验你的记忆力！</p>
-      <button class="btn w-full text-xs" @click="startGame">开始烟花会！</button>
+      <Button class="w-full" @click="startGame">开始烟花会！</Button>
     </div>
 
     <!-- 游戏中 -->
@@ -23,7 +23,7 @@
       </div>
 
       <!-- 轮数进度点 -->
-      <div class="flex justify-center gap-1.5 mb-2">
+      <div class="flex justify-center space-x-1.5 mb-2">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
 
@@ -95,7 +95,7 @@
       <p class="text-xs text-muted mb-2">烟花会结束！</p>
 
       <!-- 轮数进度点（最终状态） -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 5" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
 
@@ -112,7 +112,7 @@
           <span v-if="completedRounds === 5" class="text-accent finish-flash">（全通+200文！）</span>
         </p>
       </div>
-      <button class="btn w-full text-xs" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -131,6 +131,7 @@
     sfxMiniFail,
     sfxRankFirst
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

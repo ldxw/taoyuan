@@ -2,7 +2,7 @@
   <div>
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-1">
-      <div class="flex items-center gap-1.5 text-sm text-accent">
+      <div class="flex items-center space-x-1.5 text-sm text-accent">
         <FlaskConical :size="14" />
         <span>育种</span>
       </div>
@@ -10,17 +10,11 @@
     </div>
 
     <!-- 两栏切换 -->
-    <div class="flex gap-1 mb-3">
-      <button class="btn text-xs flex-1 justify-center" :class="{ 'bg-accent! text-bg!': tab === 'breeding' }" @click="tab = 'breeding'">
-        育种台
-      </button>
-      <button
-        class="btn text-xs flex-1 justify-center"
-        :class="{ 'bg-accent! text-bg!': tab === 'compendium' }"
-        @click="tab = 'compendium'"
-      >
+    <div class="flex space-x-1 mb-3">
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'breeding' }" @click="tab = 'breeding'">育种台</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'compendium' }" @click="tab = 'compendium'">
         图鉴
-      </button>
+      </Button>
     </div>
 
     <!-- ===== 育种台 Tab ===== -->
@@ -29,39 +23,35 @@
       <div class="mb-3">
         <div class="flex items-center justify-between mb-1.5">
           <p class="text-xs text-muted">— 育种台 {{ breedingStore.stationCount }}/{{ MAX_BREEDING_STATIONS }} —</p>
-          <button v-if="breedingStore.stationCount < MAX_BREEDING_STATIONS" class="btn text-xs" @click="showCraftModal = true">
-            <Plus :size="12" />
+          <Button v-if="breedingStore.stationCount < MAX_BREEDING_STATIONS" :icon="Plus" :icon-size="12" @click="showCraftModal = true">
             建造
-          </button>
+          </Button>
         </div>
 
         <!-- 无育种台空状态 -->
-        <div v-if="breedingStore.stationCount === 0" class="border border-accent/10 rounded-xs py-6 flex flex-col items-center gap-2">
+        <div v-if="breedingStore.stationCount === 0" class="border border-accent/10 rounded-xs py-6 flex flex-col items-center space-y-2">
           <Dna :size="32" class="text-muted/30" />
           <p class="text-xs text-muted">尚未建造育种台</p>
           <p class="text-xs text-muted/60">建造育种台后可进行杂交育种</p>
         </div>
 
         <!-- 育种台列表 -->
-        <div v-else class="flex flex-col gap-1.5">
+        <div v-else class="flex flex-col space-y-1.5">
           <div v-for="(slot, idx) in breedingStore.stations" :key="idx" class="border border-accent/20 rounded-xs px-3 py-2">
             <!-- 空闲 -->
             <template v-if="!slot.parentA && !slot.ready">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center space-x-1.5">
                   <FlaskConical :size="12" class="text-muted/40" />
                   <span class="text-xs text-muted">育种台 #{{ idx + 1 }} · 空闲</span>
                 </div>
-                <button class="btn text-xs" :disabled="breedingStore.boxCount < 2" @click="openBreedingSelect(idx)">
-                  <Dna :size="12" />
-                  育种
-                </button>
+                <Button :icon="Dna" :icon-size="12" :disabled="breedingStore.boxCount < 2" @click="openBreedingSelect(idx)">育种</Button>
               </div>
             </template>
             <!-- 加工中 -->
             <template v-else-if="slot.parentA && !slot.ready">
               <div class="flex items-center justify-between mb-1">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center space-x-1.5">
                   <FlaskConical :size="12" class="text-accent" />
                   <span class="text-xs text-accent">育种台 #{{ idx + 1 }} · 培育中</span>
                 </div>
@@ -77,14 +67,11 @@
             <!-- 完成 -->
             <template v-else-if="slot.ready">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center space-x-1.5">
                   <Sprout :size="12" class="text-success" />
                   <span class="text-xs text-success">育种台 #{{ idx + 1 }} · 完成</span>
                 </div>
-                <button class="btn text-xs" @click="handleCollect(idx)">
-                  <Check :size="12" />
-                  收取
-                </button>
+                <Button :icon="Check" :icon-size="12" @click="handleCollect(idx)">收取</Button>
               </div>
             </template>
           </div>
@@ -95,7 +82,7 @@
       <div>
         <p class="text-xs text-muted mb-1.5">— 种子箱 —</p>
         <!-- 空状态 -->
-        <div v-if="breedingStore.boxCount === 0" class="border border-accent/10 rounded-xs py-6 flex flex-col items-center gap-2">
+        <div v-if="breedingStore.boxCount === 0" class="border border-accent/10 rounded-xs py-6 flex flex-col items-center space-y-2">
           <PackageOpen :size="32" class="text-muted/30" />
           <p class="text-xs text-muted">种子箱为空</p>
           <p class="text-xs text-muted/60">通过种子制造机收取产物时有概率获得育种种子</p>
@@ -110,7 +97,7 @@
           >
             <p class="text-xs truncate" :class="seedStarColor(seed.genetics)">{{ getCropName(seed.genetics.cropId) }}</p>
             <p class="text-xs text-muted">G{{ seed.genetics.generation }}</p>
-            <p class="text-xs flex items-center justify-center gap-px" :class="seedStarColor(seed.genetics)">
+            <p class="text-xs flex items-center justify-center space-x-px" :class="seedStarColor(seed.genetics)">
               <Star v-for="n in getStarRating(seed.genetics)" :key="n" :size="10" />
             </p>
           </button>
@@ -136,16 +123,16 @@
         </p>
       </div>
       <!-- 阶层筛选 -->
-      <div class="flex gap-1 mb-2 flex-wrap">
-        <button
+      <div class="flex space-x-1 mb-2 flex-wrap">
+        <Button
           v-for="tf in TIER_FILTERS"
           :key="tf.value"
-          class="btn text-xs grow shrink-0 basis-[calc(25%-3px)] md:grow-0 md:shrink md:basis-auto justify-center"
-          :class="{ 'bg-accent! text-bg!': tierFilter === tf.value }"
+          class="grow shrink-0 basis-[calc(25%-3px)] md:grow-0 md:shrink md:basis-auto justify-center"
+          :class="{ '!bg-accent !text-bg': tierFilter === tf.value }"
           @click="tierFilter = tf.value"
         >
           {{ tf.label }}
-        </button>
+        </Button>
       </div>
 
       <!-- 进度 -->
@@ -171,7 +158,7 @@
 
       <!-- 图鉴完成度 -->
       <div class="mt-3 border border-accent/20 rounded-xs p-2">
-        <div class="flex items-center gap-2 text-xs mb-1.5">
+        <div class="flex items-center space-x-2 text-xs mb-1.5">
           <span class="text-xs text-muted shrink-0">完成度</span>
           <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
             <div class="h-full bg-accent rounded-xs transition-all" :style="{ width: completionPercent + '%' }" />
@@ -222,15 +209,16 @@
             </div>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': canCraftStation }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': canCraftStation }"
+            :icon="Plus"
+            :icon-size="12"
             :disabled="!canCraftStation"
             @click="handleCraftStation"
           >
-            <Plus :size="12" />
             确认建造
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -244,14 +232,14 @@
           </button>
 
           <p class="text-sm text-accent mb-2">{{ getCropName(detailSeed.genetics.cropId) }} · G{{ detailSeed.genetics.generation }}</p>
-          <p class="text-xs mb-2 flex items-center gap-1" :class="seedStarColor(detailSeed.genetics)">
-            <span class="flex items-center gap-px"><Star v-for="n in getStarRating(detailSeed.genetics)" :key="n" :size="10" /></span>
+          <p class="text-xs mb-2 flex items-center space-x-1" :class="seedStarColor(detailSeed.genetics)">
+            <span class="flex items-center space-x-px"><Star v-for="n in getStarRating(detailSeed.genetics)" :key="n" :size="10" /></span>
             <span>（总{{ getTotalStats(detailSeed.genetics) }}）</span>
           </p>
 
           <!-- 属性条 -->
-          <div class="flex flex-col gap-1 mb-3">
-            <div v-for="attr in seedAttributes" :key="attr.key" class="flex items-center gap-2">
+          <div class="flex flex-col space-y-1 mb-3">
+            <div v-for="attr in seedAttributes" :key="attr.key" class="flex items-center space-x-2">
               <span class="text-xs text-muted w-10 shrink-0">{{ attr.label }}</span>
               <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                 <div class="h-full rounded-xs transition-all" :class="attr.barClass" :style="{ width: attr.value + '%' }" />
@@ -261,11 +249,8 @@
           </div>
 
           <!-- 操作按钮 -->
-          <div class="flex flex-col gap-1">
-            <button class="btn text-xs w-full justify-center text-danger" @click="handleDiscard">
-              <Trash2 :size="12" />
-              丢弃
-            </button>
+          <div class="flex flex-col space-y-1">
+            <Button class="w-full justify-center text-danger" :icon="Trash2" :icon-size="12" @click="handleDiscard">丢弃</Button>
           </div>
         </div>
       </div>
@@ -350,7 +335,7 @@
           <p class="text-sm text-accent mb-1">选择两颗种子</p>
           <p class="text-xs text-muted mb-2">已选 {{ selectedSeedIds.length }}/2</p>
 
-          <div class="flex flex-col gap-1 max-h-60 overflow-y-auto mb-3">
+          <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto mb-3">
             <button
               v-for="seed in breedingStore.breedingBox"
               :key="seed.genetics.id"
@@ -359,11 +344,11 @@
               @click="toggleSeedSelect(seed.genetics.id)"
             >
               <span :class="seedStarColor(seed.genetics)">{{ getCropName(seed.genetics.cropId) }} G{{ seed.genetics.generation }}</span>
-              <span class="text-muted flex items-center gap-1">
-                <span class="flex items-center gap-px">
+              <span class="text-muted flex items-center space-x-1">
+                <span class="flex items-center space-x-px">
                   <Star v-for="n in getStarRating(seed.genetics)" :key="n" :size="10" />
                 </span>
-                {{ getTotalStats(seed.genetics) }}
+                <span>{{ getTotalStats(seed.genetics) }}</span>
               </span>
             </button>
           </div>
@@ -399,15 +384,16 @@
             </template>
           </div>
 
-          <button
-            class="btn text-xs w-full justify-center"
-            :class="{ 'bg-accent! text-bg!': selectedSeedIds.length === 2 }"
+          <Button
+            class="w-full justify-center"
+            :class="{ '!bg-accent !text-bg': selectedSeedIds.length === 2 }"
+            :icon="Dna"
+            :icon-size="12"
             :disabled="selectedSeedIds.length !== 2"
             @click="handleStartBreeding"
           >
-            <Dna :size="12" />
             开始育种
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -417,6 +403,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { FlaskConical, Plus, Check, X, Dna, Trash2, Sprout, PackageOpen, Star, Lock } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useBreedingStore, usePlayerStore, useInventoryStore, useGameStore } from '@/stores'
   import { getCropById } from '@/data/crops'
   import { getItemById } from '@/data/items'

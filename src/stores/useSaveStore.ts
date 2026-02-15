@@ -25,6 +25,7 @@ import { useMuseumStore } from './useMuseumStore'
 import { useGuildStore } from './useGuildStore'
 import { useSecretNoteStore } from './useSecretNoteStore'
 import { useHanhaiStore } from './useHanhaiStore'
+import { useFishPondStore } from './useFishPondStore'
 
 const SAVE_KEY_PREFIX = 'taoyuanxiang_save_'
 const MAX_SLOTS = 3
@@ -141,6 +142,7 @@ export const useSaveStore = defineStore('save', () => {
       const guildStore = useGuildStore()
       const secretNoteStore = useSecretNoteStore()
       const hanhaiStore = useHanhaiStore()
+      const fishPondStore = useFishPondStore()
 
       const data = {
         game: gameStore.serialize(),
@@ -166,6 +168,7 @@ export const useSaveStore = defineStore('save', () => {
         guild: guildStore.serialize(),
         secretNote: secretNoteStore.serialize(),
         hanhai: hanhaiStore.serialize(),
+        fishPond: fishPondStore.serialize(),
         savedAt: new Date().toISOString()
       }
       localStorage.setItem(`${SAVE_KEY_PREFIX}${slot}`, encrypt(JSON.stringify(data)))
@@ -213,6 +216,7 @@ export const useSaveStore = defineStore('save', () => {
       const guildStore = useGuildStore()
       const secretNoteStore = useSecretNoteStore()
       const hanhaiStore = useHanhaiStore()
+      const fishPondStore = useFishPondStore()
 
       gameStore.deserialize(data.game)
       playerStore.deserialize(data.player)
@@ -237,6 +241,7 @@ export const useSaveStore = defineStore('save', () => {
       if (data.guild) guildStore.deserialize(data.guild)
       if (data.secretNote) secretNoteStore.deserialize(data.secretNote)
       if (data.hanhai) hanhaiStore.deserialize(data.hanhai)
+      if (data.fishPond) fishPondStore.deserialize(data.fishPond)
       activeSlot.value = slot
       return true
     } catch {

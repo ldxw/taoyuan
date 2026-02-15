@@ -1,6 +1,15 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { NpcState, FriendshipLevel, HeartEventDef, Quality, ChildState } from '@/types'
+import type {
+  NpcState,
+  FriendshipLevel,
+  HeartEventDef,
+  Quality,
+  ChildState,
+  PregnancyState,
+  PregnancyStage,
+  ProposalResponse
+} from '@/types'
 import { NPCS, getNpcById, getHeartEventsForNpc, RECIPES } from '@/data'
 import { WEATHER_TIPS, getFortuneTip, getLivingTip, getRecipeTipMessage, NO_RECIPE_TIP, TIP_NPC_IDS } from '@/data/npcTips'
 import { getItemById } from '@/data/items'
@@ -38,17 +47,26 @@ export const useNpcStore = defineStore('npc', () => {
   /** 子女列表 */
   const children = ref<ChildState[]>([])
 
+  /** 子女ID自增计数器（避免释放后ID冲突） */
+  const nextChildId = ref<number>(0)
+
   /** 结婚天数计数 */
   const daysMarried = ref<number>(0)
 
   /** 知己天数计数 */
   const daysZhiji = ref<number>(0)
 
-  /** 是否有待产子女 */
-  const pendingChild = ref<boolean>(false)
+  /** 孕期状态（null = 无孕期） */
+  const pregnancy = ref<PregnancyState | null>(null)
 
-  /** 子女出生倒计时 */
-  const childCountdown = ref<number>(0)
+  /** 配偶是否已提议要孩子（等待玩家回应） */
+  const childProposalPending = ref<boolean>(false)
+
+  /** 提议被拒绝次数（影响再次提议冷却） */
+  const childProposalDeclinedCount = ref<number>(0)
+
+  /** 距上次拒绝/等待的天数 */
+  const daysSinceProposalDecline = ref<number>(0)
 
   /** 婚礼倒计时 (0=无婚礼待举行) */
   const weddingCountdown = ref<number>(0)
@@ -392,8 +410,8 @@ export const useNpcStore = defineStore('npc', () => {
     spouse.married = false
     spouse.dating = false
     spouse.friendship = 1000
-    pendingChild.value = false
-    childCountdown.value = 0
+    pregnancy.value = null
+    childProposalPending.value = false
     daysMarried.value = 0
     cancelWedding()
 
@@ -415,21 +433,272 @@ export const useNpcStore = defineStore('npc', () => {
     return { success: true, message: `${name}被送往了远方亲戚家。` }
   }
 
-  /** 检查是否应触发要孩子对话 */
-  const checkChildEvent = (): boolean => {
+  // ============================================================
+  // 孕期养成系统
+  // ============================================================
+
+  const PREGNANCY_STAGE_CONFIG: Record<PregnancyStage, { days: number; label: string }> = {
+    early: { days: 5, label: '初期' },
+    mid: { days: 5, label: '中期' },
+    late: { days: 5, label: '后期' },
+    ready: { days: 3, label: '待产期' }
+  }
+
+  const STAGE_ORDER: PregnancyStage[] = ['early', 'mid', 'late', 'ready']
+
+  const MEDICAL_PLANS = {
+    normal: { cost: 1000, successRate: 0.8, label: '普通接生' },
+    advanced: { cost: 5000, successRate: 0.95, label: '高级接生' },
+    luxury: { cost: 15000, successRate: 1.0, label: '豪华接生' }
+  } as const
+
+  /** 检查配偶是否应提议要孩子（每日调用） */
+  const checkChildProposal = (): boolean => {
     const spouse = getSpouse()
     if (!spouse) return false
     if (children.value.length >= 2) return false
-    if (pendingChild.value) return false
+    if (pregnancy.value !== null) return false
+    if (childProposalPending.value) return false
     if (daysMarried.value < 7) return false
     if (spouse.friendship < 3000) return false
+    // 拒绝冷却：7天基础 + 每次拒绝额外7天
+    if (childProposalDeclinedCount.value > 0) {
+      const cooldownDays = 7 + childProposalDeclinedCount.value * 7
+      if (daysSinceProposalDecline.value < cooldownDays) return false
+    }
     return Math.random() < 0.05
   }
 
-  /** 确认要孩子 */
-  const confirmChild = () => {
-    pendingChild.value = true
-    childCountdown.value = 14
+  /** 触发提议（设置等待标记） */
+  const triggerChildProposal = () => {
+    childProposalPending.value = true
+  }
+
+  /** 玩家回应提议 */
+  const respondToChildProposal = (response: ProposalResponse): { message: string; friendshipChange: number } => {
+    childProposalPending.value = false
+    const spouse = getSpouse()
+
+    switch (response) {
+      case 'accept':
+        pregnancy.value = {
+          stage: 'early',
+          daysInStage: 0,
+          stageDays: PREGNANCY_STAGE_CONFIG.early.days,
+          careScore: 50,
+          caredToday: false,
+          giftedForPregnancy: false,
+          companionToday: false,
+          medicalPlan: null
+        }
+        if (spouse) spouse.friendship += 100
+        childProposalDeclinedCount.value = 0
+        daysSinceProposalDecline.value = 0
+        return { message: '你们决定迎接新的家庭成员。', friendshipChange: 100 }
+
+      case 'decline':
+        if (spouse) spouse.friendship = Math.max(0, spouse.friendship - 50)
+        childProposalDeclinedCount.value++
+        daysSinceProposalDecline.value = 0
+        return { message: '你委婉地拒绝了。', friendshipChange: -50 }
+
+      case 'wait':
+        daysSinceProposalDecline.value = 0
+        childProposalDeclinedCount.value++ // 也计入冷却
+        return { message: '你说了再等等看。', friendshipChange: 0 }
+    }
+  }
+
+  /** 孕期照料操作 */
+  const performPregnancyCare = (
+    action: 'gift' | 'companion' | 'supplement' | 'rest'
+  ): { success: boolean; message: string; careGain: number } => {
+    if (!pregnancy.value) return { success: false, message: '没有待产。', careGain: 0 }
+
+    let careGain = 0
+    let message = ''
+
+    switch (action) {
+      case 'gift': {
+        if (pregnancy.value.giftedForPregnancy) {
+          return { success: false, message: '今天已经送过礼物了。', careGain: 0 }
+        }
+        pregnancy.value.giftedForPregnancy = true
+        careGain = pregnancy.value.stage === 'early' ? 5 : 3
+        message = '你送了一份贴心的礼物。'
+        break
+      }
+      case 'companion': {
+        if (pregnancy.value.companionToday) {
+          return { success: false, message: '今天已经陪伴过了。', careGain: 0 }
+        }
+        pregnancy.value.companionToday = true
+        careGain = pregnancy.value.stage === 'mid' ? 5 : 3
+        message = '你陪伴了一会儿，聊了很多。'
+        break
+      }
+      case 'supplement': {
+        const inventoryStore = useInventoryStore()
+        const supplementItems: { id: string; gain: number }[] = [
+          { id: 'ginseng', gain: 6 },
+          { id: 'ginseng_tea', gain: 5 },
+          { id: 'herb', gain: 3 },
+          { id: 'green_tea_drink', gain: 3 },
+          { id: 'chrysanthemum_tea', gain: 3 },
+          { id: 'osmanthus_tea', gain: 3 }
+        ]
+        let found = false
+        for (const si of supplementItems) {
+          if (inventoryStore.removeItem(si.id, 1)) {
+            found = true
+            careGain = si.gain
+            const itemDef = getItemById(si.id)
+            message = `服用了${itemDef?.name ?? '补品'}。`
+            break
+          }
+        }
+        if (!found) {
+          return { success: false, message: '没有合适的补品（人参/草药/茶饮）。', careGain: 0 }
+        }
+        break
+      }
+      case 'rest': {
+        if (pregnancy.value.caredToday) {
+          return { success: false, message: '今天已经安排过休息了。', careGain: 0 }
+        }
+        careGain = pregnancy.value.stage === 'late' ? 5 : 2
+        message = '你让配偶好好休息了一天。'
+        break
+      }
+    }
+
+    pregnancy.value.careScore = Math.min(100, pregnancy.value.careScore + careGain)
+    pregnancy.value.caredToday = true
+    return { success: true, message, careGain }
+  }
+
+  /** 选择接生方式（仅待产期） */
+  const chooseMedicalPlan = (plan: 'normal' | 'advanced' | 'luxury'): { success: boolean; message: string } => {
+    if (!pregnancy.value) return { success: false, message: '没有待产。' }
+    if (pregnancy.value.stage !== 'ready') return { success: false, message: '还没到待产期。' }
+
+    const planInfo = MEDICAL_PLANS[plan]
+    const playerStore = usePlayerStore()
+    if (!playerStore.spendMoney(planInfo.cost)) {
+      return { success: false, message: `金钱不足（需要${planInfo.cost}文）。` }
+    }
+
+    pregnancy.value.medicalPlan = plan
+    return { success: true, message: `选择了${planInfo.label}（${planInfo.cost}文）。` }
+  }
+
+  /** 分娩处理（内部方法） */
+  const handleDelivery = (): {
+    born?: { name: string; quality: 'normal' | 'premature' | 'healthy' }
+    miscarriage?: boolean
+  } => {
+    if (!pregnancy.value) return {}
+
+    const plan = pregnancy.value.medicalPlan ?? 'normal'
+    const planInfo = MEDICAL_PLANS[plan]
+
+    // 成功率 = 医疗方案基础率 + 安产分加成（最高+15%）
+    const careBonus = (pregnancy.value.careScore / 100) * 0.15
+    const totalSuccessRate = Math.min(1.0, planInfo.successRate + careBonus)
+
+    const success = Math.random() < totalSuccessRate
+
+    if (!success) {
+      pregnancy.value = null
+      const spouse = getSpouse()
+      if (spouse) {
+        spouse.friendship = Math.max(0, spouse.friendship - 200)
+      }
+      return { miscarriage: true }
+    }
+
+    // 根据安产分决定出生品质
+    const birthQuality: 'normal' | 'premature' | 'healthy' =
+      pregnancy.value.careScore >= 80 ? 'healthy' : pregnancy.value.careScore < 40 ? 'premature' : 'normal'
+
+    const isBoy = Math.random() < 0.5
+    const namePool = isBoy ? CHILD_NAMES_MALE : CHILD_NAMES_FEMALE
+    const usedNames = children.value.map(c => c.name)
+    const availableNames = namePool.filter(n => !usedNames.includes(n))
+    const name = availableNames[Math.floor(Math.random() * availableNames.length)] ?? '小宝'
+
+    children.value.push({
+      id: nextChildId.value++,
+      name,
+      daysOld: 0,
+      stage: 'baby',
+      friendship: birthQuality === 'healthy' ? 30 : 0,
+      interactedToday: false,
+      birthQuality
+    })
+
+    pregnancy.value = null
+    return { born: { name, quality: birthQuality } }
+  }
+
+  /** 每日孕期更新 */
+  const dailyPregnancyUpdate = (): {
+    stageChanged?: { from: PregnancyStage; to: PregnancyStage }
+    born?: { name: string; quality: 'normal' | 'premature' | 'healthy' }
+    miscarriage?: boolean
+  } => {
+    // 结婚天数递增
+    if (getSpouse()) daysMarried.value++
+
+    // 拒绝冷却计时递增
+    if (childProposalDeclinedCount.value > 0) {
+      daysSinceProposalDecline.value++
+    }
+
+    if (!pregnancy.value) return {}
+
+    // 重置每日照料标记
+    pregnancy.value.caredToday = false
+    pregnancy.value.giftedForPregnancy = false
+    pregnancy.value.companionToday = false
+
+    pregnancy.value.daysInStage++
+
+    // 检查阶段完成
+    if (pregnancy.value.daysInStage >= pregnancy.value.stageDays) {
+      const currentStageIndex = STAGE_ORDER.indexOf(pregnancy.value.stage)
+
+      if (pregnancy.value.stage === 'ready') {
+        // 分娩
+        return handleDelivery()
+      }
+
+      // 进入下一阶段
+      const from = pregnancy.value.stage
+      const nextStage = STAGE_ORDER[currentStageIndex + 1]!
+      pregnancy.value.stage = nextStage
+      pregnancy.value.daysInStage = 0
+      pregnancy.value.stageDays = PREGNANCY_STAGE_CONFIG[nextStage].days
+
+      return { stageChanged: { from, to: nextStage } }
+    }
+
+    return {}
+  }
+
+  /** 每日子女成长更新（仅已出生子女） */
+  const dailyChildUpdate = () => {
+    for (const child of children.value) {
+      child.daysOld++
+      child.interactedToday = false
+      if (child.stage === 'baby' && child.daysOld >= 14) {
+        child.stage = 'toddler'
+      } else if (child.stage === 'toddler' && child.daysOld >= 28) {
+        child.stage = 'child'
+      } else if (child.stage === 'child' && child.daysOld >= 56) {
+        child.stage = 'teen'
+      }
+    }
   }
 
   /** 与子女互动 */
@@ -449,46 +718,6 @@ export const useNpcStore = defineStore('npc', () => {
     }
 
     return { message: `你和${child.name}玩了一会儿。(+2好感)` }
-  }
-
-  /** 每日子女更新 */
-  const dailyChildUpdate = (): { newBorn?: string } => {
-    if (getSpouse()) daysMarried.value++
-
-    if (pendingChild.value) {
-      childCountdown.value--
-      if (childCountdown.value <= 0) {
-        pendingChild.value = false
-        const isBoy = Math.random() < 0.5
-        const namePool = isBoy ? CHILD_NAMES_MALE : CHILD_NAMES_FEMALE
-        const usedNames = children.value.map(c => c.name)
-        const availableNames = namePool.filter(n => !usedNames.includes(n))
-        const name = availableNames[Math.floor(Math.random() * availableNames.length)] ?? '小宝'
-        children.value.push({
-          id: children.value.length,
-          name,
-          daysOld: 0,
-          stage: 'baby',
-          friendship: 0,
-          interactedToday: false
-        })
-        return { newBorn: name }
-      }
-    }
-
-    for (const child of children.value) {
-      child.daysOld++
-      child.interactedToday = false
-      if (child.stage === 'baby' && child.daysOld >= 14) {
-        child.stage = 'toddler'
-      } else if (child.stage === 'toddler' && child.daysOld >= 28) {
-        child.stage = 'child'
-      } else if (child.stage === 'child' && child.daysOld >= 56) {
-        child.stage = 'teen'
-      }
-    }
-
-    return {}
   }
 
   /** 检查NPC是否有每日提示功能 */
@@ -567,10 +796,16 @@ export const useNpcStore = defineStore('npc', () => {
     return {
       npcStates: npcStates.value,
       children: children.value,
+      nextChildId: nextChildId.value,
       daysMarried: daysMarried.value,
       daysZhiji: daysZhiji.value,
-      pendingChild: pendingChild.value,
-      childCountdown: childCountdown.value,
+      pregnancy: pregnancy.value,
+      childProposalPending: childProposalPending.value,
+      childProposalDeclinedCount: childProposalDeclinedCount.value,
+      daysSinceProposalDecline: daysSinceProposalDecline.value,
+      // 旧字段保留以兼容
+      pendingChild: false,
+      childCountdown: 0,
       weddingCountdown: weddingCountdown.value,
       weddingNpcId: weddingNpcId.value,
       friendshipVersion: 2
@@ -603,11 +838,41 @@ export const useNpcStore = defineStore('npc', () => {
       triggeredHeartEvents: []
     }))
     npcStates.value = [...savedStates, ...newNpcStates]
-    children.value = (data as any).children ?? []
+    children.value = ((data as any).children ?? []).map((c: any) => ({
+      ...c,
+      birthQuality: c.birthQuality ?? 'normal'
+    }))
+    // 旧存档无 nextChildId → 从已有子女推算
+    nextChildId.value =
+      (data as any).nextChildId ?? (children.value.length > 0 ? Math.max(...children.value.map((c: ChildState) => c.id)) + 1 : 0)
     daysMarried.value = (data as any).daysMarried ?? 0
     daysZhiji.value = (data as any).daysZhiji ?? 0
-    pendingChild.value = (data as any).pendingChild ?? false
-    childCountdown.value = (data as any).childCountdown ?? 0
+
+    // 新孕期系统
+    pregnancy.value = (data as any).pregnancy ?? null
+    childProposalPending.value = (data as any).childProposalPending ?? false
+    childProposalDeclinedCount.value = (data as any).childProposalDeclinedCount ?? 0
+    daysSinceProposalDecline.value = (data as any).daysSinceProposalDecline ?? 0
+
+    // 旧存档迁移：pendingChild → pregnancy
+    if ((data as any).pendingChild && !pregnancy.value) {
+      const oldCountdown: number = (data as any).childCountdown ?? 0
+      let stage: PregnancyStage = 'early'
+      if (oldCountdown <= 3) stage = 'ready'
+      else if (oldCountdown <= 8) stage = 'late'
+      else if (oldCountdown <= 13) stage = 'mid'
+      pregnancy.value = {
+        stage,
+        daysInStage: 0,
+        stageDays: PREGNANCY_STAGE_CONFIG[stage].days,
+        careScore: 50,
+        caredToday: false,
+        giftedForPregnancy: false,
+        companionToday: false,
+        medicalPlan: null
+      }
+    }
+
     weddingCountdown.value = (data as any).weddingCountdown ?? 0
     weddingNpcId.value = (data as any).weddingNpcId ?? null
   }
@@ -617,8 +882,8 @@ export const useNpcStore = defineStore('npc', () => {
     children,
     daysMarried,
     daysZhiji,
-    pendingChild,
-    childCountdown,
+    pregnancy,
+    childProposalPending,
     weddingCountdown,
     weddingNpcId,
     getNpcState,
@@ -640,8 +905,12 @@ export const useNpcStore = defineStore('npc', () => {
     cancelWedding,
     divorce,
     releaseChild,
-    checkChildEvent,
-    confirmChild,
+    checkChildProposal,
+    triggerChildProposal,
+    respondToChildProposal,
+    performPregnancyCare,
+    chooseMedicalPlan,
+    dailyPregnancyUpdate,
     interactWithChild,
     dailyChildUpdate,
     dailyReset,
@@ -649,6 +918,8 @@ export const useNpcStore = defineStore('npc', () => {
     isTipGivenToday,
     getDailyTip,
     tipGivenToday,
+    PREGNANCY_STAGE_CONFIG,
+    MEDICAL_PLANS,
     serialize,
     deserialize
   }

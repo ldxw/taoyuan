@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 标题 -->
-    <div class="flex items-center gap-1.5 text-sm text-accent mb-3">
+    <div class="flex items-center space-x-1.5 text-sm text-accent mb-3">
       <ClipboardList :size="14" />
       <span>任务</span>
     </div>
@@ -41,7 +41,7 @@
         <Calendar :size="24" />
         <p class="text-xs mt-1">今日暂无委托</p>
       </div>
-      <div v-else class="flex flex-col gap-1.5">
+      <div v-else class="flex flex-col space-y-1.5">
         <div
           v-for="quest in questStore.boardQuests"
           :key="quest.id"
@@ -81,7 +81,7 @@
         <Clock :size="24" />
         <p class="text-xs mt-1">暂无进行中的任务</p>
       </div>
-      <div v-else class="flex flex-col gap-1.5">
+      <div v-else class="flex flex-col space-y-1.5">
         <div
           v-for="quest in questStore.activeQuests"
           :key="quest.id"
@@ -95,7 +95,7 @@
               {{ canSubmit(quest) ? '可提交' : `剩${quest.daysRemaining}天` }}
             </span>
           </div>
-          <div v-if="quest.type !== 'delivery'" class="mt-1 flex items-center gap-2">
+          <div v-if="quest.type !== 'delivery'" class="mt-1 flex items-center space-x-2">
             <div class="flex-1 h-1 bg-bg rounded-xs border border-accent/10">
               <div
                 class="h-full rounded-xs bg-accent transition-all"
@@ -133,7 +133,7 @@
             <p class="text-xs text-muted leading-relaxed mb-2">{{ mainQuestDef.description }}</p>
             <div class="border border-accent/10 rounded-xs p-2 mb-2">
               <p class="text-xs text-muted mb-1">目标</p>
-              <div v-for="(obj, i) in mainQuestDef.objectives" :key="i" class="flex items-center gap-1">
+              <div v-for="(obj, i) in mainQuestDef.objectives" :key="i" class="flex items-center space-x-1">
                 <CircleCheck v-if="mainQuestProgress[i]" :size="12" class="text-success shrink-0" />
                 <Circle v-else :size="12" class="text-danger shrink-0" />
                 <span class="text-xs" :class="mainQuestProgress[i] ? 'text-success' : ''">{{ obj.label }}</span>
@@ -149,20 +149,26 @@
                 </template>
               </p>
             </div>
-            <button v-if="!questStore.mainQuest?.accepted" class="btn text-xs w-full justify-center" @click="handleAcceptMain">
-              <Plus :size="12" />
+            <Button
+              v-if="!questStore.mainQuest?.accepted"
+              class="w-full justify-center"
+              :icon="Plus"
+              :icon-size="12"
+              @click="handleAcceptMain"
+            >
               接取任务
-            </button>
-            <button
+            </Button>
+            <Button
               v-else
-              class="btn text-xs w-full justify-center"
-              :class="{ 'bg-accent! text-bg!': questStore.canSubmitMainQuest() }"
+              class="w-full justify-center"
+              :class="{ '!bg-accent !text-bg': questStore.canSubmitMainQuest() }"
+              :icon="CheckCircle"
+              :icon-size="12"
               :disabled="!questStore.canSubmitMainQuest()"
               @click="handleSubmitMain"
             >
-              <CheckCircle :size="12" />
               提交任务
-            </button>
+            </Button>
           </template>
 
           <!-- 委托详情 -->
@@ -177,14 +183,15 @@
               <p class="text-xs text-muted mb-1">奖励</p>
               <p class="text-xs">{{ selectedBoardQuest.moneyReward }}文 + 好感{{ selectedBoardQuest.friendshipReward }}</p>
             </div>
-            <button
-              class="btn text-xs w-full justify-center"
+            <Button
+              class="w-full justify-center"
+              :icon="Plus"
+              :icon-size="12"
               :disabled="questStore.activeQuests.length >= questStore.MAX_ACTIVE_QUESTS"
               @click="handleAccept(selectedBoardQuest.id)"
             >
-              <Plus :size="12" />
               接取委托
-            </button>
+            </Button>
           </template>
 
           <!-- 特殊订单详情 -->
@@ -213,14 +220,15 @@
                 </template>
               </p>
             </div>
-            <button
-              class="btn text-xs w-full justify-center"
+            <Button
+              class="w-full justify-center"
+              :icon="Plus"
+              :icon-size="12"
               :disabled="questStore.activeQuests.length >= questStore.MAX_ACTIVE_QUESTS"
               @click="handleAcceptSpecialOrder"
             >
-              <Plus :size="12" />
               接取订单
-            </button>
+            </Button>
           </template>
 
           <!-- 进行中任务详情 -->
@@ -231,7 +239,7 @@
             <p class="text-xs leading-relaxed mb-2">{{ selectedActiveQuest.description }}</p>
             <div class="border border-accent/10 rounded-xs p-2 mb-2">
               <p class="text-xs text-muted mb-1">进度</p>
-              <div v-if="selectedActiveQuest.type !== 'delivery'" class="flex items-center gap-2">
+              <div v-if="selectedActiveQuest.type !== 'delivery'" class="flex items-center space-x-2">
                 <div class="flex-1 h-1.5 bg-bg rounded-xs border border-accent/10">
                   <div
                     class="h-full rounded-xs bg-accent transition-all"
@@ -261,15 +269,16 @@
                 </template>
               </p>
             </div>
-            <button
-              class="btn text-xs w-full justify-center"
-              :class="{ 'bg-accent! text-bg!': canSubmit(selectedActiveQuest) }"
+            <Button
+              class="w-full justify-center"
+              :class="{ '!bg-accent !text-bg': canSubmit(selectedActiveQuest) }"
+              :icon="CheckCircle"
+              :icon-size="12"
               :disabled="!canSubmit(selectedActiveQuest)"
               @click="handleSubmit(selectedActiveQuest.id)"
             >
-              <CheckCircle :size="12" />
               提交任务
-            </button>
+            </Button>
           </template>
         </div>
       </div>
@@ -280,6 +289,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { ClipboardList, Calendar, Clock, Plus, CheckCircle, CircleCheck, Circle, Star, BookOpen, X } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import type { QuestInstance } from '@/types'
   import { useQuestStore, useInventoryStore } from '@/stores'
   import { getItemById, getStoryQuestById, CHAPTER_TITLES } from '@/data'

@@ -1,4 +1,6 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* zpix 像素字体（支持中英文） */
 @font-face {
@@ -9,7 +11,7 @@
   font-display: swap;
 }
 
-@theme {
+:root {
   /* 传统中国色 */
   --color-bg: #1a1a1a;
   --color-panel: #2b2d3c;
@@ -57,6 +59,11 @@ body {
   image-rendering: pixelated;
 }
 
+button {
+  background-color: transparent;
+  background-image: none;
+}
+
 #app {
   max-width: 1000px;
   margin: 0 auto;
@@ -77,13 +84,11 @@ body {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: var(--spacing-2);
   padding: var(--spacing-2) var(--spacing-4);
   background-color: var(--color-panel);
   color: var(--color-text);
-  border: 1px solid oklch(from var(--color-accent) l c h / 0.3);
+  border: 1px solid rgba(200, 164, 92, 0.3);
   border-radius: 2px;
-  font-family: var(--font-game);
   font-size: 0.75rem;
   min-height: 36px;
   cursor: pointer;
@@ -91,6 +96,11 @@ body {
     background-color 0.15s,
     color 0.15s;
 }
+
+.btn {
+  @apply space-x-1.5
+}
+
 
 .btn:hover {
   background-color: var(--color-accent);
@@ -107,7 +117,7 @@ body {
 /* 像素风面板 */
 .game-panel {
   background-color: var(--color-panel);
-  border: 1px solid oklch(from var(--color-accent) l c h / 0.3);
+  border: 1px solid rgba(200, 164, 92, 0.3);
   border-radius: 2px;
   padding: var(--spacing-3);
   position: relative;

@@ -1,8 +1,8 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Wind :size="14" />
-      秋风筝会
+      <span>秋风筝会</span>
     </h3>
 
     <!-- 准备 -->
@@ -10,7 +10,7 @@
       <p class="text-xs text-muted mb-3">
         秋风中放飞风筝！风会不断把风筝吹向两侧，点「拉左」或「拉右」把风筝拉回中间。保持风筝在绿色区域内可以持续得分，坚持25秒！
       </p>
-      <button class="btn text-xs w-full" @click="startGame">放风筝！</button>
+      <Button class="w-full" @click="startGame">放风筝！</Button>
     </div>
 
     <!-- 游戏中 -->
@@ -57,15 +57,12 @@
       </div>
 
       <!-- 控制按钮 -->
-      <div class="flex gap-2">
-        <button class="btn text-xs flex-1 py-2" @click="pullLeft">
-          <ArrowLeft :size="14" />
-          拉左
-        </button>
-        <button class="btn text-xs flex-1 py-2" @click="pullRight">
+      <div class="flex space-x-2">
+        <Button class="flex-1 py-2" :icon="ArrowLeft" @click="pullLeft">拉左</Button>
+        <Button class="flex-1 py-2" @click="pullRight">
           拉右
           <ArrowRight :size="14" />
-        </button>
+        </Button>
       </div>
 
       <!-- 连续稳定加分提示 -->
@@ -100,7 +97,7 @@
           文
         </p>
       </div>
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -119,6 +116,7 @@
     sfxRankSecond,
     sfxRankThird
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

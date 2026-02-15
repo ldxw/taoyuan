@@ -1720,6 +1720,18 @@ export const TAPPER = {
   craftMoney: 200
 }
 
+/** 蟹笼制造定义 */
+export const CRAB_POT_CRAFT = {
+  id: 'crab_pot',
+  name: '蟹笼',
+  description: '放置在钓鱼地点，每日自动捕获水产（需鱼饵）。',
+  craftCost: [
+    { itemId: 'wood', quantity: 15 },
+    { itemId: 'iron_bar', quantity: 2 }
+  ],
+  craftMoney: 500
+}
+
 /** 避雷针制造定义 */
 export const LIGHTNING_ROD = {
   id: 'lightning_rod',
@@ -1759,7 +1771,7 @@ export const BOMBS: BombDef[] = [
       { itemId: 'firewood', quantity: 15 }
     ],
     craftMoney: 100,
-    shopPrice: 150
+    shopPrice: null
   },
   {
     id: 'bomb',
@@ -1773,7 +1785,7 @@ export const BOMBS: BombDef[] = [
       { itemId: 'quartz', quantity: 5 }
     ],
     craftMoney: 250,
-    shopPrice: 500
+    shopPrice: null
   },
   {
     id: 'mega_bomb',

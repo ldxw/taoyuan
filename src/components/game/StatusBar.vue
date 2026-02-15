@@ -1,8 +1,8 @@
 <template>
-  <div class="border-b border-accent/30 pb-2 md:pb-3 flex flex-col gap-1">
+  <div class="border-b border-accent/30 pb-2 md:pb-3 flex flex-col space-y-1">
     <!-- 第一行：日期时间天气 + 金币 -->
     <div class="flex items-center justify-between text-xs md:text-sm">
-      <div class="flex items-center gap-2 md:gap-3">
+      <div class="flex items-center space-x-2 md:space-x-3">
         <span class="text-accent font-bold">桃源乡</span>
         <span class="text-muted text-xs max-w-16 truncate">{{ playerStore.playerName }}</span>
         <span class="hidden md:inline">第{{ gameStore.year }}年</span>
@@ -18,10 +18,10 @@
     </div>
 
     <!-- 第二行：状态条 + 音频控制 -->
-    <div class="flex items-center justify-between text-xs flex-wrap gap-y-1">
-      <div class="flex items-center gap-2 md:gap-4 flex-wrap gap-y-1">
+    <div class="flex items-center justify-between text-xs flex-wrap">
+      <div class="flex items-center space-x-2 md:space-x-4 flex-wrap">
         <!-- 体力 -->
-        <div class="flex items-center gap-1">
+        <div class="flex items-center space-x-1">
           <span :class="{ 'text-danger stamina-critical': playerStore.isExhausted }">
             <Zap :size="12" class="inline" />
             {{ playerStore.stamina }}/{{ playerStore.maxStamina }}
@@ -35,7 +35,7 @@
           </div>
         </div>
         <!-- HP（矿洞或受伤时显示） -->
-        <div v-if="showHpBar" class="flex items-center gap-1">
+        <div v-if="showHpBar" class="flex items-center space-x-1">
           <span :class="{ 'text-danger stamina-critical': playerStore.getIsLowHp() }">
             <Heart :size="12" class="inline" />
             {{ playerStore.hp }}/{{ playerStore.getMaxHp() }}
@@ -49,7 +49,7 @@
           </div>
         </div>
         <!-- 剩余时间 -->
-        <div class="flex items-center gap-1">
+        <div class="flex items-center space-x-1">
           <Clock :size="12" class="tinline" />
           <div class="w-12 md:w-16 h-2 bg-bg rounded-xs border border-accent/20">
             <div class="h-full rounded-xs transition-all duration-300" :class="timeBarColor" :style="{ width: timePercent + '%' }" />
@@ -57,19 +57,14 @@
         </div>
       </div>
       <!-- 操作按钮 -->
-      <div class="flex items-center gap-1 shrink-0">
-        <button class="hidden! btn text-xs py-0 px-2 min-h-0 md:flex!" @click="showMobileMap = true">
-          <Map :size="12" />
-          地图
-        </button>
-        <button class="hidden! btn btn-danger text-xs py-0 px-2 min-h-0 md:flex!" @click.stop="handleSleep">
-          <Moon :size="12" />
+      <div class="flex items-center space-x-1 shrink-0">
+        <Button class="!hidden py-0 px-2 min-h-0 md:!flex" :icon="Map" :icon-size="12" @click="showMobileMap = true">地图</Button>
+        <Button class="!hidden btn-danger py-0 px-2 min-h-0 md:!flex" :icon="Moon" :icon-size="12" @click.stop="handleSleep">
           {{ sleepLabel }}
-        </button>
-        <button class="hidden! btn btn-danger text-xs py-0 px-2 min-h-0 md:flex!" @click="showSettings = true">
-          <SettingsIcon :size="14" />
-          <span class="hidden md:flex">设置</span>
-        </button>
+        </Button>
+        <Button class="!hidden btn-danger py-0 px-2 min-h-0 md:!flex" :icon="SettingsIcon" @click="showSettings = true">
+          <span class="hidden md:inline">设置</span>
+        </Button>
       </div>
     </div>
     <MobileMapMenu :open="showMobileMap" :current="currentPanel" @close="showMobileMap = false" />
@@ -85,6 +80,7 @@
   import SettingsDialog from '@/components/game/SettingsDialog.vue'
   import { DAY_START_HOUR, DAY_END_HOUR } from '@/data/timeConstants'
   import { Zap, Heart, Clock, Coins, Moon, Map, Settings as SettingsIcon } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ 'request-sleep': [] }>()
 

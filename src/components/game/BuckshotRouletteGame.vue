@@ -19,7 +19,7 @@
     </div>
 
     <!-- HP 显示 -->
-    <div class="flex items-center gap-3 mb-3">
+    <div class="flex items-center space-x-3 mb-3">
       <!-- 玩家HP -->
       <div class="flex-1">
         <div class="flex items-center justify-between text-xs mb-0.5">
@@ -54,9 +54,9 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div v-if="isPlayerTurn && !gameOver" class="flex gap-2 mb-3">
-      <button class="btn text-xs flex-1 justify-center" :disabled="animating" @click="shootOpponent">射向庄家</button>
-      <button class="btn text-xs flex-1 justify-center" :disabled="animating" @click="shootSelf">射向自己</button>
+    <div v-if="isPlayerTurn && !gameOver" class="flex space-x-2 mb-3">
+      <Button class="flex-1 justify-center" :disabled="animating" @click="shootOpponent">射向庄家</Button>
+      <Button class="flex-1 justify-center" :disabled="animating" @click="shootSelf">射向自己</Button>
     </div>
 
     <!-- 庄家回合提示 -->
@@ -90,7 +90,7 @@
           }}
         </p>
       </div>
-      <button class="btn text-xs w-full justify-center" @click="emit('complete', won, draw)">确定</button>
+      <Button class="w-full justify-center" @click="emit('complete', won, draw)">确定</Button>
     </template>
   </div>
 </template>
@@ -100,6 +100,7 @@
   import { BUCKSHOT_BET_AMOUNT, BUCKSHOT_WIN_MULTIPLIER, dealerDecide } from '@/data/hanhai'
   import { sfxGunshot, sfxGunEmpty, sfxCasinoWin, sfxCasinoLose } from '@/composables/useAudio'
   import type { BuckshotSetup, ShellType } from '@/types'
+  import Button from '@/components/game/Button.vue'
 
   const props = defineProps<{ setup: BuckshotSetup }>()
   const emit = defineEmits<{ complete: [won: boolean, draw: boolean] }>()

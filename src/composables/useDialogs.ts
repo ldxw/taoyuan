@@ -133,6 +133,19 @@ export const closePetAdoption = () => {
   pendingPetAdoption.value = false
 }
 
+/** 子女提议弹窗 */
+const childProposalVisible = ref(false)
+
+/** 显示子女提议弹窗 */
+export const showChildProposal = () => {
+  childProposalVisible.value = true
+}
+
+/** 关闭子女提议弹窗 */
+export const closeChildProposal = () => {
+  childProposalVisible.value = false
+}
+
 export const useDialogs = () => {
   return {
     currentEvent,
@@ -140,6 +153,7 @@ export const useDialogs = () => {
     currentFestival,
     pendingPerk,
     pendingPetAdoption,
+    childProposalVisible,
     checkAllPerks,
     handlePerkSelect,
     triggerHeartEvent,
@@ -150,6 +164,8 @@ export const useDialogs = () => {
     showFestival,
     closeFestival,
     triggerPetAdoption,
-    closePetAdoption
+    closePetAdoption,
+    showChildProposal,
+    closeChildProposal
   }
 }

@@ -1,12 +1,24 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { InventoryItem, Quality, Tool, ToolType, ToolTier, OwnedWeapon, OwnedRing, RingEffectType, OwnedHat, OwnedShoe } from '@/types'
+
+/** 装备方案 */
+export interface EquipmentPreset {
+  id: string
+  name: string
+  weaponDefId: string | null
+  ringSlot1DefId: string | null
+  ringSlot2DefId: string | null
+  hatDefId: string | null
+  shoeDefId: string | null
+}
 import { showFloat } from '@/composables/useGameLog'
 import { getItemById } from '@/data/items'
 import { getWeaponById, getEnchantmentById, getWeaponSellPrice } from '@/data/weapons'
 import { getRingById } from '@/data/rings'
 import { getHatById } from '@/data/hats'
 import { getShoeById } from '@/data/shoes'
+import { EQUIPMENT_SETS } from '@/data/equipmentSets'
 import { usePlayerStore } from './usePlayerStore'
 import { useAchievementStore } from './useAchievementStore'
 
@@ -48,6 +60,11 @@ export const useInventoryStore = defineStore('inventory', () => {
   const ownedShoes = ref<OwnedShoe[]>([])
   /** 当前装备的鞋子索引（-1 = 空） */
   const equippedShoeIndex = ref(-1)
+
+  /** 装备方案列表 */
+  const equipmentPresets = ref<EquipmentPreset[]>([])
+  /** 当前使用的方案ID */
+  const activePresetId = ref<string | null>(null)
 
   /** 正在升级中的工具（2天等待期） */
   const pendingUpgrade = ref<{ toolType: ToolType; targetTier: ToolTier; daysRemaining: number } | null>(null)
@@ -483,6 +500,10 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
       }
     }
+    // 套装奖励
+    for (const b of activeSetBonuses.value) {
+      if (b.type === effectType) total += b.value
+    }
     return total
   }
 
@@ -490,6 +511,66 @@ export const useInventoryStore = defineStore('inventory', () => {
   const getRingEffectValue = (effectType: RingEffectType): number => {
     return getEquipmentBonus(effectType)
   }
+
+  // ============================================================
+  // 套装系统
+  // ============================================================
+
+  /** 计算当前装备中每个套装的激活件数 */
+  const _getSetPieceCount = (set: (typeof EQUIPMENT_SETS)[number]): number => {
+    let count = 0
+    // 戒指：两个槽位只算一次（避免两个同ID戒指重复计数）
+    let ringMatched = false
+    for (const idx of [equippedRingSlot1.value, equippedRingSlot2.value]) {
+      if (!ringMatched && idx >= 0 && idx < ownedRings.value.length && ownedRings.value[idx]!.defId === set.pieces.ring) {
+        ringMatched = true
+        count++
+      }
+    }
+    if (
+      equippedHatIndex.value >= 0 &&
+      equippedHatIndex.value < ownedHats.value.length &&
+      ownedHats.value[equippedHatIndex.value]!.defId === set.pieces.hat
+    )
+      count++
+    if (
+      equippedShoeIndex.value >= 0 &&
+      equippedShoeIndex.value < ownedShoes.value.length &&
+      ownedShoes.value[equippedShoeIndex.value]!.defId === set.pieces.shoe
+    )
+      count++
+    return count
+  }
+
+  /** 当前激活的套装奖励效果列表 */
+  const activeSetBonuses = computed(() => {
+    const bonuses: { type: RingEffectType; value: number }[] = []
+    for (const set of EQUIPMENT_SETS) {
+      const count = _getSetPieceCount(set)
+      for (const bonus of set.bonuses) {
+        if (count >= bonus.count) bonuses.push(...bonus.effects)
+      }
+    }
+    return bonuses
+  })
+
+  /** 套装激活状态（供UI显示） */
+  const activeSets = computed(() => {
+    return EQUIPMENT_SETS.map(set => {
+      const equippedCount = _getSetPieceCount(set)
+      return {
+        id: set.id,
+        name: set.name,
+        description: set.description,
+        equippedCount,
+        bonuses: set.bonuses.map(b => ({
+          count: b.count,
+          description: b.description,
+          active: equippedCount >= b.count
+        }))
+      }
+    }).filter(s => s.equippedCount > 0)
+  })
 
   /** 合成戒指 */
   const craftRing = (defId: string): { success: boolean; message: string } => {
@@ -657,6 +738,107 @@ export const useInventoryStore = defineStore('inventory', () => {
     return { success: true, message: `合成了${def.name}！` }
   }
 
+  // ============================================================
+  // 装备方案系统
+  // ============================================================
+
+  /** 创建空方案 */
+  const createEquipmentPreset = (name: string): boolean => {
+    if (equipmentPresets.value.length >= 3) return false
+    equipmentPresets.value.push({
+      id: Date.now().toString(),
+      name,
+      weaponDefId: null,
+      ringSlot1DefId: null,
+      ringSlot2DefId: null,
+      hatDefId: null,
+      shoeDefId: null
+    })
+    return true
+  }
+
+  /** 删除方案 */
+  const deleteEquipmentPreset = (id: string) => {
+    const idx = equipmentPresets.value.findIndex(p => p.id === id)
+    if (idx >= 0) equipmentPresets.value.splice(idx, 1)
+    if (activePresetId.value === id) activePresetId.value = null
+  }
+
+  /** 重命名方案 */
+  const renameEquipmentPreset = (id: string, name: string) => {
+    const preset = equipmentPresets.value.find(p => p.id === id)
+    if (preset) preset.name = name.trim() || preset.name
+  }
+
+  /** 将当前装备保存到方案 */
+  const saveCurrentToPreset = (id: string) => {
+    const preset = equipmentPresets.value.find(p => p.id === id)
+    if (!preset) return
+    preset.weaponDefId = ownedWeapons.value[equippedWeaponIndex.value]?.defId ?? null
+    preset.ringSlot1DefId = equippedRingSlot1.value >= 0 ? (ownedRings.value[equippedRingSlot1.value]?.defId ?? null) : null
+    preset.ringSlot2DefId = equippedRingSlot2.value >= 0 ? (ownedRings.value[equippedRingSlot2.value]?.defId ?? null) : null
+    preset.hatDefId = equippedHatIndex.value >= 0 ? (ownedHats.value[equippedHatIndex.value]?.defId ?? null) : null
+    preset.shoeDefId = equippedShoeIndex.value >= 0 ? (ownedShoes.value[equippedShoeIndex.value]?.defId ?? null) : null
+  }
+
+  /** 应用装备方案 */
+  const applyEquipmentPreset = (id: string): { success: boolean; message: string } => {
+    const preset = equipmentPresets.value.find(p => p.id === id)
+    if (!preset) return { success: false, message: '方案不存在。' }
+
+    const missing: string[] = []
+
+    // 武器
+    if (preset.weaponDefId) {
+      const idx = ownedWeapons.value.findIndex(w => w.defId === preset.weaponDefId)
+      if (idx >= 0) equipWeapon(idx)
+      else missing.push('武器')
+    }
+
+    // 戒指槽1
+    if (preset.ringSlot1DefId) {
+      const idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot1DefId)
+      if (idx >= 0) equipRing(idx, 0)
+      else missing.push('戒指1')
+    } else {
+      unequipRing(0)
+    }
+
+    // 戒指槽2
+    if (preset.ringSlot2DefId) {
+      const idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot2DefId)
+      if (idx >= 0) equipRing(idx, 1)
+      else missing.push('戒指2')
+    } else {
+      unequipRing(1)
+    }
+
+    // 帽子
+    if (preset.hatDefId) {
+      const idx = ownedHats.value.findIndex(h => h.defId === preset.hatDefId)
+      if (idx >= 0) equipHat(idx)
+      else missing.push('帽子')
+    } else {
+      unequipHat()
+    }
+
+    // 鞋子
+    if (preset.shoeDefId) {
+      const idx = ownedShoes.value.findIndex(s => s.defId === preset.shoeDefId)
+      if (idx >= 0) equipShoe(idx)
+      else missing.push('鞋子')
+    } else {
+      unequipShoe()
+    }
+
+    activePresetId.value = id
+
+    if (missing.length > 0) {
+      return { success: true, message: `已应用方案「${preset.name}」，但${missing.join('、')}已不在背包中。` }
+    }
+    return { success: true, message: `已应用方案「${preset.name}」。` }
+  }
+
   const serialize = () => {
     return {
       items: items.value,
@@ -672,7 +854,9 @@ export const useInventoryStore = defineStore('inventory', () => {
       ownedHats: ownedHats.value,
       equippedHatIndex: equippedHatIndex.value,
       ownedShoes: ownedShoes.value,
-      equippedShoeIndex: equippedShoeIndex.value
+      equippedShoeIndex: equippedShoeIndex.value,
+      equipmentPresets: equipmentPresets.value,
+      activePresetId: activePresetId.value
     }
   }
 
@@ -739,6 +923,10 @@ export const useInventoryStore = defineStore('inventory', () => {
     ownedShoes.value = ((data as Record<string, unknown>).ownedShoes as OwnedShoe[]) ?? []
     equippedShoeIndex.value = ((data as Record<string, unknown>).equippedShoeIndex as number | undefined) ?? -1
     if (equippedShoeIndex.value >= ownedShoes.value.length) equippedShoeIndex.value = -1
+
+    // 装备方案（向后兼容旧存档）
+    equipmentPresets.value = ((data as Record<string, unknown>).equipmentPresets as EquipmentPreset[] | undefined) ?? []
+    activePresetId.value = ((data as Record<string, unknown>).activePresetId as string | null | undefined) ?? null
   }
 
   return {
@@ -786,6 +974,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     getRingEffectValue,
     getEquipmentBonus,
     craftRing,
+    activeSets,
     ownedHats,
     equippedHatIndex,
     addHat,
@@ -802,6 +991,13 @@ export const useInventoryStore = defineStore('inventory', () => {
     unequipShoe,
     sellShoe,
     craftShoe,
+    equipmentPresets,
+    activePresetId,
+    createEquipmentPreset,
+    deleteEquipmentPreset,
+    renameEquipmentPreset,
+    saveCurrentToPreset,
+    applyEquipmentPreset,
     serialize,
     deserialize
   }

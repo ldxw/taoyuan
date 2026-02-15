@@ -1,14 +1,14 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Ship :size="14" />
-      端午赛龙舟
+      <span>端午赛龙舟</span>
     </h3>
 
     <!-- 准备阶段 -->
     <div v-if="phase === 'ready'">
       <p class="text-xs text-muted mb-3">三条龙舟蓄势待发！疯狂点击「划桨」按钮让龙舟前进，10秒内看谁划得最远！</p>
-      <button class="btn text-xs w-full" @click="startCountdown">开始比赛！</button>
+      <Button class="w-full" @click="startCountdown">开始比赛！</Button>
     </div>
 
     <!-- 倒计时 -->
@@ -30,7 +30,7 @@
       <!-- 赛道 -->
       <div class="border border-accent/20 p-2 mb-3">
         <div v-for="(boat, i) in boats" :key="i" class="mb-2 last:mb-0">
-          <div class="flex items-center gap-2 mb-0.5">
+          <div class="flex items-center space-x-2 mb-0.5">
             <span class="text-xs w-14" :class="boatColor(i)">
               {{ boat.name }}
             </span>
@@ -55,11 +55,8 @@
       </div>
 
       <!-- 划桨按钮 + 点击计数 -->
-      <div class="flex items-center gap-2">
-        <button class="btn flex-1 py-3 text-sm active:bg-accent! active:text-bg! paddle-btn" @click="paddle">
-          <Zap :size="14" />
-          划桨！
-        </button>
+      <div class="flex items-center space-x-2">
+        <Button class="flex-1 py-3 text-sm active:!bg-accent active:!text-bg paddle-btn" :icon="Zap" @click="paddle">划桨！</Button>
         <div class="text-center min-w-12">
           <p class="text-accent text-sm font-bold">{{ clickCount }}</p>
           <p class="text-xs text-muted leading-none">次</p>
@@ -78,7 +75,7 @@
           class="flex items-center justify-between text-xs px-2 py-1.5 border-b border-accent/10 last:border-0"
           :class="{ 'bg-accent/5': entry.name === '你' }"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center space-x-2">
             <span class="w-5 flex justify-center" :class="rankColor(i)">
               <Trophy v-if="i === 0" :size="12" />
               <Medal v-else-if="i === 1" :size="12" />
@@ -96,7 +93,7 @@
         <span v-else class="text-muted text-xs">获得了季军。奖金 200文</span>
       </div>
 
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -114,6 +111,7 @@
     sfxRankSecond,
     sfxRankThird
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

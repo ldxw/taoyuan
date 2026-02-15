@@ -8,6 +8,7 @@ import {
   BAITS,
   TACKLES,
   TAPPER,
+  CRAB_POT_CRAFT,
   BOMBS,
   getRecipesForMachine,
   getProcessingRecipeById
@@ -114,6 +115,13 @@ export const useProcessingStore = defineStore('processing', () => {
     return true
   }
 
+  /** 制造蟹笼 */
+  const craftCrabPot = (): boolean => {
+    if (!consumeCraftMaterials(CRAB_POT_CRAFT.craftCost, CRAB_POT_CRAFT.craftMoney)) return false
+    inventoryStore.addItem(CRAB_POT_CRAFT.id)
+    return true
+  }
+
   /** 制造炸弹 */
   const craftBomb = (bombId: string): boolean => {
     const def = BOMBS.find(b => b.id === bombId)
@@ -199,6 +207,27 @@ export const useProcessingStore = defineStore('processing', () => {
       }
     }
     machines.value.splice(slotIndex, 1)
+    return true
+  }
+
+  /** 取消加工（退回原料，机器回到空闲状态） */
+  const cancelProcessing = (slotIndex: number): boolean => {
+    const slot = machines.value[slotIndex]
+    if (!slot || !slot.recipeId) return false
+    // 如果正在加工且有原料投入，退回原料
+    if (!slot.ready && slot.inputItemId) {
+      const recipe = getProcessingRecipeById(slot.recipeId)
+      if (recipe && recipe.inputItemId) {
+        inventoryStore.addItem(recipe.inputItemId, recipe.inputQuantity, slot.inputQuality ?? 'normal')
+      }
+    }
+    // 重置为空闲
+    slot.recipeId = null
+    slot.inputItemId = null
+    slot.inputQuality = undefined
+    slot.daysProcessed = 0
+    slot.totalDays = 0
+    slot.ready = false
     return true
   }
 
@@ -289,9 +318,11 @@ export const useProcessingStore = defineStore('processing', () => {
     craftBait,
     craftTackle,
     craftTapper,
+    craftCrabPot,
     craftBomb,
     startProcessing,
     collectProduct,
+    cancelProcessing,
     removeMachine,
     getAvailableRecipes,
     dailyUpdate,

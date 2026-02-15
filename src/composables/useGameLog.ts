@@ -22,12 +22,14 @@ Qmsg.config({
   showIcon: false,
   maxNums: 5,
   timeout: 2500,
+  isHTML: true,
   useShadowRoot: false
 })
 
 /** 动态更新 Qmsg 全部通知配置 */
 export const applyQmsgConfig = (opts: QmsgConfigOptions) => {
   Qmsg.config({
+    isHTML: true,
     position: opts.position as 'top',
     timeout: opts.timeout,
     maxNums: opts.maxNums,

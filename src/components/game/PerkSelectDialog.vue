@@ -4,11 +4,11 @@
       <h3 class="text-accent text-sm mb-2">{{ SKILL_NAMES[skillType] }} 达到{{ level }}级！</h3>
       <p class="text-xs text-muted mb-4">选择一个专精方向：</p>
 
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col space-y-3">
         <button
           v-for="option in options"
           :key="option.id"
-          class="btn text-xs text-left flex flex-col gap-1 py-3"
+          class="btn text-xs text-left flex flex-col space-y-1 py-3"
           @click="handleSelect(option.id)"
         >
           <span class="text-accent">{{ option.name }}</span>

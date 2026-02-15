@@ -241,13 +241,11 @@ export const handleBuySeed = (seedId: string) => {
 /** 通过商店出售物品 */
 export const handleSellItem = (itemId: string, quality: Quality) => {
   const shopStore = useShopStore()
-  const achievementStore = useAchievementStore()
   const itemDef = getItemById(itemId)
   if (!itemDef) return
   const earned = shopStore.sellItem(itemId, 1, quality)
   if (earned > 0) {
     sfxCoin()
-    achievementStore.recordMoneyEarned(earned)
     showFloat(`+${earned}文`, 'accent')
     addLog(`卖出了${itemDef.name}。(+${earned}文)`)
   }
@@ -256,13 +254,11 @@ export const handleSellItem = (itemId: string, quality: Quality) => {
 /** 出售指定物品的全部数量 */
 export const handleSellItemAll = (itemId: string, quantity: number, quality: Quality) => {
   const shopStore = useShopStore()
-  const achievementStore = useAchievementStore()
   const itemDef = getItemById(itemId)
   if (!itemDef || quantity <= 0) return
   const earned = shopStore.sellItem(itemId, quantity, quality)
   if (earned > 0) {
     sfxCoin()
-    achievementStore.recordMoneyEarned(earned)
     showFloat(`+${earned}文`, 'accent')
     addLog(`卖出了${itemDef.name}×${quantity}。(+${earned}文)`)
   }
@@ -272,7 +268,6 @@ export const handleSellItemAll = (itemId: string, quantity: number, quality: Qua
 export const handleSellAll = () => {
   const shopStore = useShopStore()
   const inventoryStore = useInventoryStore()
-  const achievementStore = useAchievementStore()
   let totalEarned = 0
   let totalCount = 0
   // 快照当前可卖物品（避免遍历中修改数组）
@@ -291,7 +286,6 @@ export const handleSellAll = () => {
   }
   if (totalEarned > 0) {
     sfxCoin()
-    achievementStore.recordMoneyEarned(totalEarned)
     showFloat(`+${totalEarned}文`, 'accent')
     addLog(`一键出售了${totalCount}件物品。(+${totalEarned}文)`)
   }
@@ -317,8 +311,7 @@ export const handleBatchWater = () => {
     return
   }
 
-  const sprinklerCovered = farmStore.getAllWateredBySprinklers()
-  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered && !sprinklerCovered.has(p.id))
+  const targets = farmStore.plots.filter(p => (p.state === 'planted' || p.state === 'growing') && !p.watered)
   if (targets.length === 0) {
     addLog('没有需要浇水的地块。')
     return

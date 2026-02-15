@@ -1,8 +1,8 @@
 <template>
   <div class="game-panel max-w-sm w-full">
-    <h3 class="text-accent text-sm mb-3 flex items-center gap-1">
+    <h3 class="text-accent text-sm mb-3 flex items-center space-x-1">
       <Coffee :size="14" />
-      斗茶大会
+      <span>斗茶大会</span>
     </h3>
 
     <!-- 准备 -->
@@ -10,7 +10,7 @@
       <p class="text-xs text-muted mb-3">
         品茗斗茶，考的是功夫！共3轮，每轮需依次完成三步：控温、投茶、出汤。条子会从左往右填充，在目标标记附近按下按钮！越精准得分越高！
       </p>
-      <button class="btn text-xs w-full" @click="startGame">开始斗茶！</button>
+      <Button class="w-full" @click="startGame">开始斗茶！</Button>
     </div>
 
     <!-- 泡茶进行中 -->
@@ -24,12 +24,12 @@
       </div>
 
       <!-- 轮次进度点 -->
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 3" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
 
       <!-- 步骤进度 -->
-      <div class="flex justify-center gap-1 mb-2">
+      <div class="flex justify-center space-x-1 mb-2">
         <div
           v-for="(s, i) in BREW_STEPS"
           :key="i"
@@ -73,15 +73,12 @@
         </div>
       </div>
 
-      <button class="btn text-xs w-full py-2" @click="lockStep">
-        <Droplets :size="14" />
-        {{ currentStepDef.action }}
-      </button>
+      <Button class="w-full py-2" :icon="Droplets" @click="lockStep">{{ currentStepDef.action }}</Button>
     </div>
 
     <!-- 单步结果反馈 -->
     <div v-else-if="phase === 'step_result'" class="text-center py-2">
-      <div class="flex justify-center gap-1.5 mb-2">
+      <div class="flex justify-center space-x-1.5 mb-2">
         <div v-for="i in 3" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
       <div :class="lastStepGrade === 'perfect' ? 'step-perfect' : lastStepGrade === 'good' ? '' : 'step-miss'">
@@ -101,7 +98,7 @@
 
     <!-- 单轮总结 -->
     <div v-else-if="phase === 'round_result'" class="text-center py-2">
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 3" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
       <div :class="lastRoundGrade === 'perfect' ? 'pot-hit' : lastRoundGrade === 'good' ? '' : 'wrong-shake'">
@@ -123,7 +120,7 @@
     <div v-else-if="phase === 'finished'">
       <p class="text-xs text-muted mb-2">斗茶结束！</p>
 
-      <div class="flex justify-center gap-1.5 mb-3">
+      <div class="flex justify-center space-x-1.5 mb-3">
         <div v-for="i in 3" :key="i" class="w-2 h-2" :class="roundDotClass(i - 1)" />
       </div>
 
@@ -159,7 +156,7 @@
           文
         </p>
       </div>
-      <button class="btn text-xs w-full" @click="handleClaim">领取奖励</button>
+      <Button class="w-full" @click="handleClaim">领取奖励</Button>
     </div>
   </div>
 </template>
@@ -179,6 +176,7 @@
     sfxRankFirst,
     sfxRankSecond
   } from '@/composables/useAudio'
+  import Button from '@/components/game/Button.vue'
 
   const emit = defineEmits<{ complete: [prize: number] }>()
 

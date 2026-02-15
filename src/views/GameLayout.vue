@@ -1,12 +1,11 @@
 <template>
-  <div v-if="gameStore.isGameStarted" class="flex flex-col gap-2 md:gap-4 h-screen p-2 md:p-4" :class="{ 'py-10': isWebView }">
+  <div v-if="gameStore.isGameStarted" class="flex flex-col space-y-2 md:space-y-4 h-screen p-2 md:p-4" :class="{ 'py-10': isWebView }">
     <!-- 状态栏 -->
     <StatusBar @request-sleep="showSleepConfirm = true" />
 
-    <button class="btn text-center justify-center text-sm md:hidden!" @click.stop="showSleepConfirm = true">
-      <Moon :size="12" />
+    <Button class="text-center justify-center !text-sm md:!hidden" :icon="Moon" :icon-size="12" @click.stop="showSleepConfirm = true">
       {{ sleepLabel }}
-    </button>
+    </Button>
 
     <!-- 内容 -->
     <div class="game-panel flex-1 min-h-0 overflow-y-auto">
@@ -18,10 +17,10 @@
     </div>
 
     <!-- 移动端地图按钮 -->
-    <button class="mobile-map-btn md:hidden!" @click="showMobileMap = true">
+    <button class="mobile-map-btn md:!hidden" @click="showMobileMap = true">
       <Map :size="20" />
     </button>
-    <button class="mobile-setting-btn md:hidden!" @click="showSettings = true">
+    <button class="mobile-setting-btn md:!hidden" @click="showSettings = true">
       <SettingsIcon :size="20" />
     </button>
 
@@ -66,9 +65,9 @@
         <div class="game-panel max-w-xs w-full text-center">
           <p class="text-accent text-sm mb-3">—— 小动物来访 ——</p>
           <p class="text-xs leading-relaxed mb-3">一只小动物在你家门口徘徊，看起来很想有个家。你要收养它吗？</p>
-          <div class="flex gap-3 justify-center mb-3">
-            <button class="btn text-xs" :class="petChoice === 'cat' ? 'bg-accent! text-bg!' : ''" @click="petChoice = 'cat'">猫</button>
-            <button class="btn text-xs" :class="petChoice === 'dog' ? 'bg-accent! text-bg!' : ''" @click="petChoice = 'dog'">狗</button>
+          <div class="flex space-x-3 justify-center mb-3">
+            <Button :class="petChoice === 'cat' ? '!bg-accent !text-bg' : ''" @click="petChoice = 'cat'">猫</Button>
+            <Button :class="petChoice === 'dog' ? '!bg-accent !text-bg' : ''" @click="petChoice = 'dog'">狗</Button>
           </div>
           <div v-if="petChoice" class="mb-3">
             <p class="text-xs text-muted mb-1">给它取个名字：</p>
@@ -79,7 +78,22 @@
               maxlength="8"
             />
           </div>
-          <button class="btn text-xs" :disabled="!petChoice" @click="confirmPetAdoption">领养</button>
+          <Button :disabled="!petChoice" @click="confirmPetAdoption">领养</Button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 子女提议弹窗 -->
+    <Transition name="panel-fade">
+      <div v-if="childProposalVisible" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="game-panel max-w-xs w-full text-center">
+          <p class="text-accent text-sm mb-3">—— 家庭提议 ——</p>
+          <p class="text-xs leading-relaxed mb-4">{{ proposalSpouseName }}轻声说道：「最近我在想，我们是不是该要个孩子了？」</p>
+          <div class="flex flex-col space-y-1.5">
+            <Button class="w-full justify-center" @click="handleChildProposalResponse('accept')">「我也这么想。」</Button>
+            <Button class="w-full justify-center" @click="handleChildProposalResponse('wait')">「再等等吧。」</Button>
+            <Button class="w-full justify-center text-muted" @click="handleChildProposalResponse('decline')">「现在还不是时候。」</Button>
+          </div>
         </div>
       </div>
     </Transition>
@@ -91,15 +105,9 @@
           <p class="text-accent text-sm mb-3">—— {{ sleepLabel }} ——</p>
           <p class="text-xs leading-relaxed mb-1">{{ sleepSummary }}</p>
           <p v-if="sleepWarning" class="text-danger text-xs mb-1">{{ sleepWarning }}</p>
-          <div class="flex gap-3 justify-center mt-4">
-            <button class="btn text-xs" @click="showSleepConfirm = false">
-              <X :size="12" />
-              再等等
-            </button>
-            <button class="btn btn-danger text-xs" @click="confirmSleep">
-              <Moon :size="12" />
-              {{ sleepLabel }}
-            </button>
+          <div class="flex space-x-3 justify-center mt-4">
+            <Button :icon="X" :icon-size="12" @click="showSleepConfirm = false">再等等</Button>
+            <Button class="btn-danger" :icon="Moon" :icon-size="12" @click="confirmSleep">{{ sleepLabel }}</Button>
           </div>
         </div>
       </div>
@@ -110,12 +118,15 @@
 <script setup lang="ts">
   import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import { useGameStore, usePlayerStore, useAnimalStore } from '@/stores'
+  import { useGameStore, usePlayerStore, useAnimalStore, useNpcStore } from '@/stores'
   import { useDialogs } from '@/composables/useDialogs'
   import { handleEndDay } from '@/composables/useEndDay'
+  import { addLog } from '@/composables/useGameLog'
+  import { getNpcById } from '@/data'
   import { useGameClock } from '@/composables/useGameClock'
   import { useAudio } from '@/composables/useAudio'
   import { Moon, X, Map, Settings as SettingsIcon } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import MobileMapMenu from '@/components/game/MobileMapMenu.vue'
   import StatusBar from '@/components/game/StatusBar.vue'
   import EventDialog from '@/components/game/EventDialog.vue'
@@ -149,12 +160,16 @@
     currentFestival,
     pendingPerk,
     pendingPetAdoption,
+    childProposalVisible,
     closeEvent,
     closeHeartEvent,
     closeFestival,
     handlePerkSelect,
-    closePetAdoption
+    closePetAdoption,
+    closeChildProposal
   } = useDialogs()
+
+  const npcStore = useNpcStore()
 
   const { startClock, stopClock, pauseClock, resumeClock } = useGameClock()
 
@@ -180,6 +195,7 @@
         currentFestival.value ||
         pendingPerk.value ||
         pendingPetAdoption.value ||
+        childProposalVisible.value ||
         showSleepConfirm.value
       ),
     hasModal => {
@@ -237,6 +253,22 @@
     petNameInput.value = ''
   }
 
+  /** 子女提议回应 */
+  const proposalSpouseName = computed(() => {
+    const spouse = npcStore.getSpouse()
+    if (!spouse) return '配偶'
+    return getNpcById(spouse.npcId)?.name ?? '配偶'
+  })
+
+  const handleChildProposalResponse = (response: 'accept' | 'decline' | 'wait') => {
+    const result = npcStore.respondToChildProposal(response)
+    addLog(result.message)
+    if (result.friendshipChange !== 0) {
+      addLog(`(好感${result.friendshipChange > 0 ? '+' : ''}${result.friendshipChange})`)
+    }
+    closeChildProposal()
+  }
+
   const confirmSleep = () => {
     showSleepConfirm.value = false
     pauseClock()
@@ -251,8 +283,8 @@
   .mobile-map-btn,
   .mobile-setting-btn {
     position: fixed;
-    bottom: calc(calc(var(--spacing) * 10) + constant(safe-area-inset-bottom, 0px));
-    bottom: calc(calc(var(--spacing) * 10) + env(safe-area-inset-bottom, 0px));
+    bottom: calc(calc(0.35rem * 10) + constant(safe-area-inset-bottom, 0px));
+    bottom: calc(calc(0.35rem * 10) + env(safe-area-inset-bottom, 0px));
     right: 12px;
     z-index: 40;
     width: 40px;
@@ -272,8 +304,8 @@
   }
 
   .mobile-setting-btn {
-    bottom: calc(calc(var(--spacing) * 10) + 48px + constant(safe-area-inset-bottom, 0px));
-    bottom: calc(calc(var(--spacing) * 10) + 48px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(calc(0.35rem * 10) + 48px + constant(safe-area-inset-bottom, 0px));
+    bottom: calc(calc(0.35rem * 10) + 48px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-map-btn:hover,

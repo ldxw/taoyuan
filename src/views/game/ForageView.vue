@@ -20,7 +20,7 @@
         <span class="text-xs text-muted">{{ playerStore.stamina }}/{{ playerStore.maxStamina }} 体力</span>
       </div>
       <!-- 天气/加成提示 -->
-      <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-2">
+      <div class="flex flex-wrap space-x-3 mt-2">
         <span v-if="weatherMod !== 1" class="text-[10px]" :class="weatherMod > 1 ? 'text-success' : 'text-danger'">
           {{ weatherModLabel }}
         </span>
@@ -40,7 +40,7 @@
         <Search :size="14" class="inline" />
         采集结果
       </p>
-      <div v-if="lastResults.length > 0" class="flex flex-col gap-1">
+      <div v-if="lastResults.length > 0" class="flex flex-col space-y-1">
         <div v-for="(r, i) in lastResults" :key="i" class="flex items-center border border-accent/10 rounded-xs px-3 py-1.5">
           <span class="text-xs">{{ r }}</span>
         </div>
@@ -57,7 +57,7 @@
         <p class="text-sm text-accent">当季采集物</p>
         <span class="text-xs text-muted">{{ SEASON_NAMES[gameStore.season] }}季</span>
       </div>
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col space-y-1">
         <div
           v-for="item in currentForage"
           :key="item.itemId"

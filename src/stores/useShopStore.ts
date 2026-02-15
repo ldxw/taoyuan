@@ -53,7 +53,9 @@ export const useShopStore = defineStore('shop', () => {
         cropName: crop.name,
         price: crop.seedPrice,
         growthDays: crop.growthDays,
-        sellPrice: crop.sellPrice
+        sellPrice: crop.sellPrice,
+        regrowth: crop.regrowth ?? false,
+        regrowthDays: crop.regrowthDays
       }))
   })
 
@@ -98,7 +100,9 @@ export const useShopStore = defineStore('shop', () => {
     { itemId: 'animal_medicine', name: '兽药', price: 150, description: '治疗生病的牲畜' },
     { itemId: 'premium_feed', name: '精饲料', price: 200, description: '提升动物心情和好感' },
     { itemId: 'nourishing_feed', name: '滋补饲料', price: 250, description: '加速动物产出' },
-    { itemId: 'vitality_feed', name: '活力饲料', price: 300, description: '喂食必定治愈疾病' }
+    { itemId: 'vitality_feed', name: '活力饲料', price: 300, description: '喂食必定治愈疾病' },
+    { itemId: 'fish_feed', name: '鱼饲料', price: 30, description: '鱼塘专用饲料' },
+    { itemId: 'water_purifier', name: '水质改良剂', price: 100, description: '改善鱼塘水质' }
   ])
 
   // === 渔具铺 (秋月) ===
@@ -122,6 +126,11 @@ export const useShopStore = defineStore('shop', () => {
       price: t.shopPrice!
     }))
   )
+
+  /** 渔具铺其他商品 */
+  const fishingShopItems = computed<ShopItemEntry[]>(() => [
+    { itemId: 'crab_pot', name: '蟹笼', price: 1500, description: '放置在钓鱼地点，每日自动捕获水产（需鱼饵）' }
+  ])
 
   // === 绸缎庄 (素素) ===
 
@@ -356,6 +365,7 @@ export const useShopStore = defineStore('shop', () => {
     // 渔具铺
     shopBaits,
     shopTackles,
+    fishingShopItems,
     // 药铺
     shopFertilizers,
     apothecaryItems,

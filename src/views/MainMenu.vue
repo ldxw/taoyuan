@@ -1,30 +1,27 @@
 <template>
   <div
-    class="flex min-h-screen flex-col items-center justify-center gap-8 px-4"
+    class="flex min-h-screen flex-col items-center justify-center space-y-8 px-4"
     @click.once="startBgm"
     :class="{ 'py-10': isWebView }"
     @click="slotMenuOpen = null"
   >
     <!-- 标题 -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center space-x-3">
       <div class="logo" />
       <h1 class="text-accent text-2xl md:text-4xl tracking-widest">{{ pkg.title }}</h1>
     </div>
 
     <!-- 主菜单 -->
-    <div class="flex flex-col gap-3 w-full md:w-110">
-      <button class="btn text-center justify-center text-lg py-3" @click="showPrivacy = true">
-        <Play :size="14" />
-        新的旅程
-      </button>
+    <div class="flex flex-col space-y-3 w-full md:w-6/12">
+      <Button class="text-center justify-center py-3" :icon="Play" @click="showPrivacy = true">新的旅程</Button>
 
       <!-- 存档列表 -->
       <div v-for="info in slots" :key="info.slot" class="w-full">
-        <div v-if="info.exists" class="flex gap-1 w-full">
-          <button class="btn flex-1 justify-between!" @click="handleLoadGame(info.slot)">
-            <span class="inline-flex items-center gap-1">
+        <div v-if="info.exists" class="flex space-x-1 w-full">
+          <button class="btn flex-1 !justify-between" @click="handleLoadGame(info.slot)">
+            <span class="inline-flex items-center space-x-1">
               <FolderOpen :size="14" />
-              存档 {{ info.slot + 1 }}
+              <span>存档 {{ info.slot + 1 }}</span>
             </span>
             <span class="text-muted text-xs">
               {{ info.playerName ?? '未命名' }} · 第{{ info.year }}年 {{ SEASON_NAMES[info.season as keyof typeof SEASON_NAMES] }} 第{{
@@ -33,21 +30,33 @@
             </span>
           </button>
           <div class="relative">
-            <button class="btn px-2 text-xs h-full" @click.stop="slotMenuOpen = slotMenuOpen === info.slot ? null : info.slot">
-              <Settings :size="12" />
-            </button>
+            <Button
+              class="px-2 h-full"
+              :icon="Settings"
+              :icon-size="12"
+              @click.stop="slotMenuOpen = slotMenuOpen === info.slot ? null : info.slot"
+            />
             <div
               v-if="slotMenuOpen === info.slot"
               class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
             >
-              <button v-if="!isWebView" class="btn text-center rounded-none! justify-center text-sm" @click="handleExportSlot(info.slot)">
-                <Download :size="12" />
+              <Button
+                v-if="!isWebView"
+                class="text-center !rounded-none justify-center !text-sm"
+                :icon="Download"
+                :icon-size="12"
+                @click="handleExportSlot(info.slot)"
+              >
                 导出
-              </button>
-              <button class="btn btn-danger rounded-none! text-center justify-center text-sm" @click="handleDeleteSlot(info.slot)">
-                <Trash2 :size="12" />
+              </Button>
+              <Button
+                class="btn-danger !rounded-none text-center justify-center !text-sm"
+                :icon="Trash2"
+                :icon-size="12"
+                @click="handleDeleteSlot(info.slot)"
+              >
                 删除
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -55,17 +64,11 @@
 
       <!-- 导入存档 -->
       <template v-if="!isWebView">
-        <button class="btn text-center justify-center text-sm" @click="triggerImport">
-          <Upload :size="14" />
-          导入存档
-        </button>
+        <Button class="text-center justify-center" :icon="Upload" @click="triggerImport">导入存档</Button>
         <input ref="fileInputRef" type="file" accept=".tyx" class="hidden" @change="handleImportFile" />
       </template>
       <!-- 关于 -->
-      <button class="btn text-center justify-center text-sm text-muted" @click="showAbout = true">
-        <Info :size="14" />
-        关于
-      </button>
+      <Button class="text-center justify-center text-muted" :icon="Info" @click="showAbout = true">关于游戏</Button>
     </div>
 
     <!-- 关于弹窗 -->
@@ -75,9 +78,9 @@
           <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showAbout = false">
             <X :size="14" />
           </button>
-          <h2 class="text-accent text-lg mb-4">关于{{ pkg.title }}</h2>
-          <p class="text-xs text-muted mb-2">一款文字田园物语，灵感来自 Stardew Valley</p>
-          <div class="flex flex-col gap-3 text-sm">
+          <h2 class="text-accent text-lg mb-3">关于{{ pkg.title }}</h2>
+          <p class="text-xs text-muted mb-2">游戏灵感来自 Stardew Valley</p>
+          <div class="flex flex-col space-y-3 text-sm">
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-muted text-xs mb-1">当前版本</p>
               <p class="text-accent">v{{ pkg.version }}</p>
@@ -88,8 +91,14 @@
             </div>
             <div class="border border-accent/20 rounded-xs p-3">
               <p class="text-muted text-xs mb-1">GitHub 仓库</p>
-              <a :href="`https://github.com/setube/${pkg.name}`" target="_blank" rel="noopener" class="text-accent underline break-all">
+              <a :href="`https://github.com/setube/${pkg.name}`" target="_blank" class="text-accent underline break-all">
                 https://github.com/setube/{{ pkg.name }}
+              </a>
+            </div>
+            <div class="border border-accent/20 rounded-xs p-3">
+              <p class="text-muted text-xs mb-1">TapTap</p>
+              <a :href="`https://www.taptap.cn/app/${pkg.tapid}`" target="_blank" class="text-accent underline break-all">
+                https://www.taptap.cn/app/{{ pkg.tapid }}
               </a>
             </div>
           </div>
@@ -105,7 +114,7 @@
             <X :size="14" />
           </button>
           <p class="text-accent text-sm mb-4 text-center">创建你的角色</p>
-          <div class="flex flex-col gap-4">
+          <div class="flex flex-col space-y-4">
             <!-- 名字输入 -->
             <div>
               <label class="text-xs text-muted mb-1 block">你的名字</label>
@@ -120,33 +129,27 @@
             <!-- 性别选择 -->
             <div>
               <label class="text-xs text-muted mb-1 block">性别</label>
-              <div class="flex gap-3">
-                <button
-                  class="btn flex-1 justify-center py-2"
-                  :class="charGender === 'male' ? 'border-accent! bg-accent/10!' : ''"
+              <div class="flex space-x-3">
+                <Button
+                  class="flex-1 justify-center py-2"
+                  :class="charGender === 'male' ? '!border-accent !bg-accent/10' : ''"
                   @click="charGender = 'male'"
                 >
                   男
-                </button>
-                <button
-                  class="btn flex-1 justify-center py-2"
-                  :class="charGender === 'female' ? 'border-accent! bg-accent/10!' : ''"
+                </Button>
+                <Button
+                  class="flex-1 justify-center py-2"
+                  :class="charGender === 'female' ? '!border-accent !bg-accent/10' : ''"
                   @click="charGender = 'female'"
                 >
                   女
-                </button>
+                </Button>
               </div>
             </div>
           </div>
-          <div class="flex gap-3 justify-center mt-4">
-            <button class="btn text-xs" @click="handleBackToMenu">
-              <ArrowLeft :size="12" />
-              返回
-            </button>
-            <button class="btn text-xs px-6" :disabled="!charName.trim()" @click="handleCharCreateNext">
-              <Play :size="12" />
-              下一步
-            </button>
+          <div class="flex space-x-3 justify-center mt-4">
+            <Button :icon-size="12" :icon="ArrowLeft" @click="handleBackToMenu">返回</Button>
+            <Button class="px-6" :disabled="!charName.trim()" :icon-size="12" :icon="Play" @click="handleCharCreateNext">下一步</Button>
           </div>
         </div>
       </div>
@@ -175,10 +178,7 @@
             </div>
           </div>
           <div class="flex justify-center mt-3 shrink-0">
-            <button class="btn text-xs" @click="handleBackToCharCreate">
-              <ArrowLeft :size="12" />
-              返回
-            </button>
+            <Button :icon-size="12" :icon="ArrowLeft" @click="handleBackToCharCreate">返回</Button>
           </div>
         </div>
 
@@ -196,15 +196,9 @@
               <p class="text-accent text-sm mb-3">—— {{ selectedFarmDef?.name }} ——</p>
               <p class="text-xs text-muted mb-2">{{ selectedFarmDef?.description }}</p>
               <p class="text-xs text-accent mb-4">{{ selectedFarmDef?.bonus }}</p>
-              <div class="flex gap-3 justify-center">
-                <button class="btn text-xs" @click="showFarmConfirm = false">
-                  <ArrowLeft :size="12" />
-                  取消
-                </button>
-                <button class="btn text-xs px-6" @click="handleNewGame">
-                  <Play :size="12" />
-                  开始旅程
-                </button>
+              <div class="flex space-x-3 justify-center">
+                <Button :icon-size="12" :icon="ArrowLeft" @click="showFarmConfirm = false">取消</Button>
+                <Button class="px-6" :icon-size="12" :icon="Play" @click="handleNewGame">开始旅程</Button>
               </div>
             </div>
           </div>
@@ -218,7 +212,7 @@
         <div class="game-panel w-full max-w-xs mx-4 relative">
           <p class="text-accent text-sm mb-2 text-center">设置角色信息</p>
           <p class="text-xs text-muted mb-4 text-center">检测到角色信息为空，请设置你的角色信息</p>
-          <div class="flex flex-col gap-4">
+          <div class="flex flex-col space-y-4">
             <div>
               <label class="text-xs text-muted mb-1 block">你的名字</label>
               <input
@@ -231,29 +225,28 @@
             </div>
             <div>
               <label class="text-xs text-muted mb-1 block">性别</label>
-              <div class="flex gap-3">
-                <button
-                  class="btn flex-1 justify-center py-2"
-                  :class="charGender === 'male' ? 'border-accent! bg-accent/10!' : ''"
+              <div class="flex space-x-3">
+                <Button
+                  class="flex-1 justify-center py-2"
+                  :class="charGender === 'male' ? '!border-accent !bg-accent/10' : ''"
                   @click="charGender = 'male'"
                 >
                   男
-                </button>
-                <button
-                  class="btn flex-1 justify-center py-2"
-                  :class="charGender === 'female' ? 'border-accent! bg-accent/10!' : ''"
+                </Button>
+                <Button
+                  class="flex-1 justify-center py-2"
+                  :class="charGender === 'female' ? '!border-accent !bg-accent/10' : ''"
                   @click="charGender = 'female'"
                 >
                   女
-                </button>
+                </Button>
               </div>
             </div>
           </div>
           <div class="flex justify-center mt-4">
-            <button class="btn text-xs px-6" :disabled="!charName.trim()" @click="handleIdentityConfirm">
-              <Play :size="12" />
+            <Button class="px-6" :disabled="!charName.trim()" :icon-size="12" :icon="Play" @click="handleIdentityConfirm">
               确认并继续
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -269,9 +262,9 @@
         <div class="game-panel w-full max-w-xs mx-4 text-center">
           <p class="text-danger text-sm mb-3">确定删除存档 {{ deleteTargetSlot + 1 }}？</p>
           <p class="text-xs text-muted mb-4">此操作不可恢复。</p>
-          <div class="flex gap-3 justify-center">
-            <button class="btn text-xs" @click="deleteTargetSlot = null">取消</button>
-            <button class="btn btn-danger text-xs" @click="confirmDeleteSlot">确认删除</button>
+          <div class="flex space-x-3 justify-center">
+            <Button @click="deleteTargetSlot = null">取消</Button>
+            <Button class="btn-danger" @click="confirmDeleteSlot">确认删除</Button>
           </div>
         </div>
       </div>
@@ -304,15 +297,9 @@
             <p class="text-text">6. 协议变更</p>
             <p>本协议可能随版本更新而调整，届时将在游戏内重新提示。继续使用即视为同意最新版本的协议。</p>
           </div>
-          <div class="flex gap-3 justify-center">
-            <button class="btn text-sm" @click="handlePrivacyDecline">
-              <ArrowLeft :size="14" />
-              不同意
-            </button>
-            <button class="btn text-sm px-6" @click="handlePrivacyAgree">
-              <ShieldCheck :size="14" />
-              同意并继续
-            </button>
+          <div class="flex space-x-3 justify-center">
+            <Button class="!text-sm" :icon="ArrowLeft" @click="handlePrivacyDecline">不同意</Button>
+            <Button class="!text-sm px-6" :icon="ShieldCheck" @click="handlePrivacyAgree">同意并继续</Button>
           </div>
         </div>
       </div>
@@ -322,6 +309,7 @@
 
 <script setup lang="ts">
   import { Play, FolderOpen, ArrowLeft, Trash2, Download, Upload, Info, Settings, ShieldCheck, X } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { ref, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import { useGameStore, SEASON_NAMES } from '@/stores/useGameStore'
@@ -330,6 +318,7 @@
   import { useAnimalStore } from '@/stores/useAnimalStore'
   import { usePlayerStore } from '@/stores/usePlayerStore'
   import { useQuestStore } from '@/stores/useQuestStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
   import { FARM_MAP_DEFS } from '@/data/farmMaps'
   import _pkg from '../../package.json'
   import { useAudio } from '@/composables/useAudio'
@@ -346,6 +335,7 @@
   const animalStore = useAnimalStore()
   const playerStore = usePlayerStore()
   const questStore = useQuestStore()
+  const inventoryStore = useInventoryStore()
 
   const slots = ref(saveStore.getSlots())
   const showCharCreate = ref(false)
@@ -413,6 +403,8 @@
     gameStore.startNewGame(selectedMap.value)
     // 标准农场初始6×6，其余4×4
     farmStore.resetFarm(selectedMap.value === 'standard' ? 6 : 4)
+    // 新手赠送：10个青菜种子
+    inventoryStore.addItem('seed_cabbage', 10)
     // 草地农场：免费鸡舍 + 2只鸡
     if (selectedMap.value === 'meadowlands') {
       const coop = animalStore.buildings.find(b => b.type === 'coop')

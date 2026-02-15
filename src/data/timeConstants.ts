@@ -109,7 +109,11 @@ export const ACTION_TIME_COSTS = {
   checkSkills: 0,
   checkAchievement: 0,
   // 育种
-  breeding: 0.17
+  breeding: 0.17,
+  // 鱼塘
+  feedFish: 0.5,
+  cleanPond: 0.5,
+  collectFishProducts: 0.17
 } as const
 
 // === 地点分组映射 ===
@@ -122,6 +126,7 @@ export const TAB_TO_LOCATION_GROUP: Record<string, LocationGroup | null> = {
   cooking: 'village_area',
   workshop: 'farm',
   breeding: 'farm',
+  fishpond: 'farm',
   upgrade: 'village_area',
   forage: 'nature',
   fishing: 'nature',

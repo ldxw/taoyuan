@@ -5,9 +5,7 @@
         <Mountain :size="14" class="inline" />
         {{ miningStore.isInSkullCavern ? '骷髅矿穴' : '云隐矿洞' }}
       </h3>
-      <button class="btn text-xs py-0 px-1" @click="showMapModal = true">
-        <Map :size="14" />
-      </button>
+      <Button class="py-0 px-1" :icon="Map" @click="showMapModal = true" />
     </div>
 
     <!-- 骷髅矿穴 -->
@@ -25,11 +23,13 @@
 
     <!-- 装备与状态 -->
     <div class="border border-accent/20 rounded-xs p-3 mb-4">
-      <p class="text-sm text-accent mb-2">
-        <Swords :size="14" class="inline" />
-        装备与状态
-      </p>
-      <div class="flex flex-col gap-1">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-accent">
+          <Swords :size="14" class="inline" />
+          装备与状态
+        </p>
+      </div>
+      <div class="flex flex-col space-y-1">
         <div class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5">
           <span class="text-xs">武器</span>
           <span class="text-xs text-accent">{{ weaponDisplayName }}</span>
@@ -48,7 +48,7 @@
         </div>
         <div class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5">
           <span class="text-xs">HP</span>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center space-x-2">
             <div class="w-20 h-1.5 bg-bg rounded-xs border border-accent/10">
               <div
                 class="h-full rounded-xs transition-all"
@@ -73,7 +73,7 @@
       class="border border-accent/20 rounded-xs px-3 py-2 mb-4 flex items-center justify-between cursor-pointer hover:bg-accent/5"
       @click="hasElevator ? (showElevatorModal = true) : handleEnterMine(undefined)"
     >
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center space-x-1.5">
         <Pickaxe :size="14" class="text-accent" />
         <span class="text-sm text-accent">探索</span>
       </div>
@@ -86,7 +86,7 @@
         <Skull :size="14" class="inline" />
         已击败BOSS
       </p>
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col space-y-1">
         <div
           v-for="zone in mineZones.filter(z => z.bossDefeated)"
           :key="zone.id"
@@ -111,12 +111,10 @@
               <Map :size="14" class="inline" />
               矿洞地图
             </p>
-            <button class="btn text-xs py-0 px-1" @click="showMapModal = false">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showMapModal = false" />
           </div>
           <p class="text-xs text-muted mb-2">安全点：{{ miningStore.safePointFloor > 0 ? `第${miningStore.safePointFloor}层` : '入口' }}</p>
-          <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col space-y-1.5">
             <div
               v-for="zone in mineZones"
               :key="zone.id"
@@ -174,15 +172,10 @@
           <div v-if="elevatorZones.length > 0" class="max-h-48 overflow-y-auto mb-2">
             <div v-for="zone in elevatorZones" :key="zone.name" class="mb-2 last:mb-0">
               <p class="text-[10px] text-muted mb-1">{{ zone.name }}</p>
-              <div class="flex flex-wrap gap-1">
-                <button
-                  v-for="sp in zone.floors"
-                  :key="sp"
-                  class="btn text-xs py-0.5 px-0 min-w-9 justify-center"
-                  @click="handleEnterMine(sp)"
-                >
+              <div class="flex flex-wrap space-x-1">
+                <Button v-for="sp in zone.floors" :key="sp" class="py-0.5 px-0 min-w-9 justify-center" @click="handleEnterMine(sp)">
                   {{ sp + 1 }}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -221,9 +214,7 @@
               <span v-if="currentFloorSpecial === 'dark'" class="text-muted ml-1">暗河层</span>
               <span v-if="currentFloorSpecial === 'boss'" class="text-danger ml-1">BOSS层</span>
             </p>
-            <button class="btn text-xs py-0 px-1" @click="handleLeave">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="handleLeave" />
           </div>
 
           <!-- 武器信息 -->
@@ -264,7 +255,7 @@
           </div>
 
           <!-- 操作区 -->
-          <div class="flex flex-col gap-1 mb-3">
+          <div class="flex flex-col space-y-1 mb-3">
             <div v-for="bombItem in availableBombs" :key="bombItem.id">
               <div
                 class="flex items-center justify-between border rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
@@ -342,78 +333,99 @@
             </p>
           </div>
 
-          <!-- 玩家 HP -->
-          <div class="border border-accent/10 rounded-xs p-2 mb-2 relative" :class="playerAnim">
-            <div class="flex items-center justify-between text-xs mb-1">
-              <span>你的 HP</span>
-              <span :class="playerStore.getIsLowHp() ? 'text-danger' : 'text-muted'">
+          <!-- 玩家 vs 怪物 -->
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-1.5 mb-3 items-center">
+            <!-- 玩家 -->
+            <div class="border border-accent/10 rounded-xs p-2 relative" :class="playerAnim">
+              <p class="text-xs text-center mb-1.5 truncate">你</p>
+              <div class="bg-bg rounded-xs h-1.5 mb-1">
+                <div
+                  class="h-1.5 rounded-xs transition-all"
+                  :class="playerStore.getIsLowHp() ? 'bg-danger' : 'bg-success'"
+                  :style="{ width: `${playerStore.getHpPercent()}%` }"
+                />
+              </div>
+              <p class="text-[10px]" :class="playerStore.getIsLowHp() ? 'text-danger' : 'text-muted'">
                 {{ playerStore.hp }}/{{ playerStore.getMaxHp() }}
+              </p>
+              <span
+                v-if="playerFloat"
+                :key="playerFloat.key"
+                class="absolute -top-1 right-0 text-danger text-[11px] font-bold anim-float-up pointer-events-none"
+              >
+                {{ playerFloat.text }}
               </span>
             </div>
-            <div class="bg-bg rounded-xs h-2">
-              <div
-                class="h-2 rounded-xs transition-all"
-                :class="playerStore.getIsLowHp() ? 'bg-danger' : 'bg-success'"
-                :style="{ width: `${playerStore.getHpPercent()}%` }"
-              />
-            </div>
-            <span
-              v-if="playerFloat"
-              :key="playerFloat.key"
-              class="absolute -top-1 right-0 text-danger text-[11px] font-bold anim-float-up pointer-events-none"
-            >
-              {{ playerFloat.text }}
-            </span>
-          </div>
-
-          <!-- 怪物 HP -->
-          <div class="border border-danger/20 rounded-xs p-2 mb-3 relative" :class="monsterAnim">
-            <div class="flex items-center justify-between text-xs mb-1">
-              <span class="text-danger">
+            <!-- VS -->
+            <span class="text-[10px] text-muted/40">VS</span>
+            <!-- 怪物 -->
+            <div class="border border-danger/20 rounded-xs p-2 relative" :class="monsterAnim">
+              <p class="text-xs text-center text-danger mb-1.5 truncate">
                 {{ miningStore.combatMonster?.name }}
                 <span v-if="miningStore.combatIsBoss" class="text-[10px]">[BOSS]</span>
+              </p>
+              <div class="bg-bg rounded-xs h-1.5 mb-1">
+                <div
+                  class="h-1.5 bg-danger rounded-xs transition-all"
+                  :style="{
+                    width: `${miningStore.combatMonster ? (miningStore.combatMonsterHp / miningStore.combatMonster.hp) * 100 : 0}%`
+                  }"
+                />
+              </div>
+              <p class="text-[10px] text-muted">{{ miningStore.combatMonsterHp }}/{{ miningStore.combatMonster?.hp }}</p>
+              <span
+                v-if="monsterFloat"
+                :key="monsterFloat.key"
+                class="absolute -top-1 right-0 text-accent text-[11px] font-bold anim-float-up pointer-events-none"
+              >
+                {{ monsterFloat.text }}
               </span>
-              <span class="text-muted">{{ miningStore.combatMonsterHp }}/{{ miningStore.combatMonster?.hp }}</span>
             </div>
-            <div class="bg-bg rounded-xs h-2">
-              <div
-                class="h-2 bg-danger rounded-xs transition-all"
-                :style="{ width: `${miningStore.combatMonster ? (miningStore.combatMonsterHp / miningStore.combatMonster.hp) * 100 : 0}%` }"
-              />
-            </div>
-            <span
-              v-if="monsterFloat"
-              :key="monsterFloat.key"
-              class="absolute -top-1 right-0 text-accent text-[11px] font-bold anim-float-up pointer-events-none"
-            >
-              {{ monsterFloat.text }}
-            </span>
           </div>
 
           <!-- 战斗操作 -->
-          <div class="flex flex-col gap-1 mb-3">
-            <div
-              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5"
-              :class="combatAnimLock ? 'opacity-50' : 'cursor-pointer hover:bg-accent/5'"
-              @click="!combatAnimLock && handleCombat('attack')"
-            >
-              <span class="text-xs">
-                <Swords :size="12" class="inline" />
-                攻击
-              </span>
-              <span class="text-xs text-muted">{{ weaponAttack }}攻击力</span>
+          <div class="mb-3 space-y-1">
+            <!-- 攻击 / 防御 / 逃跑 -->
+            <div class="grid grid-cols-3 gap-1">
+              <div
+                class="flex flex-col items-center border border-accent/20 rounded-xs py-1.5"
+                :class="combatAnimLock ? 'opacity-50' : 'cursor-pointer hover:bg-accent/5'"
+                @click="!combatAnimLock && handleCombat('attack')"
+              >
+                <span class="text-xs">
+                  <Swords :size="12" class="inline" />
+                  攻击
+                </span>
+                <span class="text-[10px] text-muted">{{ weaponAttack }}攻击力</span>
+              </div>
+              <div
+                class="flex flex-col items-center border border-accent/20 rounded-xs py-1.5"
+                :class="combatAnimLock ? 'opacity-50' : 'cursor-pointer hover:bg-accent/5'"
+                @click="!combatAnimLock && handleCombat('defend')"
+              >
+                <span class="text-xs">
+                  <Shield :size="12" class="inline" />
+                  防御
+                </span>
+                <span class="text-[10px] text-muted">减免伤害</span>
+              </div>
+              <div
+                class="flex flex-col items-center border rounded-xs py-1.5"
+                :class="
+                  miningStore.combatIsBoss || combatAnimLock
+                    ? 'border-accent/10 opacity-50'
+                    : 'border-danger/20 cursor-pointer hover:bg-danger/5'
+                "
+                @click="!miningStore.combatIsBoss && !combatAnimLock && handleCombat('flee')"
+              >
+                <span class="text-xs" :class="miningStore.combatIsBoss ? 'text-muted' : 'text-danger'">
+                  <MoveRight :size="12" class="inline" />
+                  {{ miningStore.combatIsBoss ? '无法' : '逃跑' }}
+                </span>
+                <span v-if="miningStore.combatIsBoss" class="text-[10px] text-muted/40">BOSS战</span>
+              </div>
             </div>
-            <div
-              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5"
-              :class="combatAnimLock ? 'opacity-50' : 'cursor-pointer hover:bg-accent/5'"
-              @click="!combatAnimLock && handleCombat('defend')"
-            >
-              <span class="text-xs">
-                <Shield :size="12" class="inline" />
-                防御
-              </span>
-              <span class="text-xs text-muted">减免伤害</span>
-            </div>
+            <!-- 使用道具 -->
             <div
               v-if="availableCombatItems.length > 0"
               class="flex items-center justify-between border border-success/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-success/5"
@@ -425,18 +437,18 @@
               </span>
               <span class="text-xs text-muted">{{ availableCombatItems.length }}种</span>
             </div>
+            <!-- 切换装备方案 -->
             <div
-              class="flex items-center justify-between border rounded-xs px-3 py-1.5"
-              :class="
-                miningStore.combatIsBoss || combatAnimLock
-                  ? 'border-accent/10 opacity-50'
-                  : 'border-danger/20 cursor-pointer hover:bg-danger/5'
-              "
-              @click="!miningStore.combatIsBoss && !combatAnimLock && handleCombat('flee')"
+              v-if="inventoryStore.equipmentPresets.length > 0"
+              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
+              @click="showPresetListModal = true"
             >
-              <span class="text-xs" :class="miningStore.combatIsBoss ? 'text-muted' : 'text-danger'">
-                <MoveRight :size="12" class="inline" />
-                {{ miningStore.combatIsBoss ? '无法逃跑' : '逃跑' }}
+              <span class="text-xs text-accent">
+                <BookMarked :size="12" class="inline" />
+                切换装备方案
+              </span>
+              <span v-if="inventoryStore.activePresetId" class="text-[10px] text-muted">
+                {{ inventoryStore.equipmentPresets.find(p => p.id === inventoryStore.activePresetId)?.name ?? '' }}
               </span>
             </div>
           </div>
@@ -468,11 +480,9 @@
               <Backpack :size="14" class="inline" />
               使用道具
             </p>
-            <button class="btn text-xs py-0 px-1" @click="showCombatItems = false">
-              <X :size="12" />
-            </button>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showCombatItems = false" />
           </div>
-          <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
+          <div class="flex flex-col space-y-1 max-h-48 overflow-y-auto">
             <div
               v-for="item in availableCombatItems"
               :key="item.itemId"
@@ -490,15 +500,176 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 快速切装：方案列表弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showPresetListModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-70 p-4"
+        @click.self="showPresetListModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showPresetListModal = false">
+            <X :size="14" />
+          </button>
+          <p class="text-sm text-accent mb-2">
+            <BookMarked :size="14" class="inline" />
+            装备方案
+          </p>
+          <div v-if="inventoryStore.equipmentPresets.length > 0" class="flex flex-col space-y-1.5 max-h-60 overflow-y-auto">
+            <div
+              v-for="preset in inventoryStore.equipmentPresets"
+              :key="preset.id"
+              class="border rounded-xs p-2"
+              :class="inventoryStore.activePresetId === preset.id ? 'border-accent/40' : 'border-accent/10'"
+            >
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-xs text-accent truncate">{{ preset.name }}</p>
+                <span v-if="inventoryStore.activePresetId === preset.id" class="text-[10px] text-success shrink-0 ml-1">使用中</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1">
+                <Button
+                  class="py-0 px-1.5 text-[10px]"
+                  :disabled="inventoryStore.activePresetId === preset.id"
+                  @click="quickApplyPreset(preset.id)"
+                >
+                  使用
+                </Button>
+                <Button class="py-0 px-1.5 text-[10px]" @click="viewPresetDetail(preset.id)">查看</Button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex flex-col items-center justify-center py-6">
+            <BookMarked :size="24" class="text-muted/30" />
+            <p class="text-xs text-muted mt-1">暂无方案</p>
+            <p class="text-[10px] text-muted/60 mt-0.5">前往背包装备页创建方案</p>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 快速切装：方案详情弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showPresetDetailModal && detailPreset"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-80 p-4"
+        @click.self="showPresetDetailModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showPresetDetailModal = false">
+            <X :size="14" />
+          </button>
+          <p class="text-sm text-accent mb-2">{{ detailPreset.name }}</p>
+          <div class="flex flex-col space-y-1">
+            <div
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
+              :class="detailPreset.weaponDefId ? 'cursor-pointer hover:bg-accent/5' : ''"
+              @click="detailPreset.weaponDefId && viewEquipProperty('weapon', detailPreset.weaponDefId)"
+            >
+              <span class="text-xs text-muted">武器</span>
+              <span class="text-xs" :class="detailPreset.weaponDefId ? 'text-accent' : 'text-muted/40'">
+                {{ detailPreset.weaponDefId ? (getWeaponById(detailPreset.weaponDefId)?.name ?? '未知') : '无' }}
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
+              :class="detailPreset.ringSlot1DefId ? 'cursor-pointer hover:bg-accent/5' : ''"
+              @click="detailPreset.ringSlot1DefId && viewEquipProperty('ring', detailPreset.ringSlot1DefId)"
+            >
+              <span class="text-xs text-muted">戒指1</span>
+              <span class="text-xs" :class="detailPreset.ringSlot1DefId ? 'text-accent' : 'text-muted/40'">
+                {{ detailPreset.ringSlot1DefId ? (getRingById(detailPreset.ringSlot1DefId)?.name ?? '未知') : '无' }}
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
+              :class="detailPreset.ringSlot2DefId ? 'cursor-pointer hover:bg-accent/5' : ''"
+              @click="detailPreset.ringSlot2DefId && viewEquipProperty('ring', detailPreset.ringSlot2DefId)"
+            >
+              <span class="text-xs text-muted">戒指2</span>
+              <span class="text-xs" :class="detailPreset.ringSlot2DefId ? 'text-accent' : 'text-muted/40'">
+                {{ detailPreset.ringSlot2DefId ? (getRingById(detailPreset.ringSlot2DefId)?.name ?? '未知') : '无' }}
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
+              :class="detailPreset.hatDefId ? 'cursor-pointer hover:bg-accent/5' : ''"
+              @click="detailPreset.hatDefId && viewEquipProperty('hat', detailPreset.hatDefId)"
+            >
+              <span class="text-xs text-muted">帽子</span>
+              <span class="text-xs" :class="detailPreset.hatDefId ? 'text-accent' : 'text-muted/40'">
+                {{ detailPreset.hatDefId ? (getHatById(detailPreset.hatDefId)?.name ?? '未知') : '无' }}
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1.5"
+              :class="detailPreset.shoeDefId ? 'cursor-pointer hover:bg-accent/5' : ''"
+              @click="detailPreset.shoeDefId && viewEquipProperty('shoe', detailPreset.shoeDefId)"
+            >
+              <span class="text-xs text-muted">鞋子</span>
+              <span class="text-xs" :class="detailPreset.shoeDefId ? 'text-accent' : 'text-muted/40'">
+                {{ detailPreset.shoeDefId ? (getShoeById(detailPreset.shoeDefId)?.name ?? '未知') : '无' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 快速切装：装备属性弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showEquipPropertyModal && equipPropertyInfo"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-90 p-4"
+        @click.self="showEquipPropertyModal = false"
+      >
+        <div class="game-panel max-w-xs w-full relative">
+          <button class="absolute top-2 right-2 text-muted hover:text-text" @click="showEquipPropertyModal = false">
+            <X :size="14" />
+          </button>
+          <p class="text-[10px] text-muted mb-0.5">{{ equipPropertyInfo.category }}</p>
+          <p class="text-sm text-accent mb-1">{{ equipPropertyInfo.name }}</p>
+          <p class="text-xs text-muted mb-2">{{ equipPropertyInfo.description }}</p>
+          <div v-if="equipPropertyInfo.effects.length > 0" class="flex flex-col space-y-1">
+            <div
+              v-for="(eff, i) in equipPropertyInfo.effects"
+              :key="i"
+              class="flex items-center justify-between border border-accent/10 rounded-xs px-3 py-1"
+            >
+              <span class="text-xs text-muted">{{ eff.label }}</span>
+              <span class="text-xs text-accent">{{ eff.value }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { Mountain, Pickaxe, Zap, ChevronDown, LogOut, Swords, Shield, MoveRight, Skull, X, Map, Backpack, Lock } from 'lucide-vue-next'
+  import {
+    Mountain,
+    Pickaxe,
+    Zap,
+    ChevronDown,
+    LogOut,
+    Swords,
+    Shield,
+    MoveRight,
+    Skull,
+    X,
+    Map,
+    Backpack,
+    Lock,
+    BookMarked
+  } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { useMiningStore, useGameStore, usePlayerStore, useInventoryStore, useSkillStore } from '@/stores'
   import { ZONE_NAMES, getFloor, BOSS_MONSTERS } from '@/data'
   import { getWeaponById, getEnchantmentById, getWeaponDisplayName, WEAPON_TYPE_NAMES } from '@/data/weapons'
+  import { getRingById, getHatById, getShoeById } from '@/data'
+  import type { EquipmentEffectType } from '@/types'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { BOMBS } from '@/data/processing'
   import { getItemById } from '@/data/items'
@@ -968,6 +1139,136 @@
     exploreLog.value = []
     bombModeId.value = null
     addLog(msg)
+  }
+
+  // ==================== 快速切装 ====================
+
+  const showPresetListModal = ref(false)
+  const showPresetDetailModal = ref(false)
+  const detailPresetId = ref<string | null>(null)
+  const showEquipPropertyModal = ref(false)
+
+  interface EquipPropertyInfo {
+    category: string
+    name: string
+    description: string
+    effects: { label: string; value: string }[]
+  }
+
+  const equipPropertyInfo = ref<EquipPropertyInfo | null>(null)
+
+  const EFFECT_NAMES: Record<EquipmentEffectType, string> = {
+    attack_bonus: '攻击力',
+    crit_rate_bonus: '暴击率',
+    defense_bonus: '防御',
+    vampiric: '吸血',
+    max_hp_bonus: '最大HP',
+    stamina_reduction: '体力消耗',
+    mining_stamina: '采矿体力',
+    farming_stamina: '农作体力',
+    fishing_stamina: '钓鱼体力',
+    crop_quality_bonus: '作物品质',
+    crop_growth_bonus: '作物生长',
+    fish_quality_bonus: '鱼类品质',
+    fishing_calm: '钓鱼稳定',
+    sell_price_bonus: '售价加成',
+    shop_discount: '商店折扣',
+    gift_friendship: '送礼好感',
+    monster_drop_bonus: '掉落率',
+    exp_bonus: '经验加成',
+    treasure_find: '宝箱概率',
+    ore_bonus: '矿石加成',
+    luck: '幸运',
+    travel_speed: '旅行加速'
+  }
+
+  const PCTG_EFFECTS: Set<EquipmentEffectType> = new Set([
+    'crit_rate_bonus',
+    'vampiric',
+    'stamina_reduction',
+    'mining_stamina',
+    'farming_stamina',
+    'fishing_stamina',
+    'crop_quality_bonus',
+    'crop_growth_bonus',
+    'fish_quality_bonus',
+    'fishing_calm',
+    'sell_price_bonus',
+    'shop_discount',
+    'gift_friendship',
+    'monster_drop_bonus',
+    'exp_bonus',
+    'treasure_find',
+    'ore_bonus',
+    'luck',
+    'travel_speed',
+    'defense_bonus'
+  ])
+
+  const fmtEffect = (eff: { type: EquipmentEffectType; value: number }): string => {
+    if (PCTG_EFFECTS.has(eff.type)) return `+${Math.round(eff.value * 100)}%`
+    return `+${eff.value}`
+  }
+
+  const detailPreset = computed(() => {
+    if (!detailPresetId.value) return null
+    return inventoryStore.equipmentPresets.find(p => p.id === detailPresetId.value) ?? null
+  })
+
+  const quickApplyPreset = (id: string) => {
+    const result = inventoryStore.applyEquipmentPreset(id)
+    addLog(result.message)
+    showPresetListModal.value = false
+  }
+
+  const viewPresetDetail = (id: string) => {
+    detailPresetId.value = id
+    showPresetDetailModal.value = true
+  }
+
+  const viewEquipProperty = (type: 'weapon' | 'ring' | 'hat' | 'shoe', defId: string) => {
+    if (type === 'weapon') {
+      const def = getWeaponById(defId)
+      if (!def) return
+      equipPropertyInfo.value = {
+        category: '武器',
+        name: def.name,
+        description: def.description,
+        effects: [
+          { label: '攻击力', value: `${def.attack}` },
+          { label: '类型', value: WEAPON_TYPE_NAMES[def.type] },
+          { label: '暴击率', value: `${Math.round(def.critRate * 100)}%` }
+        ]
+      }
+    } else if (type === 'ring') {
+      const def = getRingById(defId)
+      if (!def) return
+      equipPropertyInfo.value = {
+        category: '戒指',
+        name: def.name,
+        description: def.description,
+        effects: def.effects.map(e => ({ label: EFFECT_NAMES[e.type], value: fmtEffect(e) }))
+      }
+    } else if (type === 'hat') {
+      const def = getHatById(defId)
+      if (!def) return
+      equipPropertyInfo.value = {
+        category: '帽子',
+        name: def.name,
+        description: def.description,
+        effects: def.effects.map(e => ({ label: EFFECT_NAMES[e.type], value: fmtEffect(e) }))
+      }
+    } else {
+      const def = getShoeById(defId)
+      if (!def) return
+      equipPropertyInfo.value = {
+        category: '鞋子',
+        name: def.name,
+        description: def.description,
+        effects: def.effects.map(e => ({ label: EFFECT_NAMES[e.type], value: fmtEffect(e) }))
+      }
+    }
+    showEquipPropertyModal.value = true
   }
 </script>
 

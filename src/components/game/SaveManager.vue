@@ -6,13 +6,13 @@
       </button>
       <p class="text-accent text-sm mb-4">—— 存档管理 ——</p>
 
-      <div class="flex-1 flex flex-col gap-2 mb-3" @click="menuOpen = null">
+      <div class="flex-1 flex flex-col space-y-2 mb-3" @click="menuOpen = null">
         <div v-for="info in slots" :key="info.slot">
-          <div v-if="info.exists" class="flex gap-1 w-full">
-            <button v-if="allowLoad" class="btn flex-1 justify-between! text-xs" @click="$emit('load', info.slot)">
-              <span class="inline-flex items-center gap-1">
+          <div v-if="info.exists" class="flex space-x-1 w-full">
+            <button v-if="allowLoad" class="btn flex-1 !justify-between text-xs" @click="$emit('load', info.slot)">
+              <span class="inline-flex items-center space-x-1">
                 <FolderOpen :size="12" />
-                存档 {{ info.slot + 1 }}
+                <span>存档 {{ info.slot + 1 }}</span>
               </span>
               <span class="text-muted text-xs">
                 {{ info.playerName ?? '未命名' }} · 第{{ info.year }}年 {{ SEASON_NAMES[info.season as keyof typeof SEASON_NAMES] }} 第{{
@@ -20,10 +20,10 @@
                 }}天
               </span>
             </button>
-            <div v-else class="btn flex-1 justify-between! text-xs cursor-default">
-              <span class="inline-flex items-center gap-1">
+            <div v-else class="btn flex-1 !justify-between text-xs cursor-default">
+              <span class="inline-flex items-center space-x-1">
                 <FolderOpen :size="12" />
-                存档 {{ info.slot + 1 }}
+                <span>存档 {{ info.slot + 1 }}</span>
               </span>
               <span class="text-muted text-xs">
                 {{ info.playerName ?? '未命名' }} · 第{{ info.year }}年 {{ SEASON_NAMES[info.season as keyof typeof SEASON_NAMES] }} 第{{
@@ -32,21 +32,33 @@
               </span>
             </div>
             <div class="relative">
-              <button class="btn px-2 text-xs h-full" @click.stop="menuOpen = menuOpen === info.slot ? null : info.slot">
-                <Settings :size="12" />
-              </button>
+              <Button
+                class="px-2 h-full"
+                :icon="Settings"
+                :icon-size="12"
+                @click.stop="menuOpen = menuOpen === info.slot ? null : info.slot"
+              />
               <div
                 v-if="menuOpen === info.slot"
                 class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
               >
-                <button v-if="!isWebView" class="btn text-center rounded-none! justify-center text-sm" @click="handleExport(info.slot)">
-                  <Download :size="12" />
+                <Button
+                  v-if="!isWebView"
+                  :icon="Download"
+                  :icon-size="12"
+                  class="text-center !rounded-none justify-center text-sm"
+                  @click="handleExport(info.slot)"
+                >
                   导出
-                </button>
-                <button class="btn btn-danger rounded-none! text-center justify-center text-sm" @click="handleDelete(info.slot)">
-                  <Trash2 :size="12" />
+                </Button>
+                <Button
+                  :icon="Trash2"
+                  :icon-size="12"
+                  class="btn-danger !rounded-none text-center justify-center text-sm"
+                  @click="handleDelete(info.slot)"
+                >
                   删除
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -56,10 +68,7 @@
 
       <!-- 导入存档 -->
       <template v-if="!isWebView">
-        <button class="btn text-center justify-center text-sm w-full" @click="triggerImport">
-          <Upload :size="14" />
-          导入存档
-        </button>
+        <Button :icon="Upload" class="text-center justify-center text-sm w-full" @click="triggerImport">导入存档</Button>
         <input ref="fileInputRef" type="file" accept=".tyx" class="hidden" @change="handleImportFile" />
       </template>
 
@@ -73,9 +82,9 @@
           <div class="game-panel w-full max-w-xs mx-4 text-center">
             <p class="text-danger text-sm mb-3">确定删除存档 {{ deleteTargetSlot + 1 }}？</p>
             <p class="text-xs text-muted mb-4">此操作不可恢复。</p>
-            <div class="flex gap-3 justify-center">
-              <button class="btn text-xs" @click="deleteTargetSlot = null">取消</button>
-              <button class="btn btn-danger text-xs" @click="confirmDelete">确认删除</button>
+            <div class="flex space-x-3 justify-center">
+              <Button @click="deleteTargetSlot = null">取消</Button>
+              <Button class="btn-danger" @click="confirmDelete">确认删除</Button>
             </div>
           </div>
         </div>
@@ -87,6 +96,7 @@
 <script setup lang="ts">
   import { ref } from 'vue'
   import { X, FolderOpen, Settings, Download, Trash2, Upload } from 'lucide-vue-next'
+  import Button from '@/components/game/Button.vue'
   import { SEASON_NAMES } from '@/stores/useGameStore'
   import { useSaveStore } from '@/stores/useSaveStore'
   import { showFloat } from '@/composables/useGameLog'
