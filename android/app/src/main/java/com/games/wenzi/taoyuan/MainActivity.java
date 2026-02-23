@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -30,61 +31,64 @@ public class MainActivity extends BridgeActivity {
         controller.setAppearanceLightStatusBars(false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
-        // 获取加载遮罩
-        loadingOverlay = findViewById(R.id.loadingOverlay);
-        enterButton = findViewById(R.id.enterButton);
+        // BridgeActivity 已创建自己的 WebView 布局，手动 inflate 遮罩层叠加到上面
+        loadingOverlay = getLayoutInflater().inflate(R.layout.activity_main, null);
+        addContentView(loadingOverlay, new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
-        if (loadingOverlay != null && enterButton != null) {
-            // 点击"进入游戏"手动关闭遮罩
-            enterButton.setOnClickListener(v -> dismissLoading());
+        enterButton = loadingOverlay.findViewById(R.id.enterButton);
 
-            // 5秒后如果还没加载完，显示进入按钮
-            handler.postDelayed(() -> {
-                if (!loadingDismissed && enterButton != null) {
-                    enterButton.setVisibility(View.VISIBLE);
-                    enterButton.setAlpha(0f);
-                    enterButton.animate().alpha(1f).setDuration(300).start();
-                }
-            }, 5000);
+        // 点击"进入游戏"手动关闭遮罩
+        enterButton.setOnClickListener(v -> dismissLoading());
 
-            // 监听 Capacitor WebView 加载完成
-            WebView webView = getBridge().getWebView();
-            if (webView != null) {
-                webView.setWebViewClient(new WebViewClient() {
-                    @Override
-                    public void onPageFinished(WebView view, String url) {
-                        super.onPageFinished(view, url);
-                        // 注入 MutationObserver，等 Vue 渲染完 #app 后隐藏遮罩
-                        view.evaluateJavascript(
-                            "(function() {" +
-                            "  var app = document.getElementById('app');" +
-                            "  if (app && app.children.length > 0) {" +
-                            "    window.dispatchEvent(new Event('appReady'));" +
-                            "    return;" +
-                            "  }" +
-                            "  var observer = new MutationObserver(function() {" +
-                            "    if (app && app.children.length > 0) {" +
-                            "      observer.disconnect();" +
-                            "      window.dispatchEvent(new Event('appReady'));" +
-                            "    }" +
-                            "  });" +
-                            "  if (app) { observer.observe(app, { childList: true }); }" +
-                            "})();",
-                            null
-                        );
-                    }
-                });
+        // 5秒后如果还没加载完，显示进入按钮
+        handler.postDelayed(() -> {
+            if (!loadingDismissed && enterButton != null) {
+                enterButton.setVisibility(View.VISIBLE);
+                enterButton.setAlpha(0f);
+                enterButton.animate().alpha(1f).setDuration(300).start();
             }
+        }, 5000);
 
-            // 通过 Capacitor Bridge 监听 appReady 事件
-            getBridge().getWebView().addJavascriptInterface(new Object() {
+        // 监听 Capacitor WebView 加载完成
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    // 注入 MutationObserver，等 Vue 渲染完 #app 后隐藏遮罩
+                    view.evaluateJavascript(
+                        "(function() {" +
+                        "  var app = document.getElementById('app');" +
+                        "  if (app && app.children.length > 0) {" +
+                        "    window.dispatchEvent(new Event('appReady'));" +
+                        "    return;" +
+                        "  }" +
+                        "  var observer = new MutationObserver(function() {" +
+                        "    if (app && app.children.length > 0) {" +
+                        "      observer.disconnect();" +
+                        "      window.dispatchEvent(new Event('appReady'));" +
+                        "    }" +
+                        "  });" +
+                        "  if (app) { observer.observe(app, { childList: true }); }" +
+                        "})();",
+                        null
+                    );
+                }
+            });
+
+            // 注册 JS 接口，让 WebView 可以通知 Native 隐藏遮罩
+            webView.addJavascriptInterface(new Object() {
                 @android.webkit.JavascriptInterface
                 public void hideLoading() {
                     runOnUiThread(() -> dismissLoading());
                 }
             }, "NativeApp");
 
-            // 在 WebView 中注入监听器
+            // 注入 appReady 事件监听器
             handler.postDelayed(() -> {
                 WebView wv = getBridge().getWebView();
                 if (wv != null) {
