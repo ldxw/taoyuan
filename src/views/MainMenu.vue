@@ -2,7 +2,7 @@
   <div
     class="flex min-h-screen flex-col items-center justify-center space-y-8 px-4"
     @click.once="startBgm"
-    :class="{ 'py-10': isWebView }"
+    :class="{ 'py-10': Capacitor.isNativePlatform() }"
     @click="slotMenuOpen = null"
   >
     <!-- 标题 -->
@@ -41,7 +41,7 @@
               class="absolute right-0 top-full mt-1 z-10 flex flex-col border border-accent/30 rounded-xs overflow-hidden w-30"
             >
               <Button
-                v-if="!isWebView"
+                v-if="!Capacitor.isNativePlatform()"
                 class="text-center !rounded-none justify-center !text-sm"
                 :icon="Download"
                 :icon-size="12"
@@ -63,7 +63,7 @@
       </div>
 
       <!-- 导入存档 -->
-      <template v-if="!isWebView">
+      <template v-if="!Capacitor.isNativePlatform()">
         <Button class="text-center justify-center" :icon="Upload" @click="triggerImport">导入存档</Button>
         <input ref="fileInputRef" type="file" accept=".tyx" class="hidden" @change="handleImportFile" />
       </template>
@@ -326,6 +326,7 @@
   import { resetAllStoresForNewGame } from '@/composables/useResetGame'
   import { useTutorialStore } from '@/stores/useTutorialStore'
   import type { FarmMapType, Gender } from '@/types'
+  import { Capacitor } from '@capacitor/core'
 
   const router = useRouter()
   const { startBgm } = useAudio()
@@ -359,9 +360,6 @@
     selectedMap.value = type
     showFarmConfirm.value = true
   }
-
-  // 判断是否webview环境
-  const isWebView = window.__WEBVIEW__
 
   const handlePrivacyAgree = () => {
     localStorage.setItem('taoyuan_privacy_agreed', '1')

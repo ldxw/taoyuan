@@ -1,5 +1,9 @@
 <template>
-  <div v-if="gameStore.isGameStarted" class="flex flex-col space-y-2 md:space-y-4 h-screen p-2 md:p-4" :class="{ 'py-10': isWebView }">
+  <div
+    v-if="gameStore.isGameStarted"
+    class="flex flex-col space-y-2 md:space-y-4 h-screen p-2 md:p-4"
+    :class="{ 'py-10': Capacitor.isNativePlatform() }"
+  >
     <!-- 状态栏 -->
     <StatusBar @request-sleep="showSleepConfirm = true" />
 
@@ -264,6 +268,7 @@
   import TeaContestView from '@/components/game/TeaContestView.vue'
   import KiteFlyingView from '@/components/game/KiteFlyingView.vue'
   import SettingsDialog from '@/components/game/SettingsDialog.vue'
+  import { Capacitor } from '@capacitor/core'
 
   const router = useRouter()
   const route = useRoute()
@@ -328,9 +333,6 @@
       else resumeClock()
     }
   )
-
-  // 判断是否webview环境
-  const isWebView = window.__WEBVIEW__
 
   /** 从路由名称获取当前面板标识 */
   const currentPanel = computed(() => {
