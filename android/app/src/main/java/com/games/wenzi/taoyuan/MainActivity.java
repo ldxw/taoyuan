@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
@@ -13,12 +14,16 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
 
+import java.util.Map;
+
 public class MainActivity extends BridgeActivity {
 
+    private static final String TAG = "MainActivity";
     private View loadingOverlay;
     private View enterButton;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean loadingDismissed = false;
+    private SaveMigrator migrator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +83,28 @@ public class MainActivity extends BridgeActivity {
                     );
                 }
             }, 500);
+
+            // 存档迁移：从旧版 http://localhost:8080 迁移到 Capacitor 的 https://localhost
+            migrator = new SaveMigrator(this);
+            migrator.migrate(new SaveMigrator.OnMigrationListener() {
+                @Override
+                public void onMigrationComplete(Map<String, String> saves) {
+                    Log.d(TAG, "存档迁移成功，共 " + saves.size() + " 条，等待注入...");
+                    // 延迟注入，确保 Capacitor WebView 页面已加载
+                    handler.postDelayed(() -> {
+                        WebView wv = getBridge().getWebView();
+                        if (wv != null) {
+                            // 注入存档到 localStorage 后自动刷新页面，让游戏加载迁移后的存档
+                            SaveMigrator.injectSaves(wv, saves);
+                        }
+                    }, 2000);
+                }
+
+                @Override
+                public void onMigrationSkipped() {
+                    Log.d(TAG, "无需存档迁移");
+                }
+            });
         }
     }
 
@@ -85,6 +112,11 @@ public class MainActivity extends BridgeActivity {
     public void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        // 清理迁移器资源
+        if (migrator != null) {
+            migrator.cleanup();
+            migrator = null;
+        }
     }
 
     private void dismissLoading() {
