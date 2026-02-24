@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.widget.Toast;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -24,6 +25,7 @@ public class MainActivity extends BridgeActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean loadingDismissed = false;
     private SaveMigrator migrator;
+    private Runnable enterButtonRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,13 +50,14 @@ public class MainActivity extends BridgeActivity {
         enterButton.setOnClickListener(v -> dismissLoading());
 
         // 5秒后如果还没加载完，显示进入按钮
-        handler.postDelayed(() -> {
+        enterButtonRunnable = () -> {
             if (!loadingDismissed && enterButton != null) {
                 enterButton.setVisibility(View.VISIBLE);
                 enterButton.setAlpha(0f);
                 enterButton.animate().alpha(1f).setDuration(300).start();
             }
-        }, 5000);
+        };
+        handler.postDelayed(enterButtonRunnable, 5000);
 
         WebView webView = getBridge().getWebView();
         if (webView != null) {
@@ -94,8 +97,9 @@ public class MainActivity extends BridgeActivity {
                     handler.postDelayed(() -> {
                         WebView wv = getBridge().getWebView();
                         if (wv != null) {
-                            // 注入存档到 localStorage 后自动刷新页面，让游戏加载迁移后的存档
                             SaveMigrator.injectSaves(wv, saves);
+                            Toast.makeText(MainActivity.this,
+                                "存档迁移完成！重新加载中...", Toast.LENGTH_LONG).show();
                         }
                     }, 2000);
                 }
@@ -122,7 +126,10 @@ public class MainActivity extends BridgeActivity {
     private void dismissLoading() {
         if (loadingDismissed || loadingOverlay == null) return;
         loadingDismissed = true;
-        handler.removeCallbacksAndMessages(null);
+        // 只移除进入按钮的超时回调，不清除所有回调（避免误杀迁移注入回调）
+        if (enterButtonRunnable != null) {
+            handler.removeCallbacks(enterButtonRunnable);
+        }
         loadingOverlay.animate()
             .alpha(0f)
             .setDuration(300)
