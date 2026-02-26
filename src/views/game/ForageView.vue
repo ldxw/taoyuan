@@ -77,17 +77,14 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { TreePine, Search } from 'lucide-vue-next'
-  import {
-    usePlayerStore,
-    useInventoryStore,
-    useSkillStore,
-    useGameStore,
-    useAchievementStore,
-    useQuestStore,
-    useCookingStore,
-    useWalletStore,
-    SEASON_NAMES
-  } from '@/stores'
+  import { useAchievementStore } from '@/stores/useAchievementStore'
+  import { useCookingStore } from '@/stores/useCookingStore'
+  import { useGameStore, SEASON_NAMES } from '@/stores/useGameStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
+  import { useQuestStore } from '@/stores/useQuestStore'
+  import { useSkillStore } from '@/stores/useSkillStore'
+  import { useWalletStore } from '@/stores/useWalletStore'
   import type { Quality } from '@/types'
   import { getForageItems, getItemById } from '@/data'
   import { WEATHER_FORAGE_MODIFIER } from '@/data/forage'
@@ -95,6 +92,7 @@
   import { sfxForage } from '@/composables/useAudio'
   import { addLog } from '@/composables/useGameLog'
   import { handleEndDay } from '@/composables/useEndDay'
+  import { useHiddenNpcStore } from '@/stores/useHiddenNpcStore'
 
   const playerStore = usePlayerStore()
   const inventoryStore = useInventoryStore()
@@ -155,6 +153,9 @@
     const skill = foragingSkill.value
     const forestFarm = isForestFarm.value
     const forestXpBonus = forestFarm ? 1.25 : 1.0
+    const hiddenNpcStore = useHiddenNpcStore()
+    const herbDouble = hiddenNpcStore.isAbilityActive('yue_tu_1')
+    const moonHerbChance = hiddenNpcStore.isAbilityActive('yue_tu_3')
 
     for (const item of items) {
       const herbalistBonus = skill.perk5 === 'herbalist' ? 1.2 : 1.0
@@ -174,12 +175,14 @@
           quality = qualityOrder[newIdx]!
         }
         const qty = forestFarm && Math.random() < 0.2 ? 2 : 1
-        inventoryStore.addItem(item.itemId, qty, quality)
+        // 仙缘能力：药知（yue_tu_1）草药采集双倍
+        const finalQty = (herbDouble && (item.itemId === 'herb' || item.itemId === 'ginseng')) ? qty * 2 : qty
+        inventoryStore.addItem(item.itemId, finalQty, quality)
         achievementStore.discoverItem(item.itemId)
-        useQuestStore().onItemObtained(item.itemId, qty)
+        useQuestStore().onItemObtained(item.itemId, finalQty)
         const itemDef = getItemById(item.itemId)
         const name = itemDef?.name ?? item.itemId
-        gathered.push(qty > 1 ? `${name}×${qty}` : name)
+        gathered.push(finalQty > 1 ? `${name}×${finalQty}` : name)
         skillStore.addExp('foraging', Math.floor(item.expReward * forestXpBonus))
       }
     }
@@ -201,6 +204,14 @@
       const itemDef = getItemById(randomItem.itemId)
       const name = itemDef?.name ?? randomItem.itemId
       gathered.push(name)
+    }
+
+    // 仙缘能力：月华（yue_tu_3）采集8%概率获得月草
+    if (moonHerbChance && Math.random() < 0.08) {
+      inventoryStore.addItem('moon_herb', 1)
+      achievementStore.discoverItem('moon_herb')
+      gathered.push('月草')
+      skillStore.addExp('foraging', 15)
     }
 
     if (gathered.length === 0) {

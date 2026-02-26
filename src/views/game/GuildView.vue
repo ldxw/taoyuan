@@ -189,16 +189,16 @@
             <Lock :size="10" class="inline" />
             完成{{ shopModalItem.unlockGoalCount }}个讨伐目标解锁
           </p>
-          <button
+          <Button
             v-else
             class="btn text-xs w-full justify-center"
             :class="playerStore.money >= shopModalItem.price ? '!bg-accent !text-bg' : 'opacity-50 cursor-not-allowed'"
+            :icon="ShoppingCart"
             :disabled="playerStore.money < shopModalItem.price"
             @click="handleBuyShopItem(shopModalItem.itemId)"
           >
-            <ShoppingCart :size="12" />
             购买 {{ shopModalItem.price }}文
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -309,7 +309,8 @@
   import { ref, computed } from 'vue'
   import { Swords, Gift, CircleCheck, Circle, Lock, ShoppingCart, BookOpen, X } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
-  import { useGuildStore, usePlayerStore } from '@/stores'
+  import { useGuildStore } from '@/stores/useGuildStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
   import { MONSTER_GOALS, GUILD_SHOP_ITEMS } from '@/data/guild'
   import { MONSTERS, BOSS_MONSTERS } from '@/data/mine'
   import type { MonsterDef, GuildShopItemDef, MonsterGoalDef } from '@/types'

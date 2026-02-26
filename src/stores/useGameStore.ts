@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { Season, Weather, Location, LocationGroup, FarmMapType } from '@/types'
+import type { Season, Weather, Location, LocationGroup, FarmMapType, Quality } from '@/types'
 import {
   DAY_START_HOUR,
   PASSOUT_HOUR,
@@ -11,11 +11,14 @@ import {
   getTimePeriod,
   TAB_TO_LOCATION_GROUP,
   TRAVEL_TIME,
+  TRAVEL_STAMINA,
   getLocationGroupName
 } from '@/data/timeConstants'
 import { useCookingStore } from './useCookingStore'
 import { useAnimalStore } from './useAnimalStore'
 import { useInventoryStore } from './useInventoryStore'
+import { usePlayerStore } from './usePlayerStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 
 /** 季节顺序 */
 const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter']
@@ -66,6 +69,12 @@ export const useGameStore = defineStore('game', () => {
   const midnightWarned = ref(false)
   const dailyLuck = ref(0)
 
+  /** 山丘田庄：地表矿脉（日结生成，在农场面板开采后清除） */
+  const surfaceOrePatch = ref<{ oreId: string; quantity: number } | null>(null)
+
+  /** 溪流田庄：溪流鱼获（日结生成，在农场面板收取后清除） */
+  const creekCatch = ref<{ fishId: string; quality: Quality }[]>([])
+
   const seasonIndex = computed(() => SEASON_ORDER.indexOf(season.value))
   const seasonName = computed(() => SEASON_NAMES[season.value])
   const weatherName = computed(() => WEATHER_NAMES[weather.value])
@@ -96,16 +105,18 @@ export const useGameStore = defineStore('game', () => {
 
     // 按季节概率随机
     const roll = Math.random()
+    // 仙缘能力：唤雨（long_ling_2）下雨概率+15%，通过压缩晴天概率实现
+    const rainBoost = useHiddenNpcStore().getAbilityValue('long_ling_2') / 100
     switch (targetSeason) {
       case 'spring':
-        return roll < 0.5 ? 'sunny' : roll < 0.75 ? 'rainy' : roll < 0.85 ? 'stormy' : 'windy'
+        return roll < (0.5 - rainBoost) ? 'sunny' : roll < 0.75 ? 'rainy' : roll < 0.85 ? 'stormy' : 'windy'
       case 'summer':
         // 绿雨: 8% 概率 (仅夏季)
-        return roll < 0.08 ? 'green_rain' : roll < 0.42 ? 'sunny' : roll < 0.68 ? 'rainy' : roll < 0.83 ? 'stormy' : 'windy'
+        return roll < 0.08 ? 'green_rain' : roll < (0.42 - rainBoost) ? 'sunny' : roll < 0.68 ? 'rainy' : roll < 0.83 ? 'stormy' : 'windy'
       case 'autumn':
-        return roll < 0.45 ? 'sunny' : roll < 0.7 ? 'rainy' : roll < 0.8 ? 'stormy' : 'windy'
+        return roll < (0.45 - rainBoost) ? 'sunny' : roll < 0.7 ? 'rainy' : roll < 0.8 ? 'stormy' : 'windy'
       case 'winter':
-        return roll < 0.5 ? 'sunny' : roll < 0.8 ? 'snowy' : 'windy'
+        return roll < (0.5 - rainBoost) ? 'sunny' : roll < 0.8 ? 'snowy' : 'windy'
     }
   }
 
@@ -163,11 +174,20 @@ export const useGameStore = defineStore('game', () => {
     if (targetGroup === currentLocationGroup.value) return { ok: true, timeCost: 0, passedOut: false, message: '' }
 
     const cost = getTravelCost(targetTab)
+
+    // 体力消耗：有马减半（向下取整）
+    const key = `${currentLocationGroup.value}->${targetGroup}`
+    const baseStamina = TRAVEL_STAMINA[key] ?? 1
+    const animalStore = useAnimalStore()
+    const staminaCost = animalStore.hasHorse ? Math.floor(baseStamina / 2) : baseStamina
+    const playerStore = usePlayerStore()
+    playerStore.consumeStamina(staminaCost)
+
     const result = advanceTime(cost)
     const targetName = getLocationGroupName(targetGroup)
     currentLocationGroup.value = targetGroup
 
-    const travelMsg = cost > 0 ? `前往${targetName}，路上花了${Math.round(cost * 60)}分钟。` : ''
+    const travelMsg = cost > 0 ? `前往${targetName}，路上花了${Math.round(cost * 60)}分钟，消耗${staminaCost}点体力。` : ''
     return {
       ok: true,
       timeCost: cost,
@@ -240,7 +260,9 @@ export const useGameStore = defineStore('game', () => {
       currentLocation: currentLocation.value,
       currentLocationGroup: currentLocationGroup.value,
       farmMapType: farmMapType.value,
-      dailyLuck: dailyLuck.value
+      dailyLuck: dailyLuck.value,
+      surfaceOrePatch: surfaceOrePatch.value,
+      creekCatch: creekCatch.value
     }
   }
 
@@ -257,6 +279,8 @@ export const useGameStore = defineStore('game', () => {
     currentLocationGroup.value = data.currentLocationGroup ?? 'farm'
     farmMapType.value = data.farmMapType ?? 'standard'
     dailyLuck.value = data.dailyLuck ?? 0
+    surfaceOrePatch.value = data.surfaceOrePatch ?? null
+    creekCatch.value = data.creekCatch ?? []
     isGameStarted.value = true
   }
 
@@ -273,6 +297,8 @@ export const useGameStore = defineStore('game', () => {
     farmMapType,
     midnightWarned,
     dailyLuck,
+    surfaceOrePatch,
+    creekCatch,
     seasonIndex,
     seasonName,
     weatherName,

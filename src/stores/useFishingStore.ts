@@ -24,6 +24,7 @@ import { useQuestStore } from './useQuestStore'
 import { useCookingStore } from './useCookingStore'
 import { useWalletStore } from './useWalletStore'
 import { useSecretNoteStore } from './useSecretNoteStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 
 const STAMINA_COST = 4
 const MAX_CRAB_POTS = 10
@@ -305,15 +306,20 @@ export const useFishingStore = defineStore('fishing', () => {
     // 定向鱼饵权重倍率
     const hardMult = activeBaitDef.value?.hardWeightMult ?? 1
     const legendaryMult = activeBaitDef.value?.legendaryWeightMult ?? 1
+    // 仙缘：龙瞳（long_ling_3）传说鱼捕获率+20%，鱼引结缘提升稀有鱼概率
+    const hiddenNpcStore = useHiddenNpcStore()
+    const legendaryBoost = 1 + hiddenNpcStore.getAbilityValue('long_ling_3') / 100
+    const bondBonus = hiddenNpcStore.getBondBonusByType('fish_attraction')
+    const fishAttractionMult = bondBonus?.type === 'fish_attraction' ? 1.5 : 1
     const weights: number[] = fishPool.map(f => {
       if (f.difficulty === 'legendary') {
         const minLevel = hasAngler ? 6 : 8
         if (rodTier === 'basic' || effectiveLevel < minLevel) return 0
-        return (hasAngler ? 1.5 : 0.5) * (1 + luckBuff) * legendaryMult
+        return (hasAngler ? 1.5 : 0.5) * (1 + luckBuff) * legendaryMult * legendaryBoost
       }
       if (f.difficulty === 'hard') {
         if (rodTier === 'basic' && effectiveLevel < 4) return 0
-        return (rodTier === 'basic' ? 0.5 : 1) * (1 + luckBuff) * hardMult
+        return (rodTier === 'basic' ? 0.5 : 1) * (1 + luckBuff) * hardMult * fishAttractionMult
       }
       if (f.difficulty === 'easy') return 3
       if (f.difficulty === 'normal') return 2
@@ -368,6 +374,22 @@ export const useFishingStore = defineStore('fishing', () => {
       const idx = qualityOrder.indexOf(quality)
       const newIdx = Math.min(idx + 1, qualityOrder.length - 1)
       quality = qualityOrder[newIdx]!
+    }
+
+    // 溪流田庄雨天品质+1档
+    if (gameStore.farmMapType === 'riverland' && gameStore.isRainy) {
+      const idx = qualityOrder.indexOf(quality)
+      if (idx < qualityOrder.length - 1) {
+        quality = qualityOrder[idx + 1]!
+      }
+    }
+
+    // 仙缘能力：龙泽（long_ling_1）瀑布钓鱼品质+1
+    if (fishingLocation.value === 'waterfall' && useHiddenNpcStore().isAbilityActive('long_ling_1')) {
+      const idx = qualityOrder.indexOf(quality)
+      if (idx < qualityOrder.length - 1) {
+        quality = qualityOrder[idx + 1]!
+      }
     }
 
     // 野生鱼饵：概率双倍（诱饵师专精翻倍）

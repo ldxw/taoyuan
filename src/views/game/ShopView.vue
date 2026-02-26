@@ -1,5 +1,7 @@
 <template>
   <div>
+    <p v-if="tutorialHint" class="text-[10px] text-muted/50 mb-2">{{ tutorialHint }}</p>
+
     <!-- 返回按钮（在子商铺时显示） -->
     <Button v-if="shopStore.currentShopId" class="mb-3 w-full md:w-auto" :icon="ChevronLeft" @click="shopStore.currentShopId = null">
       返回商圈
@@ -25,7 +27,7 @@
       </Button>
     </div>
 
-    <div class="flex flex-col md:flex-row space-x-4 md:space-y-6">
+    <div class="flex flex-col md:flex-row space-x-0 md:space-x-4 md:space-y-6">
       <!-- 左侧：购买区 -->
       <div class="flex-1" :class="{ 'hidden md:block': mobileTab === 'sell' }">
         <!-- 折扣提示 -->
@@ -122,7 +124,7 @@
               <div>
                 <p class="text-sm">
                   {{ seed.cropName }}种子
-                  <span v-if="seed.regrowth" class="text-success text-xs ml-1">[再生]</span>
+                  <span v-if="seed.regrowth" class="text-success text-xs ml-1">[多茬]</span>
                 </p>
                 <p class="text-muted text-xs">
                   {{ seed.growthDays }}天{{ seed.regrowth ? ` · 每${seed.regrowthDays}天再收` : '' }} → 售{{ seed.sellPrice }}文
@@ -163,27 +165,24 @@
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(bagPrice) }}文</span>
             </div>
 
-            <!-- 仓库扩容 -->
             <div
-              v-if="warehouseStore.unlocked && warehouseStore.capacity < warehouseStore.MAX_CAPACITY"
+              v-if="warehouseStore.unlocked && warehouseStore.maxChests < warehouseStore.MAX_CHESTS_CAP"
               class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
               @click="
                 openBuyModal(
-                  '仓库扩容',
-                  `当前${warehouseStore.capacity}格 → ${warehouseStore.capacity + warehouseStore.EXPAND_STEP}格`,
-                  discounted(warehousePrice),
-                  handleBuyWarehouse,
-                  () => playerStore.money >= discounted(warehousePrice)
+                  '仓库扩建',
+                  `箱子槽位 ${warehouseStore.maxChests} → ${warehouseStore.maxChests + 1}`,
+                  discounted(warehouseExpandPrice),
+                  handleBuyWarehouseExpand,
+                  () => playerStore.money >= discounted(warehouseExpandPrice)
                 )
               "
             >
               <div>
-                <p class="text-sm">仓库扩容</p>
-                <p class="text-muted text-xs">
-                  当前{{ warehouseStore.capacity }}格 → {{ warehouseStore.capacity + warehouseStore.EXPAND_STEP }}格
-                </p>
+                <p class="text-sm">仓库扩建</p>
+                <p class="text-muted text-xs">箱子槽位 {{ warehouseStore.maxChests }} → {{ warehouseStore.maxChests + 1 }}</p>
               </div>
-              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(warehousePrice) }}文</span>
+              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(warehouseExpandPrice) }}文</span>
             </div>
 
             <!-- 农场扩建 -->
@@ -697,9 +696,9 @@
         <div class="flex flex-col space-y-2">
           <div
             v-for="item in sellableItems"
-            :key="item.itemId + item.quality"
+            :key="item.originalIndex"
             class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
-            @click="openSellModal(item.itemId, item.quality)"
+            @click="openSellModal(item.itemId, item.quality, item.originalIndex)"
           >
             <div>
               <span class="text-sm" :class="qualityTextClass(item.quality)">{{ item.def?.name }}</span>
@@ -757,37 +756,28 @@
           <div v-if="buyModalData.batchBuy" class="border border-accent/10 rounded-xs p-2 mb-2">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-xs text-muted">数量</span>
-              <span class="text-xs text-accent">{{ buyQuantity }}</span>
+              <div class="flex items-center space-x-1">
+                <Button class="h-6 px-1.5 py-0.5 text-xs justify-center" :disabled="buyQuantity <= 1" @click="addBuyQuantity(-1)">-</Button>
+                <input
+                  type="number"
+                  :value="buyQuantity"
+                  min="1"
+                  :max="maxBuyQuantity"
+                  class="w-24 h-6 px-2 py-0.5 bg-bg border border-accent/30 rounded-xs text-xs text-center text-accent outline-none focus:border-accent transition-colors"
+                  @input="onBuyQuantityInput"
+                />
+                <Button
+                  class="h-6 px-1.5 py-0.5 text-xs justify-center"
+                  :disabled="buyQuantity >= maxBuyQuantity"
+                  @click="addBuyQuantity(1)"
+                >
+                  +
+                </Button>
+              </div>
             </div>
             <div class="flex space-x-1">
-              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = Math.max(1, buyQuantity - 1)">
-                -1
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 1)"
-              >
-                +1
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 5)"
-              >
-                +5
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 10)"
-              >
-                +10
-              </Button>
-            </div>
-            <div class="flex mt-2 space-x-1">
-              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = 1">最少</Button>
-              <Button class="flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="buyQuantity = maxBuyQuantity">
+              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="setBuyQuantity(1)">最少</Button>
+              <Button class="flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="setBuyQuantity(maxBuyQuantity)">
                 最多
               </Button>
             </div>
@@ -813,11 +803,10 @@
               class="w-full justify-center"
               :class="{ '!bg-accent !text-bg': buyModalData.canBuy() }"
               :disabled="!buyModalData.canBuy()"
+              :icon="buyModalData.buttonText ? Hammer : ShoppingCart"
               @click="buyModalData.onBuy()"
             >
-              <Hammer v-if="buyModalData.buttonText" :size="14" />
-              <ShoppingCart v-else :size="14" />
-              <span>{{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文</span>
+              {{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文
             </Button>
           </div>
         </div>
@@ -907,16 +896,13 @@
     Footprints
   } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
-  import {
-    useShopStore,
-    usePlayerStore,
-    useInventoryStore,
-    useFarmStore,
-    useWalletStore,
-    useGameStore,
-    useWarehouseStore,
-    SEASON_NAMES
-  } from '@/stores'
+  import { useFarmStore } from '@/stores/useFarmStore'
+  import { useGameStore, SEASON_NAMES } from '@/stores/useGameStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
+  import { useShopStore } from '@/stores/useShopStore'
+  import { useWalletStore } from '@/stores/useWalletStore'
+  import { useWarehouseStore } from '@/stores/useWarehouseStore'
   import { getItemById } from '@/data'
   import { SHOPS, isShopAvailable, getShopClosedReason } from '@/data/shops'
   import type { ShopDef } from '@/data/shops'
@@ -933,6 +919,8 @@
   import { handleBuySeed, handleSellItem, handleSellItemAll, handleSellAll, QUALITY_NAMES } from '@/composables/useFarmActions'
   import { getDailyMarketInfo, MARKET_CATEGORY_NAMES, TREND_NAMES } from '@/data/market'
   import type { MarketTrend } from '@/data/market'
+  import { useTutorialStore } from '@/stores/useTutorialStore'
+  import { useAchievementStore } from '@/stores/useAchievementStore'
 
   const RAIN_TOTEM_PRICE = 300
   const WOOD_PRICE = 50
@@ -944,6 +932,14 @@
   const warehouseStore = useWarehouseStore()
   const walletStore = useWalletStore()
   const gameStore = useGameStore()
+  const tutorialStore = useTutorialStore()
+  const achievementStore = useAchievementStore()
+
+  const tutorialHint = computed(() => {
+    if (!tutorialStore.enabled || gameStore.year > 1) return null
+    if (achievementStore.stats.totalCropsHarvested === 0) return '万物铺出售各种种子，购买后去农场种植。上方可以切换「买入」和「卖出」。'
+    return null
+  })
 
   // === 行情系统 ===
 
@@ -1000,6 +996,7 @@
     type: 'sell'
     itemId: string
     quality: Quality
+    inventoryIndex: number
   }
 
   const shopModal = ref<BuyModalState | SellModalState | null>(null)
@@ -1017,6 +1014,8 @@
   const sellModalItem = computed(() => {
     const data = sellModalData.value
     if (!data) return null
+    const item = inventoryStore.items[data.inventoryIndex]
+    if (item && item.itemId === data.itemId && item.quality === data.quality) return item
     return inventoryStore.items.find(i => i.itemId === data.itemId && i.quality === data.quality) ?? null
   })
 
@@ -1037,6 +1036,19 @@
     if (!buyModalData.value?.batchBuy) return 1
     return Math.max(1, buyModalData.value.batchBuy.maxCount())
   })
+
+  const setBuyQuantity = (val: number) => {
+    buyQuantity.value = Math.max(1, Math.min(val, maxBuyQuantity.value))
+  }
+
+  const addBuyQuantity = (delta: number) => {
+    setBuyQuantity(buyQuantity.value + delta)
+  }
+
+  const onBuyQuantityInput = (e: Event) => {
+    const val = parseInt((e.target as HTMLInputElement).value, 10)
+    if (!isNaN(val)) setBuyQuantity(val)
+  }
 
   const getMaxBuyable = (unitPrice: number, stockLimit?: number): number => {
     const affordable = unitPrice > 0 ? Math.floor(playerStore.money / unitPrice) : 0
@@ -1078,8 +1090,8 @@
     }
   }
 
-  const openSellModal = (itemId: string, quality: Quality) => {
-    shopModal.value = { type: 'sell', itemId, quality }
+  const openSellModal = (itemId: string, quality: Quality, inventoryIndex: number) => {
+    shopModal.value = { type: 'sell', itemId, quality, inventoryIndex }
   }
 
   const openWeaponModal = (w: WeaponDef) => {
@@ -1212,19 +1224,19 @@
     }
   }
 
-  const warehousePrice = computed(() => {
-    const level = (warehouseStore.capacity - warehouseStore.INITIAL_CAPACITY) / warehouseStore.EXPAND_STEP
-    return 800 + level * 400
+  const warehouseExpandPrice = computed(() => {
+    const level = warehouseStore.maxChests - 3
+    return 2000 + level * 2000
   })
 
-  const handleBuyWarehouse = () => {
-    const actualPrice = discounted(warehousePrice.value)
+  const handleBuyWarehouseExpand = () => {
+    const actualPrice = discounted(warehouseExpandPrice.value)
     if (!playerStore.spendMoney(actualPrice)) {
       addLog('金币不足。')
       return
     }
-    if (warehouseStore.expandCapacity()) {
-      addLog(`仓库扩容至${warehouseStore.capacity}格！(-${actualPrice}文)`)
+    if (warehouseStore.expandMaxChests()) {
+      addLog(`仓库扩建至${warehouseStore.maxChests}个箱子槽位！(-${actualPrice}文)`)
     } else {
       playerStore.earnMoney(actualPrice)
       addLog('仓库已满级。')
@@ -1258,7 +1270,11 @@
       addLog('金币不足。')
       return
     }
-    inventoryStore.addItem(saplingId)
+    if (!inventoryStore.addItem(saplingId)) {
+      playerStore.earnMoney(actualPrice)
+      addLog('背包已满，无法购买。')
+      return
+    }
     addLog(`购买了${treeName}苗。(-${actualPrice}文)`)
   }
 
@@ -1268,7 +1284,11 @@
       addLog('金币不足。')
       return
     }
-    inventoryStore.addItem('hay')
+    if (!inventoryStore.addItem('hay')) {
+      playerStore.earnMoney(actualPrice)
+      addLog('背包已满，无法购买。')
+      return
+    }
     addLog(`购买了干草。(-${actualPrice}文)`)
   }
 
@@ -1303,7 +1323,10 @@
     let bought = 0
     for (let i = 0; i < count; i++) {
       if (!playerStore.spendMoney(unitPrice)) break
-      inventoryStore.addItem(saplingId)
+      if (!inventoryStore.addItem(saplingId)) {
+        playerStore.earnMoney(unitPrice)
+        break
+      }
       bought++
     }
     if (bought > 0) {
@@ -1574,9 +1597,9 @@
 
   const sellableItems = computed(() => {
     return inventoryStore.items
-      .map(inv => {
+      .map((inv, index) => {
         const def = getItemById(inv.itemId)
-        return { ...inv, def }
+        return { ...inv, def, originalIndex: index }
       })
       .filter(item => item.def)
   })

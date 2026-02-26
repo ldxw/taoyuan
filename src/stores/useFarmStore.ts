@@ -10,6 +10,7 @@ import { MAX_WILD_TREES, getWildTreeDef } from '@/data/wildTrees'
 import { GREENHOUSE_PLOT_COUNT } from '@/data/buildings'
 import { useWalletStore } from './useWalletStore'
 import { useGameStore } from './useGameStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 
 /** 已放置洒水器 */
 export interface PlacedSprinkler {
@@ -47,6 +48,8 @@ export const useFarmStore = defineStore('farm', () => {
   const greenhousePlots = ref<FarmPlot[]>([])
   const greenhouseLevel = ref(0)
   const wildTrees = ref<PlantedWildTree[]>([])
+  const nextFruitTreeId = ref(0)
+  const nextWildTreeId = ref(0)
   const lightningRods = ref(0)
   const scarecrows = ref(0)
   const giantCropCounter = ref(0)
@@ -61,6 +64,8 @@ export const useFarmStore = defineStore('farm', () => {
     fruitTrees.value = []
     greenhousePlots.value = []
     wildTrees.value = []
+    nextFruitTreeId.value = 0
+    nextWildTreeId.value = 0
   }
 
   /** 开垦地块 */
@@ -82,6 +87,7 @@ export const useFarmStore = defineStore('farm', () => {
     plot.growthDays = 0
     plot.watered = getAllWateredBySprinklers().has(plotId) || useGameStore().isRainy
     plot.unwateredDays = 0
+    plot.giantCropGroup = null
     plot.seedGenetics = null
     plot.infested = false
     plot.infestedDays = 0
@@ -101,6 +107,7 @@ export const useFarmStore = defineStore('farm', () => {
     plot.growthDays = 0
     plot.watered = getAllWateredBySprinklers().has(plotId) || useGameStore().isRainy
     plot.unwateredDays = 0
+    plot.giantCropGroup = null
     plot.seedGenetics = genetics
     plot.infested = false
     plot.infestedDays = 0
@@ -119,7 +126,7 @@ export const useFarmStore = defineStore('farm', () => {
     return true
   }
 
-  /** 收获，返回作物ID（支持再生作物） */
+  /** 收获，返回作物ID（支持多茬作物） */
   const harvestPlot = (plotId: number): { cropId: string | null; genetics: SeedGenetics | null } => {
     const plot = plots.value[plotId]
     if (!plot || plot.state !== 'harvestable') return { cropId: null, genetics: null }
@@ -127,7 +134,7 @@ export const useFarmStore = defineStore('farm', () => {
     const crop = cropId ? getCropById(cropId) : null
     const genetics = plot.seedGenetics
 
-    // 再生作物：收获后回到生长状态（有次数上限）
+    // 多茬作物：收获后回到生长状态（有次数上限）
     if (crop && crop.regrowth && crop.regrowthDays) {
       plot.harvestCount++
       if (crop.maxHarvests && plot.harvestCount >= crop.maxHarvests) {
@@ -139,6 +146,7 @@ export const useFarmStore = defineStore('farm', () => {
         plot.unwateredDays = 0
         plot.harvestCount = 0
         plot.fertilizer = null
+        plot.giantCropGroup = null
         plot.seedGenetics = null
         plot.infested = false
         plot.infestedDays = 0
@@ -149,7 +157,8 @@ export const useFarmStore = defineStore('farm', () => {
         plot.growthDays = crop.growthDays - crop.regrowthDays
         plot.watered = getAllWateredBySprinklers().has(plotId) || useGameStore().isRainy
         plot.unwateredDays = 0
-        // seedGenetics 保留（再生作物继续使用同一基因）
+        plot.giantCropGroup = null
+        // seedGenetics 保留（多茬作物继续使用同一基因）
       }
     } else {
       plot.state = 'tilled'
@@ -159,6 +168,7 @@ export const useFarmStore = defineStore('farm', () => {
       plot.unwateredDays = 0
       plot.fertilizer = null
       plot.harvestCount = 0
+      plot.giantCropGroup = null
       plot.seedGenetics = null
       plot.infested = false
       plot.infestedDays = 0
@@ -284,12 +294,13 @@ export const useFarmStore = defineStore('farm', () => {
     return type
   }
 
-  /** 获取被所有洒水器覆盖的地块集合 */
+  /** 获取被所有洒水器覆盖的地块集合（含洒水器自身所在地块） */
   const getAllWateredBySprinklers = (): Set<number> => {
     const watered = new Set<number>()
     for (const s of sprinklers.value) {
       const def = SPRINKLERS.find(d => d.id === s.type)
       if (!def) continue
+      watered.add(s.plotId)
       for (const pid of getSprinklerCoverage(s.plotId, def.range)) {
         watered.add(pid)
       }
@@ -309,10 +320,31 @@ export const useFarmStore = defineStore('farm', () => {
     return true
   }
 
+  /** 桃源田庄：季初给所有已耕但无肥料的地块施加基础肥料 */
+  const applyFertileSoil = (): number => {
+    let count = 0
+    for (const plot of plots.value) {
+      if (plot.state !== 'wasteland' && !plot.fertilizer) {
+        plot.fertilizer = 'basic_fertilizer'
+        count++
+      }
+    }
+    for (const plot of greenhousePlots.value) {
+      if (plot.state !== 'wasteland' && !plot.fertilizer) {
+        plot.fertilizer = 'basic_fertilizer'
+        count++
+      }
+    }
+    return count
+  }
+
   /** 每日更新所有地块 */
   const dailyUpdate = (isRainy: boolean): { newInfestations: number; pestDeaths: number; newWeeds: number; weedDeaths: number } => {
     const sprinklerWatered = getAllWateredBySprinklers()
     const walletGrowth = useWalletStore().getCropGrowthBonus()
+    const gameStore = useGameStore()
+    // 仙缘能力：春息（tao_yao_2）春季作物生长加速
+    const spiritGrowth = gameStore.season === 'spring' ? useHiddenNpcStore().getAbilityValue('tao_yao_2') / 100 : 0
     let newInfestations = 0
     let pestDeaths = 0
     let newWeeds = 0
@@ -375,7 +407,7 @@ export const useFarmStore = defineStore('farm', () => {
       if (plot.watered) {
         // 肥料加速：减少作物所需生长天数
         const fertDef = plot.fertilizer ? getFertilizerById(plot.fertilizer) : null
-        const speedup = (fertDef?.growthSpeedup ?? 0) + walletGrowth
+        const speedup = (fertDef?.growthSpeedup ?? 0) + walletGrowth + spiritGrowth
         plot.growthDays += 1
         const crop = getCropById(plot.cropId!)
         if (crop) {
@@ -397,6 +429,7 @@ export const useFarmStore = defineStore('farm', () => {
           plot.unwateredDays = 0
           plot.fertilizer = null
           plot.harvestCount = 0
+          plot.giantCropGroup = null
           plot.seedGenetics = null
           plot.infested = false
           plot.infestedDays = 0
@@ -641,7 +674,7 @@ export const useFarmStore = defineStore('farm', () => {
   const plantFruitTree = (treeType: FruitTreeType): boolean => {
     if (fruitTrees.value.length >= MAX_FRUIT_TREES) return false
     fruitTrees.value.push({
-      id: fruitTrees.value.length,
+      id: nextFruitTreeId.value++,
       type: treeType,
       growthDays: 0,
       mature: false,
@@ -654,6 +687,10 @@ export const useFarmStore = defineStore('farm', () => {
   /** 果树每日更新 */
   const dailyFruitTreeUpdate = (currentSeason: Season): { fruits: { fruitId: string; quality: Quality }[] } => {
     const results: { fruitId: string; quality: Quality }[] = []
+    // 仙缘能力
+    const hiddenNpcStore2 = useHiddenNpcStore()
+    const extraFruit = hiddenNpcStore2.isAbilityActive('tao_yao_1') // 花泽：果树+1产量
+    const spiritPeachActive = hiddenNpcStore2.isAbilityActive('tao_yao_3') // 灵桃：桃树概率产灵桃
     for (const tree of fruitTrees.value) {
       tree.growthDays++
       tree.todayFruit = false
@@ -664,7 +701,11 @@ export const useFarmStore = defineStore('farm', () => {
         const def = FRUIT_TREE_DEFS.find(d => d.type === tree.type)
         if (def && def.fruitSeason === currentSeason) {
           const quality = getFruitQuality(tree.yearAge)
-          results.push({ fruitId: def.fruitId, quality })
+          // 仙缘能力：灵桃（tao_yao_3）桃树10%概率产灵桃
+          const fruitId = (tree.type === 'peach_tree' && spiritPeachActive && Math.random() < 0.1)
+            ? 'spirit_peach' : def.fruitId
+          results.push({ fruitId, quality })
+          if (extraFruit) results.push({ fruitId, quality })
           tree.todayFruit = true
         }
       }
@@ -704,7 +745,7 @@ export const useFarmStore = defineStore('farm', () => {
   const plantWildTree = (treeType: WildTreeType): boolean => {
     if (wildTrees.value.length >= MAX_WILD_TREES) return false
     wildTrees.value.push({
-      id: wildTrees.value.length,
+      id: nextWildTreeId.value++,
       type: treeType,
       growthDays: 0,
       mature: false,
@@ -913,6 +954,8 @@ export const useFarmStore = defineStore('farm', () => {
       greenhousePlots: greenhousePlots.value,
       greenhouseLevel: greenhouseLevel.value,
       wildTrees: wildTrees.value,
+      nextFruitTreeId: nextFruitTreeId.value,
+      nextWildTreeId: nextWildTreeId.value,
       lightningRods: lightningRods.value,
       scarecrows: scarecrows.value,
       giantCropCounter: giantCropCounter.value
@@ -945,10 +988,14 @@ export const useFarmStore = defineStore('farm', () => {
       ...t,
       yearAge: t.yearAge ?? t.seasonAge ?? 0
     }))
+    nextFruitTreeId.value =
+      (data as any).nextFruitTreeId ?? (fruitTrees.value.length > 0 ? Math.max(...fruitTrees.value.map(t => t.id)) + 1 : 0)
     wildTrees.value = ((data as any).wildTrees ?? []).map((t: any) => ({
       ...t,
       chopCount: t.chopCount ?? 0
     }))
+    nextWildTreeId.value =
+      (data as any).nextWildTreeId ?? (wildTrees.value.length > 0 ? Math.max(...wildTrees.value.map(t => t.id)) + 1 : 0)
     greenhousePlots.value = ((data as any).greenhousePlots ?? []).map((p: any) => ({
       ...p,
       fertilizer: migrateFertilizer(p.fertilizer),
@@ -986,6 +1033,7 @@ export const useFarmStore = defineStore('farm', () => {
     removeSprinkler,
     getAllWateredBySprinklers,
     applyFertilizer,
+    applyFertileSoil,
     dailyUpdate,
     onSeasonChange,
     lightningStrike,

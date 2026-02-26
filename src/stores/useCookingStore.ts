@@ -8,6 +8,8 @@ import { useSkillStore } from './useSkillStore'
 import { useAchievementStore } from './useAchievementStore'
 import { useWalletStore } from './useWalletStore'
 import { useHomeStore } from './useHomeStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
+import { getCombinedItemCount, removeCombinedItem } from '@/composables/useCombinedInventory'
 
 export const useCookingStore = defineStore('cooking', () => {
   const inventoryStore = useInventoryStore()
@@ -50,7 +52,7 @@ export const useCookingStore = defineStore('cooking', () => {
       const skill = skillStore.getSkill(recipe.requiredSkill.type)
       if (skill.level < recipe.requiredSkill.level) return false
     }
-    return recipe.ingredients.every(ing => inventoryStore.getItemCount(ing.itemId) >= ing.quantity)
+    return recipe.ingredients.every(ing => getCombinedItemCount(ing.itemId) >= ing.quantity)
   }
 
   /** 烹饪 */
@@ -61,14 +63,14 @@ export const useCookingStore = defineStore('cooking', () => {
 
     // 检查材料
     for (const ing of recipe.ingredients) {
-      if (inventoryStore.getItemCount(ing.itemId) < ing.quantity) {
+      if (getCombinedItemCount(ing.itemId) < ing.quantity) {
         return { success: false, message: '材料不足。' }
       }
     }
 
     // 消耗材料
     for (const ing of recipe.ingredients) {
-      inventoryStore.removeItem(ing.itemId, ing.quantity)
+      removeCombinedItem(ing.itemId, ing.quantity)
     }
 
     // 添加食物到背包
@@ -93,12 +95,14 @@ export const useCookingStore = defineStore('cooking', () => {
     const chefBonus = 1 + walletStore.getCookingRestoreBonus()
     const alchemistBonus = skillStore.getSkill('foraging').perk10 === 'alchemist' ? 1.5 : 1.0
     const kitchenBonus = homeStore.getKitchenBonus()
-    const staminaRestore = Math.floor(recipe.effect.staminaRestore * alchemistBonus * chefBonus * kitchenBonus)
+    // 仙缘能力：月膳（yue_tu_2）食物恢复+50%
+    const moonRabbitBonus = useHiddenNpcStore().isAbilityActive('yue_tu_2') ? 1.5 : 1.0
+    const staminaRestore = Math.floor(recipe.effect.staminaRestore * alchemistBonus * chefBonus * kitchenBonus * moonRabbitBonus)
     playerStore.restoreStamina(staminaRestore)
     let msg = `食用了${recipe.name}，恢复${staminaRestore}体力`
 
     if (recipe.effect.healthRestore) {
-      const healthRestore = Math.floor(recipe.effect.healthRestore * alchemistBonus * chefBonus * kitchenBonus)
+      const healthRestore = Math.floor(recipe.effect.healthRestore * alchemistBonus * chefBonus * kitchenBonus * moonRabbitBonus)
       playerStore.restoreHealth(healthRestore)
       msg += `、${healthRestore}生命值`
     }

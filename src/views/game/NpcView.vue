@@ -1,6 +1,7 @@
 <template>
   <div>
     <h3 class="text-accent text-sm mb-3">桃源村</h3>
+    <p v-if="tutorialHint" class="text-[10px] text-muted/50 mb-2">{{ tutorialHint }}</p>
 
     <!-- NPC 网格：移动端紧凑，桌面端详细 -->
     <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 md:gap-2">
@@ -63,6 +64,52 @@
         </div>
       </div>
     </div>
+
+    <!-- 仙灵分区（仅显示已显现的隐藏NPC） -->
+    <div v-if="revealedHiddenNpcs.length > 0" class="mt-4">
+      <h3 class="text-accent text-sm mb-3">仙灵</h3>
+      <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 md:gap-2">
+        <div
+          v-for="npc in revealedHiddenNpcs"
+          :key="npc.id"
+          class="border border-accent/20 rounded-xs p-1.5 md:p-2 cursor-pointer hover:bg-accent/5 text-center md:text-left"
+          @click="selectedHiddenNpc = npc.id"
+        >
+          <p class="text-xs text-accent truncate">{{ npc.name }}</p>
+          <p class="text-[10px] text-muted truncate">{{ npc.title }}</p>
+          <div class="flex space-x-px mt-0.5 justify-center md:justify-start">
+            <span
+              v-for="d in 12"
+              :key="d"
+              class="text-[8px]"
+              :class="(hiddenNpcStore.getHiddenNpcState(npc.id)?.affinity ?? 0) >= d * 250 ? 'text-accent' : 'text-muted/20'"
+            >
+              &#x25C6;
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 传闻区（显示rumor/glimpse阶段的线索） -->
+    <div v-if="rumorHiddenNpcs.length > 0" class="mt-4">
+      <h3 class="text-muted/60 text-sm mb-2">传闻</h3>
+      <div class="flex flex-col space-y-1">
+        <div v-for="npc in rumorHiddenNpcs" :key="npc.id" class="border border-muted/10 rounded-xs px-2 py-1 text-[10px] text-muted/50">
+          <span v-if="hiddenNpcStore.getHiddenNpcState(npc.id)?.discoveryPhase === 'rumor'">
+            {{ getLastDiscoveryLog(npc.id) ?? '似乎有什么隐约的传说……' }}
+          </span>
+          <span v-else>
+            {{ getLastDiscoveryLog(npc.id) ?? '你曾看到某种异象……' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 仙灵交互弹窗 -->
+    <Transition name="panel-fade">
+      <HiddenNpcModal v-if="selectedHiddenNpc" :npc-id="selectedHiddenNpc" @close="selectedHiddenNpc = null" />
+    </Transition>
 
     <!-- NPC 交互弹窗 -->
     <Transition name="panel-fade">
@@ -207,7 +254,10 @@
               </template>
             </template>
             <template v-else-if="selectedNpcState?.dating">
-              <p class="text-[10px] text-danger/60 mb-1">约会中 ♥</p>
+              <p class="text-[10px] text-danger/60 mb-1">
+                约会中
+                <Heart :size="10" class="inline" />
+              </p>
               <div class="flex flex-col space-y-0.5 mb-1.5">
                 <span
                   class="text-[10px] flex items-center space-x-0.5"
@@ -330,8 +380,17 @@
                   class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
                   @click="activeGiftKey = item.itemId + ':' + item.quality"
                 >
-                  <span class="text-xs" :class="qualityTextClass(item.quality)">
-                    {{ getItemById(item.itemId)?.name }}
+                  <span class="flex items-center space-x-1">
+                    <span class="text-xs" :class="qualityTextClass(item.quality)">
+                      {{ getItemById(item.itemId)?.name }}
+                    </span>
+                    <span
+                      v-if="getGiftPreference(item.itemId) !== 'neutral'"
+                      class="text-[10px]"
+                      :class="GIFT_PREF_CLASS[getGiftPreference(item.itemId)]"
+                    >
+                      {{ GIFT_PREF_LABELS[getGiftPreference(item.itemId)] }}
+                    </span>
                   </span>
                   <Gift :size="12" class="text-muted" />
                 </div>
@@ -372,6 +431,14 @@
                     </span>
                   </div>
                 </div>
+                <div v-if="activeGiftReaction" class="border border-accent/10 rounded-xs p-2 mb-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-muted">{{ selectedNpcDef?.name }}觉得</span>
+                    <span class="text-xs" :class="activeGiftReaction.className">
+                      {{ activeGiftReaction.text }}
+                    </span>
+                  </div>
+                </div>
                 <div class="flex flex-col space-y-1.5">
                   <Button :icon="Gift" class="w-full justify-center" @click="handleGift(activeGiftItem!.itemId, activeGiftItem!.quality)">
                     赠送给{{ selectedNpcDef?.name }}
@@ -389,8 +456,15 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { MessageCircle, Heart, Gift, Cake, X, Package, Lightbulb, Circle, CircleCheck } from 'lucide-vue-next'
-  import { useNpcStore, useInventoryStore, useCookingStore, useGameStore, usePlayerStore } from '@/stores'
+  import { useCookingStore } from '@/stores/useCookingStore'
+  import { useGameStore } from '@/stores/useGameStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
+  import { useNpcStore } from '@/stores/useNpcStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
+  import { useTutorialStore } from '@/stores/useTutorialStore'
+  import { useHiddenNpcStore } from '@/stores/useHiddenNpcStore'
   import { NPCS, getNpcById, getItemById, getHeartEventById } from '@/data'
+  import { getHiddenNpcById } from '@/data/hiddenNpcs'
   import { ACTION_TIME_COSTS, isNpcAvailable } from '@/data/timeConstants'
   import { TIP_NPC_LABELS } from '@/data/npcTips'
   import type { TipNpcId } from '@/data/npcTips'
@@ -399,12 +473,35 @@
   import { handleEndDay } from '@/composables/useEndDay'
   import type { FriendshipLevel, Quality } from '@/types'
   import Button from '@/components/game/Button.vue'
+  import HiddenNpcModal from '@/components/game/HiddenNpcModal.vue'
 
   const npcStore = useNpcStore()
   const inventoryStore = useInventoryStore()
   const cookingStore = useCookingStore()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
+  const tutorialStore = useTutorialStore()
+  const hiddenNpcStore = useHiddenNpcStore()
+
+  const selectedHiddenNpc = ref<string | null>(null)
+
+  const revealedHiddenNpcs = computed(() => hiddenNpcStore.getRevealedNpcs)
+  const rumorHiddenNpcs = computed(() => hiddenNpcStore.getRumorNpcs)
+
+  const getLastDiscoveryLog = (npcId: string): string | null => {
+    const npcDef = getHiddenNpcById(npcId)
+    const state = hiddenNpcStore.getHiddenNpcState(npcId)
+    if (!npcDef || !state) return null
+    const lastStepId = state.completedSteps[state.completedSteps.length - 1]
+    const step = npcDef.discoverySteps.find(s => s.id === lastStepId)
+    return step?.logMessage ?? null
+  }
+
+  const tutorialHint = computed(() => {
+    if (!tutorialStore.enabled || gameStore.year > 1) return null
+    if (npcStore.npcStates.every(n => n.friendship === 0)) return '点击村民头像可以聊天和送礼，经常互动能增进友好度。'
+    return null
+  })
 
   const selectedNpc = ref<string | null>(null)
   const dialogueText = ref<string | null>(null)
@@ -427,6 +524,8 @@
   const selectedNpcState = computed(() => (selectedNpc.value ? npcStore.getNpcState(selectedNpc.value) : null))
 
   const npcAvailable = (npcId: string): boolean => {
+    const state = npcStore.getNpcState(npcId)
+    if (state?.married) return true
     return isNpcAvailable(npcId, gameStore.day, gameStore.hour)
   }
 
@@ -474,12 +573,14 @@
     return `可送礼 ${state?.giftsThisWeek ?? 0}/2`
   })
 
-  const giftableItems = computed(() =>
-    inventoryStore.items.filter(i => {
+  const giftableItems = computed(() => {
+    const filtered = inventoryStore.items.filter(i => {
       const def = getItemById(i.itemId)
       return def && def.category !== 'seed'
     })
-  )
+    if (!selectedNpcDef.value) return filtered
+    return [...filtered].sort((a, b) => GIFT_PREF_ORDER[getGiftPreference(a.itemId)] - GIFT_PREF_ORDER[getGiftPreference(b.itemId)])
+  })
 
   /** 是否可以赠帕开始约会 */
   const canStartDating = computed(() => {
@@ -532,6 +633,50 @@
     excellent: '精品',
     supreme: '极品'
   }
+
+  // === 送礼偏好 ===
+
+  type GiftPreference = 'loved' | 'liked' | 'hated' | 'neutral'
+
+  const getGiftPreference = (itemId: string): GiftPreference => {
+    const npcDef = selectedNpcDef.value
+    if (!npcDef) return 'neutral'
+    if (npcDef.lovedItems.includes(itemId)) return 'loved'
+    if (npcDef.likedItems.includes(itemId)) return 'liked'
+    if (npcDef.hatedItems.includes(itemId)) return 'hated'
+    return 'neutral'
+  }
+
+  const GIFT_PREF_LABELS: Record<GiftPreference, string> = {
+    loved: '最爱',
+    liked: '喜欢',
+    hated: '讨厌',
+    neutral: ''
+  }
+  const GIFT_PREF_CLASS: Record<GiftPreference, string> = {
+    loved: 'text-danger',
+    liked: 'text-success',
+    hated: 'text-muted',
+    neutral: ''
+  }
+  const GIFT_PREF_ORDER: Record<GiftPreference, number> = {
+    loved: 0,
+    liked: 1,
+    neutral: 2,
+    hated: 3
+  }
+  const GIFT_REACTION_TEXT: Record<GiftPreference, string> = {
+    loved: '非常喜欢',
+    liked: '还不错',
+    hated: '讨厌',
+    neutral: '一般'
+  }
+
+  const activeGiftReaction = computed(() => {
+    if (!activeGiftItem.value || !selectedNpcDef.value) return null
+    const pref = getGiftPreference(activeGiftItem.value.itemId)
+    return { text: GIFT_REACTION_TEXT[pref], className: GIFT_PREF_CLASS[pref] }
+  })
 
   const levelColor = (level: FriendshipLevel): string => {
     switch (level) {

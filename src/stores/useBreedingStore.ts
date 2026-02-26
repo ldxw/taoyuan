@@ -26,6 +26,7 @@ import {
 import { getCropById } from '@/data/crops'
 import { addLog } from '@/composables/useGameLog'
 import { useAchievementStore } from './useAchievementStore'
+import { useGameStore } from './useGameStore'
 
 export const useBreedingStore = defineStore('breeding', () => {
   // === 状态 ===
@@ -159,7 +160,7 @@ export const useBreedingStore = defineStore('breeding', () => {
         const hybrid = findPossibleHybridById(result.hybridId)
         compendium.value.push({
           hybridId: result.hybridId,
-          discoveredYear: 1,
+          discoveredYear: useGameStore().year,
           bestTotalStats: result.sweetness + result.yield + result.resistance,
           timesGrown: 0
         })
@@ -209,7 +210,12 @@ export const useBreedingStore = defineStore('breeding', () => {
     if (Math.random() < avgMutationRate / 100) {
       const mutateCount = Math.random() < 0.5 ? 1 : 2
       const stats: ('sweetness' | 'yield' | 'resistance')[] = ['sweetness', 'yield', 'resistance']
-      const shuffled = stats.sort(() => Math.random() - 0.5)
+      // Fisher-Yates 洗牌
+      for (let j = stats.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1))
+        ;[stats[j], stats[k]] = [stats[k]!, stats[j]!]
+      }
+      const shuffled = stats
       const current = { sweetness, yield: yieldVal, resistance }
 
       for (let i = 0; i < mutateCount; i++) {
@@ -238,8 +244,8 @@ export const useBreedingStore = defineStore('breeding', () => {
       mutationRate,
       parentA: a.id,
       parentB: b.id,
-      isHybrid: a.isHybrid,
-      hybridId: a.hybridId
+      isHybrid: a.isHybrid || b.isHybrid,
+      hybridId: a.hybridId ?? b.hybridId
     }
 
     // 同种杂交也需要同步图鉴（防止图鉴条目丢失后无法恢复）
@@ -249,7 +255,7 @@ export const useBreedingStore = defineStore('breeding', () => {
         const hybrid = findPossibleHybridById(result.hybridId)
         compendium.value.push({
           hybridId: result.hybridId,
-          discoveredYear: 1,
+          discoveredYear: useGameStore().year,
           bestTotalStats: result.sweetness + result.yield + result.resistance,
           timesGrown: 0
         })
@@ -301,7 +307,7 @@ export const useBreedingStore = defineStore('breeding', () => {
       if (!existing) {
         compendium.value.push({
           hybridId: hybrid.id,
-          discoveredYear: 1,
+          discoveredYear: useGameStore().year,
           bestTotalStats: result.sweetness + result.yield + result.resistance,
           timesGrown: 0
         })
@@ -330,7 +336,9 @@ export const useBreedingStore = defineStore('breeding', () => {
       } as SeedGenetics
 
       if (hybrid) {
-        addLog(`杂交失败：父本平均甜度${Math.round(avgSweetness)}（需≥${hybrid.minSweetness}），平均产量${Math.round(avgYield)}（需≥${hybrid.minYield}）。请先通过同种培育提升属性。`)
+        addLog(
+          `杂交失败：父本平均甜度${Math.round(avgSweetness)}（需≥${hybrid.minSweetness}），平均产量${Math.round(avgYield)}（需≥${hybrid.minYield}）。请先通过同种培育提升属性。`
+        )
       } else {
         addLog('这两个品种无法杂交，返回了一颗种子。')
       }

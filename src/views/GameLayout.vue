@@ -1,5 +1,9 @@
 <template>
-  <div v-if="gameStore.isGameStarted" class="flex flex-col space-y-2 md:space-y-4 h-screen p-2 md:p-4" :class="{ 'py-10': isWebView }">
+  <div
+    v-if="gameStore.isGameStarted"
+    class="flex flex-col space-y-2 md:space-y-4 h-screen p-2 md:p-4"
+    :class="{ 'py-10': Capacitor.isNativePlatform() }"
+  >
     <!-- 状态栏 -->
     <StatusBar @request-sleep="showSleepConfirm = true" />
 
@@ -23,6 +27,10 @@
     <button class="mobile-setting-btn md:!hidden" @click="showSettings = true">
       <SettingsIcon :size="20" />
     </button>
+    <!-- 虚空箱远程访问按钮 -->
+    <button v-if="warehouseStore.hasVoidChest" class="mobile-void-btn" @click="showVoidModal = true">
+      <Archive :size="20" />
+    </button>
 
     <SettingsDialog :open="showSettings" @close="showSettings = false" />
 
@@ -37,6 +45,16 @@
     <!-- 心事件弹窗 -->
     <Transition name="panel-fade">
       <HeartEventDialog v-if="pendingHeartEvent" :event="pendingHeartEvent" @close="closeHeartEvent" />
+    </Transition>
+
+    <!-- 仙灵发现场景弹窗 -->
+    <Transition name="panel-fade">
+      <DiscoveryScene
+        v-if="pendingDiscoveryScene"
+        :npc-id="pendingDiscoveryScene.npcId"
+        :step="pendingDiscoveryScene.step"
+        @close="closeDiscoveryScene"
+      />
     </Transition>
 
     <!-- 互动节日 -->
@@ -98,13 +116,123 @@
       </div>
     </Transition>
 
+    <!-- 晨间选项事件弹窗 -->
+    <Transition name="panel-fade">
+      <div v-if="pendingFarmEvent" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="game-panel max-w-xs w-full text-center">
+          <p class="text-xs leading-relaxed mb-4">{{ pendingFarmEvent.message }}</p>
+          <div class="flex flex-col space-y-1.5">
+            <Button v-for="(c, i) in pendingFarmEvent.choices" :key="i" class="w-full justify-center" @click="handleFarmEventChoice(c)">
+              {{ c.label }}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 虚空箱远程存取弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showVoidModal"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showVoidModal = false"
+      >
+        <div class="game-panel max-w-sm w-full">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-accent">
+              <Archive :size="14" class="inline" />
+              虚空箱
+            </p>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showVoidModal = false" />
+          </div>
+
+          <!-- 虚空箱列表 -->
+          <div class="flex flex-col space-y-1.5">
+            <div v-for="vc in voidChests" :key="vc.id" class="border border-accent/10 rounded-xs p-2">
+              <div class="flex items-center justify-between mb-1 cursor-pointer" @click="toggleVoidChest(vc.id)">
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-xs text-quality-supreme">{{ vc.label }}</span>
+                  <span v-if="vc.voidRole === 'input'" class="text-[10px] px-1 border border-accent/30 rounded-xs text-accent">原料箱</span>
+                  <span v-if="vc.voidRole === 'output'" class="text-[10px] px-1 border border-accent/30 rounded-xs text-accent">
+                    成品箱
+                  </span>
+                </div>
+                <span class="text-[10px] text-muted">{{ vc.items.length }}/{{ voidChestCapacity }}</span>
+              </div>
+
+              <!-- 展开的物品列表 -->
+              <div v-if="expandedVoidChestId === vc.id">
+                <div v-if="vc.items.length > 0" class="flex flex-col space-y-0.5 mb-1.5 max-h-36 overflow-y-auto">
+                  <div
+                    v-for="(item, idx) in vc.items"
+                    :key="idx"
+                    class="flex items-center justify-between px-2 py-0.5 border border-accent/5 rounded-xs"
+                  >
+                    <span class="text-[10px] truncate mr-2" :class="voidQualityClass(item.quality)">
+                      {{ getItemName(item.itemId) }}
+                      <span v-if="item.quality !== 'normal'" class="text-[10px]">({{ VOID_QUALITY_LABEL[item.quality] }})</span>
+                    </span>
+                    <div class="flex items-center space-x-1">
+                      <span class="text-[10px] text-muted">&times;{{ item.quantity }}</span>
+                      <Button class="py-0 px-1 text-[10px]" @click="handleVoidWithdraw(vc.id, item.itemId, item.quality)">取出</Button>
+                    </div>
+                  </div>
+                </div>
+                <p v-else class="text-[10px] text-muted text-center py-2">空箱子</p>
+                <Button
+                  v-if="voidDepositableItems.length > 0"
+                  class="w-full text-[10px]"
+                  :icon="ArrowDown"
+                  :icon-size="10"
+                  @click="openVoidDeposit(vc.id)"
+                >
+                  存入
+                </Button>
+              </div>
+            </div>
+          </div>
+          <p v-if="voidChests.length === 0" class="text-xs text-muted text-center py-3">没有虚空箱子</p>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 虚空箱存入弹窗 -->
+    <Transition name="panel-fade">
+      <div
+        v-if="showVoidDepositModal && voidDepositChestId"
+        class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        @click.self="showVoidDepositModal = false"
+      >
+        <div class="game-panel max-w-sm w-full">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-accent">存入物品</p>
+            <Button class="py-0 px-1" :icon="X" :icon-size="12" @click="showVoidDepositModal = false" />
+          </div>
+          <div class="flex flex-col space-y-1 max-h-60 overflow-y-auto">
+            <div
+              v-for="item in voidDepositableItems"
+              :key="item.itemId + item.quality"
+              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-1.5 cursor-pointer hover:bg-accent/5"
+              @click="handleVoidDeposit(voidDepositChestId!, item.itemId, item.quality)"
+            >
+              <span class="text-xs truncate mr-2" :class="voidQualityClass(item.quality)">
+                {{ getItemName(item.itemId) }}
+                <span v-if="item.quality !== 'normal'" class="text-[10px]">({{ VOID_QUALITY_LABEL[item.quality] }})</span>
+              </span>
+              <span class="text-xs text-muted">&times;{{ item.quantity }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 休息确认 -->
     <Transition name="panel-fade">
       <div v-if="showSleepConfirm" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
         <div class="game-panel max-w-xs w-full text-center">
           <p class="text-accent text-sm mb-3">—— {{ sleepLabel }} ——</p>
           <p class="text-xs leading-relaxed mb-1">{{ sleepSummary }}</p>
-          <p v-if="sleepWarning" class="text-danger text-xs mb-1">{{ sleepWarning }}</p>
+          <p v-for="(warn, wi) in sleepWarning.split('\n').filter(Boolean)" :key="wi" class="text-danger text-xs mb-1">{{ warn }}</p>
           <div class="flex space-x-3 justify-center mt-4">
             <Button :icon="X" :icon-size="12" @click="showSleepConfirm = false">再等等</Button>
             <Button class="btn-danger" :icon="Moon" :icon-size="12" @click="confirmSleep">{{ sleepLabel }}</Button>
@@ -118,14 +246,23 @@
 <script setup lang="ts">
   import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import { useGameStore, usePlayerStore, useAnimalStore, useNpcStore } from '@/stores'
+  import { useAnimalStore } from '@/stores/useAnimalStore'
+  import { useGameStore, SEASON_NAMES } from '@/stores/useGameStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
+  import { useNpcStore } from '@/stores/useNpcStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
+  import { useWarehouseStore } from '@/stores/useWarehouseStore'
+  import { useFarmStore } from '@/stores/useFarmStore'
   import { useDialogs } from '@/composables/useDialogs'
+  import type { MorningChoiceEvent } from '@/data/farmEvents'
   import { handleEndDay } from '@/composables/useEndDay'
   import { addLog } from '@/composables/useGameLog'
-  import { getNpcById } from '@/data'
+  import { getNpcById, getItemById, getCropById } from '@/data'
+  import { CHEST_DEFS } from '@/data/items'
   import { useGameClock } from '@/composables/useGameClock'
   import { useAudio } from '@/composables/useAudio'
-  import { Moon, X, Map, Settings as SettingsIcon } from 'lucide-vue-next'
+  import type { Quality } from '@/types'
+  import { Moon, X, Map, Settings as SettingsIcon, Archive, ArrowDown } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
   import MobileMapMenu from '@/components/game/MobileMapMenu.vue'
   import StatusBar from '@/components/game/StatusBar.vue'
@@ -142,11 +279,14 @@
   import TeaContestView from '@/components/game/TeaContestView.vue'
   import KiteFlyingView from '@/components/game/KiteFlyingView.vue'
   import SettingsDialog from '@/components/game/SettingsDialog.vue'
+  import DiscoveryScene from '@/components/game/DiscoveryScene.vue'
+  import { Capacitor } from '@capacitor/core'
 
   const router = useRouter()
   const route = useRoute()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
   const { switchToSeasonalBgm } = useAudio()
 
   // 游戏未开始时重定向到主菜单
@@ -161,12 +301,16 @@
     pendingPerk,
     pendingPetAdoption,
     childProposalVisible,
+    pendingFarmEvent,
+    pendingDiscoveryScene,
     closeEvent,
     closeHeartEvent,
     closeFestival,
     handlePerkSelect,
     closePetAdoption,
-    closeChildProposal
+    closeChildProposal,
+    closeFarmEvent,
+    closeDiscoveryScene
   } = useDialogs()
 
   const npcStore = useNpcStore()
@@ -196,6 +340,8 @@
         pendingPerk.value ||
         pendingPetAdoption.value ||
         childProposalVisible.value ||
+        pendingFarmEvent.value ||
+        pendingDiscoveryScene.value ||
         showSleepConfirm.value
       ),
     hasModal => {
@@ -203,9 +349,6 @@
       else resumeClock()
     }
   )
-
-  // 判断是否webview环境
-  const isWebView = window.__WEBVIEW__
 
   /** 从路由名称获取当前面板标识 */
   const currentPanel = computed(() => {
@@ -229,13 +372,37 @@
   })
 
   const sleepWarning = computed(() => {
+    const warnings: string[] = []
     if (playerStore.stamina <= 0 || gameStore.hour >= 26) {
-      return '体力仅恢复50%，并损失10%金币（上限1000文）'
+      warnings.push('体力仅恢复50%，并损失10%金币（上限1000文）')
+    } else if (gameStore.hour >= 24) {
+      warnings.push('体力仅恢复75%')
     }
-    if (gameStore.hour >= 24) {
-      return '体力仅恢复75%'
+    // 第28天换季警告：统计将枯萎的作物
+    if (gameStore.day === 28) {
+      const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+      const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(gameStore.season) + 1) % 4]!
+      let willWitherCount = 0
+      let harvestableCount = 0
+      for (const plot of farmStore.plots) {
+        if ((plot.state === 'planted' || plot.state === 'growing' || plot.state === 'harvestable') && plot.cropId) {
+          const crop = getCropById(plot.cropId)
+          if (crop && !crop.season.includes(nextSeason)) {
+            willWitherCount++
+            if (plot.state === 'harvestable') harvestableCount++
+          }
+        }
+      }
+      if (willWitherCount > 0) {
+        const nextName = SEASON_NAMES[nextSeason]
+        let msg = `明天进入${nextName}季，${willWitherCount}株作物将会枯萎！`
+        if (harvestableCount > 0) {
+          msg += `（其中${harvestableCount}株已可收获）`
+        }
+        warnings.push(msg)
+      }
     }
-    return ''
+    return warnings.join('\n')
   })
 
   /** 宠物领养 */
@@ -269,6 +436,96 @@
     closeChildProposal()
   }
 
+  const inventoryStore = useInventoryStore()
+  const warehouseStore = useWarehouseStore()
+
+  const handleFarmEventChoice = (choice: MorningChoiceEvent['choices'][number]) => {
+    addLog(choice.result)
+    if (choice.effect) {
+      switch (choice.effect.type) {
+        case 'gainItem':
+          inventoryStore.addItem(choice.effect.itemId, choice.effect.qty)
+          break
+        case 'gainMoney':
+          playerStore.earnMoney(choice.effect.amount)
+          break
+        case 'gainFriendship':
+          for (const s of npcStore.npcStates) {
+            s.friendship += choice.effect.amount
+          }
+          break
+      }
+    }
+    closeFarmEvent()
+  }
+
+  // === 虚空箱远程访问 ===
+  const showVoidModal = ref(false)
+  const showVoidDepositModal = ref(false)
+  const expandedVoidChestId = ref<string | null>(null)
+  const voidDepositChestId = ref<string | null>(null)
+
+  const voidChests = computed(() => warehouseStore.getVoidChests())
+  const voidChestCapacity = CHEST_DEFS.void.capacity
+
+  const getItemName = (itemId: string): string => getItemById(itemId)?.name ?? itemId
+
+  const VOID_QUALITY_LABEL: Record<Quality, string> = {
+    normal: '普通',
+    fine: '优良',
+    excellent: '精品',
+    supreme: '极品'
+  }
+
+  const voidQualityClass = (q: Quality): string => {
+    if (q === 'fine') return 'text-quality-fine'
+    if (q === 'excellent') return 'text-quality-excellent'
+    if (q === 'supreme') return 'text-quality-supreme'
+    return ''
+  }
+
+  const toggleVoidChest = (chestId: string) => {
+    expandedVoidChestId.value = expandedVoidChestId.value === chestId ? null : chestId
+  }
+
+  const openVoidDeposit = (chestId: string) => {
+    voidDepositChestId.value = chestId
+    showVoidDepositModal.value = true
+  }
+
+  const voidDepositableItems = computed(() =>
+    inventoryStore.items.filter(i => {
+      const def = getItemById(i.itemId)
+      return def && def.category !== 'seed'
+    })
+  )
+
+  const handleVoidWithdraw = (chestId: string, itemId: string, quality: Quality) => {
+    const chest = warehouseStore.getChest(chestId)
+    if (!chest) return
+    const slot = chest.items.find(i => i.itemId === itemId && i.quality === quality)
+    if (!slot) return
+    if (!warehouseStore.withdrawFromChest(chestId, itemId, slot.quantity, quality)) {
+      addLog('背包已满，无法取出。')
+      return
+    }
+    addLog(`从虚空箱取出了${getItemName(itemId)}×${slot.quantity}。`)
+  }
+
+  const handleVoidDeposit = (chestId: string, itemId: string, quality: Quality) => {
+    const slot = inventoryStore.items.find(i => i.itemId === itemId && i.quality === quality)
+    if (!slot) return
+    const actualQty = warehouseStore.depositToChest(chestId, itemId, slot.quantity, quality)
+    if (actualQty <= 0) {
+      addLog('虚空箱已满，无法存入。')
+      return
+    }
+    addLog(`存入了${getItemName(itemId)}×${actualQty}到虚空箱。`)
+    if (voidDepositableItems.value.length === 0 || warehouseStore.isChestFull(chestId)) {
+      showVoidDepositModal.value = false
+    }
+  }
+
   const confirmSleep = () => {
     showSleepConfirm.value = false
     pauseClock()
@@ -290,7 +547,7 @@
     width: 40px;
     height: 40px;
     border-radius: 2px;
-    background: var(--color-panel);
+    background: rgb(var(--color-panel));
     border: 2px solid var(--color-accent);
     color: var(--color-accent);
     display: flex;
@@ -308,9 +565,33 @@
     bottom: calc(calc(0.35rem * 10) + 48px + env(safe-area-inset-bottom, 0px));
   }
 
+  .mobile-void-btn {
+    position: fixed;
+    bottom: calc(calc(0.35rem * 10) + 96px + constant(safe-area-inset-bottom, 0px));
+    bottom: calc(calc(0.35rem * 10) + 96px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    background: rgb(var(--color-panel));
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+
   .mobile-map-btn:hover,
-  .mobile-map-btn:active {
+  .mobile-map-btn:active,
+  .mobile-void-btn:hover,
+  .mobile-void-btn:active {
     background: var(--color-accent);
-    color: var(--color-bg);
+    color: rgb(var(--color-bg));
   }
 </style>

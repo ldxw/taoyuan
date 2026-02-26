@@ -63,12 +63,12 @@
               <Button
                 v-for="recipe in processingStore.getAvailableRecipes(slot.machineType)"
                 :key="recipe.id"
-                :disabled="recipe.inputItemId !== null && !inventoryStore.hasItem(recipe.inputItemId, recipe.inputQuantity)"
+                :disabled="recipe.inputItemId !== null && !hasCombinedItem(recipe.inputItemId, recipe.inputQuantity)"
                 @click="handleStartProcessing(idx, recipe.id)"
               >
                 {{ recipe.name }}
                 <span v-if="recipe.inputItemId" class="text-muted">
-                  ({{ getItemName(recipe.inputItemId) }} {{ inventoryStore.getItemCount(recipe.inputItemId) }}/{{ recipe.inputQuantity }})
+                  ({{ getItemName(recipe.inputItemId) }} {{ getCombinedItemCount(recipe.inputItemId) }}/{{ recipe.inputQuantity }})
                 </span>
               </Button>
             </div>
@@ -119,8 +119,8 @@
             <p class="text-xs text-muted mb-1">所需材料</p>
             <div v-for="mat in craftModal.materials" :key="mat.itemId" class="flex items-center justify-between">
               <span class="text-xs text-muted">{{ getItemName(mat.itemId) }}</span>
-              <span class="text-xs" :class="inventoryStore.getItemCount(mat.itemId) >= mat.quantity ? '' : 'text-danger'">
-                {{ inventoryStore.getItemCount(mat.itemId) }}/{{ mat.quantity }}
+              <span class="text-xs" :class="getCombinedItemCount(mat.itemId) >= mat.quantity ? '' : 'text-danger'">
+                {{ getCombinedItemCount(mat.itemId) }}/{{ mat.quantity }}
               </span>
             </div>
             <div v-if="craftModal.cost > 0" class="flex items-center justify-between mt-0.5">
@@ -149,8 +149,16 @@
   import { ref, computed } from 'vue'
   import { Hammer, Trash2, Package, Boxes, X } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
-  import type { MachineType } from '@/types'
-  import { useProcessingStore, useInventoryStore, usePlayerStore, useGameStore, useFarmStore } from '@/stores'
+  import type { MachineType, AnimalBuildingType, ChestTier } from '@/types'
+  import { useAnimalStore } from '@/stores/useAnimalStore'
+  import { useFarmStore } from '@/stores/useFarmStore'
+  import { useGameStore } from '@/stores/useGameStore'
+  import { useInventoryStore } from '@/stores/useInventoryStore'
+  import { usePlayerStore } from '@/stores/usePlayerStore'
+  import { useProcessingStore } from '@/stores/useProcessingStore'
+  import { useSkillStore } from '@/stores/useSkillStore'
+  import { useWarehouseStore } from '@/stores/useWarehouseStore'
+  import { getCombinedItemCount, hasCombinedItem, removeCombinedItem } from '@/composables/useCombinedInventory'
   import {
     PROCESSING_MACHINES,
     SPRINKLERS,
@@ -161,10 +169,11 @@
     CRAB_POT_CRAFT,
     LIGHTNING_ROD,
     SCARECROW,
+    AUTO_PETTER,
     BOMBS,
     getProcessingRecipeById
   } from '@/data/processing'
-  import { getItemById } from '@/data/items'
+  import { getItemById, CHEST_DEFS, CHEST_TIER_ORDER } from '@/data/items'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { sfxClick } from '@/composables/useAudio'
   import { addLog } from '@/composables/useGameLog'
@@ -175,6 +184,9 @@
   const playerStore = usePlayerStore()
   const gameStore = useGameStore()
   const farmStore = useFarmStore()
+  const animalStore = useAnimalStore()
+  const skillStore = useSkillStore()
+  const warehouseStore = useWarehouseStore()
 
   // === 制造弹窗 ===
 
@@ -198,6 +210,19 @@
   const JADE_RING_MONEY = 500
 
   const canCraftJadeRing = computed(() => processingStore.canCraft(JADE_RING_COST, JADE_RING_MONEY))
+
+  const STAMINA_FRUIT_COST = [
+    { itemId: 'prismatic_shard', quantity: 1 },
+    { itemId: 'dragon_jade', quantity: 2 },
+    { itemId: 'ginseng', quantity: 5 },
+    { itemId: 'iridium_bar', quantity: 3 }
+  ]
+  const STAMINA_FRUIT_MONEY = 10000
+
+  const allSkillsAbove8 = computed(() => ['farming', 'foraging', 'fishing', 'mining'].every(s => skillStore.getSkill(s as any).level >= 8))
+  const canCraftStaminaFruit = computed(
+    () => allSkillsAbove8.value && playerStore.staminaCapLevel < 4 && processingStore.canCraft(STAMINA_FRUIT_COST, STAMINA_FRUIT_MONEY)
+  )
 
   const craftCategories = computed(() => [
     {
@@ -261,7 +286,37 @@
           onCraft: () => handleCraftScarecrow(),
           canCraft: () => processingStore.canCraft(SCARECROW.craftCost, SCARECROW.craftMoney),
           badge: `已有${farmStore.scarecrows}`
-        }
+        },
+        ...((animalStore.buildings.find(b => b.type === 'coop')?.level ?? 0) >= 2
+          ? [
+              {
+                id: 'auto_petter_coop',
+                name: `${AUTO_PETTER.name}（鸡舍）`,
+                description: AUTO_PETTER.description,
+                materials: AUTO_PETTER.craftCost,
+                cost: AUTO_PETTER.craftMoney,
+                onCraft: () => handleCraftAutoPetter('coop'),
+                canCraft: () =>
+                  !animalStore.hasAutoPetter('coop') && processingStore.canCraft(AUTO_PETTER.craftCost, AUTO_PETTER.craftMoney),
+                badge: animalStore.hasAutoPetter('coop') ? '已安装' : undefined
+              }
+            ]
+          : []),
+        ...((animalStore.buildings.find(b => b.type === 'barn')?.level ?? 0) >= 2
+          ? [
+              {
+                id: 'auto_petter_barn',
+                name: `${AUTO_PETTER.name}（畜棚）`,
+                description: AUTO_PETTER.description,
+                materials: AUTO_PETTER.craftCost,
+                cost: AUTO_PETTER.craftMoney,
+                onCraft: () => handleCraftAutoPetter('barn'),
+                canCraft: () =>
+                  !animalStore.hasAutoPetter('barn') && processingStore.canCraft(AUTO_PETTER.craftCost, AUTO_PETTER.craftMoney),
+                badge: animalStore.hasAutoPetter('barn') ? '已安装' : undefined
+              }
+            ]
+          : [])
       ]
     },
     {
@@ -307,7 +362,7 @@
           cost: b.craftMoney,
           onCraft: () => handleCraftBomb(b.id),
           canCraft: () =>
-            (b.id !== 'mega_bomb' || inventoryStore.hasItem('mega_bomb_recipe')) && processingStore.canCraft(b.craftCost, b.craftMoney)
+            (b.id !== 'mega_bomb' || hasCombinedItem('mega_bomb_recipe')) && processingStore.canCraft(b.craftCost, b.craftMoney)
         })),
         {
           id: 'jade_ring',
@@ -317,14 +372,50 @@
           cost: JADE_RING_MONEY,
           onCraft: () => handleCraftJadeRing(),
           canCraft: () => canCraftJadeRing.value
-        }
+        },
+        ...(allSkillsAbove8.value
+          ? [
+              {
+                id: 'stamina_fruit',
+                name: '仙桃',
+                description: '蕴含远古灵气的果实，食用后永久提升体力上限。需要种植/觅食/钓鱼/采矿全部≥8级。',
+                materials: STAMINA_FRUIT_COST,
+                cost: STAMINA_FRUIT_MONEY,
+                onCraft: () => handleCraftStaminaFruit(),
+                canCraft: () => canCraftStaminaFruit.value,
+                badge: playerStore.staminaCapLevel >= 4 ? '已满级' : `${playerStore.staminaCapLevel}/4`
+              }
+            ]
+          : [])
       ]
-    }
+    },
+    ...(warehouseStore.unlocked
+      ? [
+          {
+            label: '箱子',
+            items: CHEST_TIER_ORDER.map(tier => {
+              const def = CHEST_DEFS[tier]
+              return {
+                id: `chest_${tier}`,
+                name: def.name,
+                description: def.description,
+                materials: def.craftCost,
+                cost: def.craftMoney,
+                onCraft: () => handleCraftChest(tier),
+                canCraft: () =>
+                  warehouseStore.chests.length < warehouseStore.maxChests && processingStore.canCraft(def.craftCost, def.craftMoney),
+                badge: `${warehouseStore.chests.length}/${warehouseStore.maxChests}`
+              }
+            })
+          }
+        ]
+      : [])
   ])
 
   const handleCraftFromModal = () => {
     if (!craftModal.value) return
     craftModal.value.onCraft()
+    craftModal.value = null
   }
 
   // === 工具函数 ===
@@ -490,6 +581,26 @@
     }
   }
 
+  const handleCraftAutoPetter = (buildingType: AnimalBuildingType) => {
+    if (animalStore.hasAutoPetter(buildingType)) {
+      addLog('该畜舍已安装自动抚摸机。')
+      return
+    }
+    if (processingStore.consumeCraftMaterials(AUTO_PETTER.craftCost, AUTO_PETTER.craftMoney)) {
+      sfxClick()
+      const result = animalStore.installAutoPetter(buildingType)
+      addLog(result.message)
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
+      if (tr.message) addLog(tr.message)
+      if (tr.passedOut) {
+        handleEndDay()
+        return
+      }
+    } else {
+      addLog('材料不足。')
+    }
+  }
+
   const handleCraftBomb = (bombId: string) => {
     if (processingStore.craftBomb(bombId)) {
       sfxClick()
@@ -510,7 +621,7 @@
     if (!canCraftJadeRing.value) return
     if (!playerStore.spendMoney(JADE_RING_MONEY)) return
     for (const c of JADE_RING_COST) {
-      if (!inventoryStore.removeItem(c.itemId, c.quantity)) {
+      if (!removeCombinedItem(c.itemId, c.quantity)) {
         playerStore.earnMoney(JADE_RING_MONEY)
         return
       }
@@ -523,6 +634,44 @@
     if (tr.passedOut) {
       handleEndDay()
       return
+    }
+  }
+
+  const handleCraftStaminaFruit = () => {
+    if (!canCraftStaminaFruit.value) return
+    if (processingStore.consumeCraftMaterials(STAMINA_FRUIT_COST, STAMINA_FRUIT_MONEY)) {
+      sfxClick()
+      inventoryStore.addItem('stamina_fruit')
+      addLog('制造了仙桃！在背包中使用可永久提升体力上限。')
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
+      if (tr.message) addLog(tr.message)
+      if (tr.passedOut) {
+        handleEndDay()
+        return
+      }
+    } else {
+      addLog('材料不足。')
+    }
+  }
+
+  const handleCraftChest = (tier: ChestTier) => {
+    const def = CHEST_DEFS[tier]
+    if (warehouseStore.chests.length >= warehouseStore.maxChests) {
+      addLog('箱子槽位已满，请先扩建仓库。')
+      return
+    }
+    if (processingStore.consumeCraftMaterials(def.craftCost, def.craftMoney)) {
+      sfxClick()
+      warehouseStore.addChest(tier)
+      addLog(`制造了${def.name}，已放入仓库。`)
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
+      if (tr.message) addLog(tr.message)
+      if (tr.passedOut) {
+        handleEndDay()
+        return
+      }
+    } else {
+      addLog('材料不足。')
     }
   }
 
@@ -552,7 +701,7 @@
     if (!slot) return
     const name = getMachineName(slot.machineType)
     if (processingStore.removeMachine(slotIndex)) {
-      addLog(`拆除了${name}。`)
+      addLog(`拆除了${name}，制作材料已退还。`)
     }
   }
 

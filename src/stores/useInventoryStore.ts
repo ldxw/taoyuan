@@ -147,6 +147,8 @@ export const useInventoryStore = defineStore('inventory', () => {
 
   /** 添加物品到背包 */
   const addItem = (itemId: string, quantity: number = 1, quality: Quality = 'normal'): boolean => {
+    // 校验物品是否存在
+    if (!getItemById(itemId)) return false
     // 自动注册到图鉴
     useAchievementStore().discoverItem(itemId)
     let remaining = quantity
@@ -188,6 +190,12 @@ export const useInventoryStore = defineStore('inventory', () => {
     if (remaining > 0) {
       const name = getItemById(itemId)?.name ?? itemId
       showFloat(`背包已满！${name}×${remaining}丢失了`, 'danger')
+    } else {
+      // 背包快满预警：剩余格数 ≤ 3 时提示一次
+      const freeSlots = capacity.value - items.value.length
+      if (freeSlots <= 3) {
+        showFloat(`背包快满了！剩余${freeSlots}格`, 'accent')
+      }
     }
 
     return remaining <= 0
@@ -296,6 +304,12 @@ export const useInventoryStore = defineStore('inventory', () => {
   const expandCapacity = (): boolean => {
     if (capacity.value >= MAX_CAPACITY) return false
     capacity.value += 4
+    return true
+  }
+
+  /** 超限扩容背包（+1格，突破 MAX_CAPACITY） */
+  const expandCapacityExtra = (): boolean => {
+    capacity.value += 1
     return true
   }
 
@@ -418,20 +432,25 @@ export const useInventoryStore = defineStore('inventory', () => {
     return ownedRings.value.some(r => r.defId === defId)
   }
 
-  /** 装备戒指到指定槽位（0 或 1），自动处理换位 */
+  /** 装备戒指到指定槽位（0 或 1），禁止两个槽位装备同defId戒指 */
   const equipRing = (ringIndex: number, slot: 0 | 1): boolean => {
     if (ringIndex < 0 || ringIndex >= ownedRings.value.length) return false
     const targetSlot = slot === 0 ? equippedRingSlot1 : equippedRingSlot2
     const otherSlot = slot === 0 ? equippedRingSlot2 : equippedRingSlot1
     // 已在目标槽位，无操作
     if (targetSlot.value === ringIndex) return true
-    // 在另一个槽位 → 交换
+    // 同一枚戒指在另一个槽位 → 交换
     if (otherSlot.value === ringIndex) {
       otherSlot.value = targetSlot.value // 可能是 -1
       targetSlot.value = ringIndex
-    } else {
-      targetSlot.value = ringIndex
+      return true
     }
+    // 禁止两个槽位装备同defId戒指
+    const targetDefId = ownedRings.value[ringIndex]!.defId
+    if (otherSlot.value >= 0 && otherSlot.value < ownedRings.value.length && ownedRings.value[otherSlot.value]!.defId === targetDefId) {
+      return false
+    }
+    targetSlot.value = ringIndex
     return true
   }
 
@@ -796,19 +815,26 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     // 戒指槽1
+    let ring1Idx = -1
     if (preset.ringSlot1DefId) {
-      const idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot1DefId)
-      if (idx >= 0) equipRing(idx, 0)
+      ring1Idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot1DefId)
+      if (ring1Idx >= 0) equipRing(ring1Idx, 0)
       else missing.push('戒指1')
     } else {
       unequipRing(0)
     }
 
-    // 戒指槽2
+    // 戒指槽2（禁止与槽1装备同defId戒指）
     if (preset.ringSlot2DefId) {
-      const idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot2DefId)
-      if (idx >= 0) equipRing(idx, 1)
-      else missing.push('戒指2')
+      if (preset.ringSlot2DefId === preset.ringSlot1DefId) {
+        // 旧方案中两个槽保存了同defId戒指，现已禁止，跳过槽2
+        unequipRing(1)
+        missing.push('戒指2（不可与槽1相同）')
+      } else {
+        const idx = ownedRings.value.findIndex(r => r.defId === preset.ringSlot2DefId)
+        if (idx >= 0) equipRing(idx, 1)
+        else missing.push('戒指2')
+      }
     } else {
       unequipRing(1)
     }
@@ -945,6 +971,8 @@ export const useInventoryStore = defineStore('inventory', () => {
     getItemCount,
     hasItem,
     expandCapacity,
+    expandCapacityExtra,
+    MAX_CAPACITY,
     moveFromTemp,
     moveAllFromTemp,
     discardTempItem,

@@ -33,20 +33,18 @@
 
       <!-- 收藏格子 -->
       <div class="grid grid-cols-3 md:grid-cols-5 gap-1 mb-3 max-h-72 overflow-y-auto">
-        <div
-          v-for="item in filteredItems"
-          :key="item.id"
-          class="border rounded-xs p-1.5 text-center text-xs cursor-pointer transition-colors truncate"
-          :class="
-            museumStore.isDonated(item.id)
-              ? 'border-success/40 bg-success/10 text-success'
-              : 'border-accent/20 text-muted hover:bg-accent/5'
-          "
-          @click="selectedItem = item"
-        >
-          <template v-if="museumStore.isDonated(item.id)">{{ item.name }}</template>
-          <Lock v-else :size="12" class="mx-auto text-muted/30" />
-        </div>
+        <template v-for="item in filteredItems" :key="item.id">
+          <div
+            v-if="museumStore.isDonated(item.id)"
+            @click="selectedItem = item"
+            class="border rounded-xs p-1.5 text-center text-xs transition-colors truncate cursor-pointer border-success/40 bg-success/10 text-success"
+          >
+            {{ item.name }}
+          </div>
+          <div v-else class="border rounded-xs p-1.5 text-center text-xs transition-colors truncate border-accent/20 text-muted">
+            <Lock :size="12" class="mx-auto text-muted/30" />
+          </div>
+        </template>
       </div>
 
       <!-- 快捷捐赠区 -->
@@ -182,7 +180,7 @@
   import { ref, computed } from 'vue'
   import { Landmark, Send, X, CircleCheck, Circle, Package, Lock } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
-  import { useMuseumStore } from '@/stores'
+  import { useMuseumStore } from '@/stores/useMuseumStore'
   import { MUSEUM_ITEMS, MUSEUM_CATEGORIES, MUSEUM_MILESTONES } from '@/data/museum'
   import type { MuseumItemDef, MuseumCategory } from '@/types'
   import { getItemById } from '@/data/items'
