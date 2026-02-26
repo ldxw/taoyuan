@@ -187,6 +187,7 @@
             <template v-if="activePlot.giantCropGroup !== null">（巨型）</template>
             <template v-if="activePlot.cropId">
               · {{ activePlot.giantCropGroup !== null ? '巨型' : '' }}{{ getCropName(activePlot.cropId) }}
+              <span v-if="plotCropRegrowth" class="text-success">[多茬 {{ activePlot.harvestCount }}/{{ plotCropMaxHarvests }}]</span>
             </template>
             <template v-if="activePlot.cropId && activePlot.giantCropGroup === null">
               ·
@@ -280,7 +281,10 @@
                 class="btn text-xs w-full justify-between shrink-0"
                 @click="doPlant(seed.cropId)"
               >
-                <span :class="seed.colorClass">{{ seed.name }}</span>
+                <span :class="seed.colorClass">
+                  {{ seed.name }}
+                  <span v-if="seed.regrowth" class="text-success ml-1">[多茬]</span>
+                </span>
                 <span class="text-muted">×{{ seed.count }}</span>
               </button>
             </template>
@@ -358,7 +362,10 @@
               class="btn text-xs w-full justify-between shrink-0"
               @click="doBatchPlant(seed.cropId)"
             >
-              <span :class="seed.colorClass">{{ seed.name }}</span>
+              <span :class="seed.colorClass">
+                {{ seed.name }}
+                <span v-if="seed.regrowth" class="text-success ml-1">[多茬]</span>
+              </span>
               <span class="text-muted">×{{ seed.count }}</span>
             </button>
           </div>
@@ -849,7 +856,12 @@
               </div>
               <div v-if="activeGhPlot.cropId" class="flex items-center justify-between">
                 <span class="text-xs text-muted">作物</span>
-                <span class="text-xs">{{ getCropName(activeGhPlot.cropId) }}</span>
+                <span class="text-xs">
+                  {{ getCropName(activeGhPlot.cropId) }}
+                  <span v-if="ghPlotCropRegrowth" class="text-success ml-1">
+                    [多茬 {{ activeGhPlot.harvestCount }}/{{ ghPlotCropMaxHarvests }}]
+                  </span>
+                </span>
               </div>
               <div v-if="activeGhPlot.cropId && activeGhPlot.state !== 'harvestable'" class="flex items-center space-x-2">
                 <span class="text-xs text-muted shrink-0">生长</span>
@@ -877,7 +889,9 @@
               <p class="text-xs text-muted mb-1">种植</p>
               <div class="flex flex-wrap space-x-1">
                 <Button v-for="seed in allSeeds" :key="seed.cropId" @click="doGhPlant(seed.cropId)">
-                  {{ seed.name }} (×{{ seed.count }})
+                  {{ seed.name }}
+                  <span v-if="seed.regrowth" class="text-success ml-1">[多茬]</span>
+                  (×{{ seed.count }})
                 </Button>
               </div>
             </div>
@@ -970,7 +984,8 @@
     handleBatchCurePest,
     handleClearWeed,
     handleBatchClearWeed,
-    QUALITY_NAMES
+    QUALITY_NAMES,
+    applyCropBlessing
   } from '@/composables/useFarmActions'
   import type { SprinklerType, FertilizerType, FruitTreeType, WildTreeType, Quality } from '@/types'
   import { sfxHarvest } from '@/composables/useAudio'
@@ -1143,6 +1158,16 @@
     return speedup > 0 ? Math.max(1, Math.floor(baseDays * (1 - speedup))) : baseDays
   })
 
+  const plotCropRegrowth = computed(() => {
+    if (!activePlot.value?.cropId) return false
+    return getCropById(activePlot.value.cropId)?.regrowth ?? false
+  })
+
+  const plotCropMaxHarvests = computed(() => {
+    if (!activePlot.value?.cropId) return 0
+    return getCropById(activePlot.value.cropId)?.maxHarvests ?? 0
+  })
+
   const ghPlotCropGrowthDays = computed(() => {
     if (!activeGhPlot.value?.cropId) return '?'
     const baseDays = getCropById(activeGhPlot.value.cropId)?.growthDays
@@ -1150,6 +1175,16 @@
     const fertDef = activeGhPlot.value.fertilizer ? getFertilizerById(activeGhPlot.value.fertilizer) : null
     const speedup = (fertDef?.growthSpeedup ?? 0) + useWalletStore().getCropGrowthBonus()
     return speedup > 0 ? Math.max(1, Math.floor(baseDays * (1 - speedup))) : baseDays
+  })
+
+  const ghPlotCropRegrowth = computed(() => {
+    if (!activeGhPlot.value?.cropId) return false
+    return getCropById(activeGhPlot.value.cropId)?.regrowth ?? false
+  })
+
+  const ghPlotCropMaxHarvests = computed(() => {
+    if (!activeGhPlot.value?.cropId) return 0
+    return getCropById(activeGhPlot.value.cropId)?.maxHarvests ?? 0
   })
 
   const plotFertName = computed(() => {
@@ -1196,7 +1231,9 @@
         seedId: crop.seedId,
         name: crop.name,
         count: inventoryStore.getItemCount(crop.seedId),
-        colorClass: cropValueColor(crop.sellPrice)
+        colorClass: cropValueColor(crop.sellPrice),
+        regrowth: crop.regrowth ?? false,
+        regrowthDays: crop.regrowthDays
       }))
   })
 
@@ -1670,7 +1707,8 @@
       cropId: crop.id,
       seedId: crop.seedId,
       name: crop.name,
-      count: inventoryStore.getItemCount(crop.seedId)
+      count: inventoryStore.getItemCount(crop.seedId),
+      regrowth: crop.regrowth ?? false
     }))
   })
 
@@ -1702,7 +1740,8 @@
     if (cropId) {
       const cropDef = getCropById(cropId)
       const skillStore = useSkillStore()
-      const quality = skillStore.rollCropQualityWithBonus(0)
+      let quality = skillStore.rollCropQualityWithBonus(0)
+      quality = applyCropBlessing(quality)
       inventoryStore.addItem(cropId, 1, quality)
       const qualityLabel = quality !== 'normal' ? `(${QUALITY_NAMES[quality]})` : ''
       sfxHarvest()
@@ -1720,7 +1759,8 @@
     for (const { cropId } of results) {
       if (!playerStore.consumeStamina(1)) break
       harvested++
-      const quality = skillStore.rollCropQualityWithBonus(0)
+      let quality = skillStore.rollCropQualityWithBonus(0)
+      quality = applyCropBlessing(quality)
       inventoryStore.addItem(cropId, 1, quality)
     }
     if (harvested > 0) {

@@ -189,16 +189,16 @@
             <Lock :size="10" class="inline" />
             完成{{ shopModalItem.unlockGoalCount }}个讨伐目标解锁
           </p>
-          <button
+          <Button
             v-else
             class="btn text-xs w-full justify-center"
             :class="playerStore.money >= shopModalItem.price ? '!bg-accent !text-bg' : 'opacity-50 cursor-not-allowed'"
+            :icon="ShoppingCart"
             :disabled="playerStore.money < shopModalItem.price"
             @click="handleBuyShopItem(shopModalItem.itemId)"
           >
-            <ShoppingCart :size="12" />
             购买 {{ shopModalItem.price }}文
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>

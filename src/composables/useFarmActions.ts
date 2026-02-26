@@ -10,6 +10,7 @@ import { useQuestStore } from '@/stores/useQuestStore'
 import { useShopStore } from '@/stores/useShopStore'
 import { useSkillStore } from '@/stores/useSkillStore'
 import { useWalletStore } from '@/stores/useWalletStore'
+import { useHiddenNpcStore } from '@/stores/useHiddenNpcStore'
 import { getCropById, getItemById } from '@/data'
 import { getFertilizerById } from '@/data/processing'
 import { ACTION_TIME_COSTS } from '@/data/timeConstants'
@@ -24,6 +25,17 @@ export const QUALITY_NAMES: Record<Quality, string> = {
   fine: '优良',
   excellent: '精品',
   supreme: '极品'
+}
+
+/** 仙缘结缘：作物祝福（crop_blessing）概率品质+1 */
+const QUALITY_ORDER: Quality[] = ['normal', 'fine', 'excellent', 'supreme']
+export const applyCropBlessing = (quality: Quality): Quality => {
+  const bondBonus = useHiddenNpcStore().getBondBonusByType('crop_blessing')
+  if (bondBonus?.type === 'crop_blessing' && Math.random() < bondBonus.chance) {
+    const idx = QUALITY_ORDER.indexOf(quality)
+    if (idx < QUALITY_ORDER.length - 1) return QUALITY_ORDER[idx + 1]!
+  }
+  return quality
 }
 
 // 模块级单例状态
@@ -111,6 +123,16 @@ export const handlePlotClick = (plotId: number) => {
     sfxPlant()
     showFloat(`-${cost}体力`, 'danger')
     addLog(`种下了${cropDef.name}。(-${cost}体力)`)
+    // 种植预警：作物可能无法在本季成熟
+    const daysLeft = 28 - gameStore.day
+    if (cropDef.growthDays > daysLeft) {
+      const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+      const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(gameStore.season) + 1) % 4]!
+      if (!cropDef.season.includes(nextSeason)) {
+        showFloat(`${cropDef.name}需${cropDef.growthDays}天，本季仅剩${daysLeft}天！`, 'danger')
+        addLog(`注意：${cropDef.name}需要${cropDef.growthDays}天成熟，但本季仅剩${daysLeft}天，换季后将枯萎。`)
+      }
+    }
     const tr = gameStore.advanceTime(ACTION_TIME_COSTS.plant)
     if (tr.message) addLog(tr.message)
     if (tr.passedOut) {
@@ -173,7 +195,8 @@ export const handlePlotClick = (plotId: number) => {
       const fertDef = plotFertilizer ? getFertilizerById(plotFertilizer) : null
       const ringCropQualityBonus = inventoryStore.getRingEffectValue('crop_quality_bonus')
       const allSkillsBuff = cookingStore.activeBuff?.type === 'all_skills' ? cookingStore.activeBuff.value : 0
-      const quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + ringCropQualityBonus, allSkillsBuff)
+      let quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + ringCropQualityBonus, allSkillsBuff)
+      quality = applyCropBlessing(quality)
       // 精耕细作天赋：20% 概率双倍收获
       const intensiveDouble = skillStore.getSkill('farming').perk10 === 'intensive' && Math.random() < 0.2
       // 育种产量加成：yield/100 × 30% 概率双收
@@ -467,7 +490,8 @@ export const handleBatchHarvest = () => {
       const fertDef = plotFertilizer ? getFertilizerById(plotFertilizer) : null
       const batchRingCropQuality = inventoryStore.getRingEffectValue('crop_quality_bonus')
       const batchAllSkillsBuff = cookingStore.activeBuff?.type === 'all_skills' ? cookingStore.activeBuff.value : 0
-      const quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + batchRingCropQuality, batchAllSkillsBuff)
+      let quality = skillStore.rollCropQualityWithBonus((fertDef?.qualityBonus ?? 0) + batchRingCropQuality, batchAllSkillsBuff)
+      quality = applyCropBlessing(quality)
       const intensiveDouble = skillStore.getSkill('farming').perk10 === 'intensive' && Math.random() < 0.2
       const yieldDouble = genetics && !intensiveDouble && Math.random() < (genetics.yield / 100) * 0.3
       const harvestQty = intensiveDouble || yieldDouble ? 2 : 1
@@ -564,6 +588,16 @@ export const handleBatchPlant = (cropId: string) => {
   if (planted > 0) {
     sfxPlant()
     addLog(`一键种植了${planted}株${cropDef.name}。`)
+    // 种植预警：作物可能无法在本季成熟
+    const daysLeft = 28 - gameStore.day
+    if (cropDef.growthDays > daysLeft) {
+      const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+      const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(gameStore.season) + 1) % 4]!
+      if (!cropDef.season.includes(nextSeason)) {
+        showFloat(`${cropDef.name}需${cropDef.growthDays}天，本季仅剩${daysLeft}天！`, 'danger')
+        addLog(`注意：${cropDef.name}需要${cropDef.growthDays}天成熟，但本季仅剩${daysLeft}天，换季后将枯萎。`)
+      }
+    }
     const tr = gameStore.advanceTime(ACTION_TIME_COSTS.plant * Math.min(planted, 3))
     if (tr.message) addLog(tr.message)
     if (tr.passedOut) handleEndDay()

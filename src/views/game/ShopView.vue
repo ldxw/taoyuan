@@ -124,7 +124,7 @@
               <div>
                 <p class="text-sm">
                   {{ seed.cropName }}种子
-                  <span v-if="seed.regrowth" class="text-success text-xs ml-1">[再生]</span>
+                  <span v-if="seed.regrowth" class="text-success text-xs ml-1">[多茬]</span>
                 </p>
                 <p class="text-muted text-xs">
                   {{ seed.growthDays }}天{{ seed.regrowth ? ` · 每${seed.regrowthDays}天再收` : '' }} → 售{{ seed.sellPrice }}文
@@ -165,26 +165,6 @@
               <span class="text-xs text-accent whitespace-nowrap">{{ discounted(bagPrice) }}文</span>
             </div>
 
-            <!-- 背包超限扩容 -->
-            <div
-              v-if="inventoryStore.capacity >= inventoryStore.MAX_CAPACITY"
-              class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
-              @click="
-                openBuyModal(
-                  '背包超限扩容',
-                  `当前${inventoryStore.capacity}格 → ${inventoryStore.capacity + 1}格`,
-                  discounted(bagExtraPrice),
-                  handleBuyBagExtra,
-                  () => playerStore.money >= discounted(bagExtraPrice)
-                )
-              "
-            >
-              <div>
-                <p class="text-sm">背包超限扩容</p>
-                <p class="text-muted text-xs">当前{{ inventoryStore.capacity }}格 → {{ inventoryStore.capacity + 1 }}格</p>
-              </div>
-              <span class="text-xs text-accent whitespace-nowrap">{{ discounted(bagExtraPrice) }}文</span>
-            </div>
             <div
               v-if="warehouseStore.unlocked && warehouseStore.maxChests < warehouseStore.MAX_CHESTS_CAP"
               class="flex items-center justify-between border border-accent/20 rounded-xs px-3 py-2 cursor-pointer hover:bg-accent/5"
@@ -776,37 +756,28 @@
           <div v-if="buyModalData.batchBuy" class="border border-accent/10 rounded-xs p-2 mb-2">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-xs text-muted">数量</span>
-              <span class="text-xs text-accent">{{ buyQuantity }}</span>
+              <div class="flex items-center space-x-1">
+                <Button class="h-6 px-1.5 py-0.5 text-xs justify-center" :disabled="buyQuantity <= 1" @click="addBuyQuantity(-1)">-</Button>
+                <input
+                  type="number"
+                  :value="buyQuantity"
+                  min="1"
+                  :max="maxBuyQuantity"
+                  class="w-24 h-6 px-2 py-0.5 bg-bg border border-accent/30 rounded-xs text-xs text-center text-accent outline-none focus:border-accent transition-colors"
+                  @input="onBuyQuantityInput"
+                />
+                <Button
+                  class="h-6 px-1.5 py-0.5 text-xs justify-center"
+                  :disabled="buyQuantity >= maxBuyQuantity"
+                  @click="addBuyQuantity(1)"
+                >
+                  +
+                </Button>
+              </div>
             </div>
             <div class="flex space-x-1">
-              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = Math.max(1, buyQuantity - 1)">
-                -1
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 1)"
-              >
-                +1
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 5)"
-              >
-                +5
-              </Button>
-              <Button
-                class="flex-1 justify-center"
-                :disabled="buyQuantity >= maxBuyQuantity"
-                @click="buyQuantity = Math.min(maxBuyQuantity, buyQuantity + 10)"
-              >
-                +10
-              </Button>
-            </div>
-            <div class="flex mt-2 space-x-1">
-              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="buyQuantity = 1">最少</Button>
-              <Button class="flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="buyQuantity = maxBuyQuantity">
+              <Button class="flex-1 justify-center" :disabled="buyQuantity <= 1" @click="setBuyQuantity(1)">最少</Button>
+              <Button class="flex-1 justify-center" :disabled="buyQuantity >= maxBuyQuantity" @click="setBuyQuantity(maxBuyQuantity)">
                 最多
               </Button>
             </div>
@@ -832,11 +803,10 @@
               class="w-full justify-center"
               :class="{ '!bg-accent !text-bg': buyModalData.canBuy() }"
               :disabled="!buyModalData.canBuy()"
+              :icon="buyModalData.buttonText ? Hammer : ShoppingCart"
               @click="buyModalData.onBuy()"
             >
-              <Hammer v-if="buyModalData.buttonText" :size="14" />
-              <ShoppingCart v-else :size="14" />
-              <span>{{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文</span>
+              {{ buyModalData.buttonText ?? '购买' }} {{ buyModalData.price }}文
             </Button>
           </div>
         </div>
@@ -1067,6 +1037,19 @@
     return Math.max(1, buyModalData.value.batchBuy.maxCount())
   })
 
+  const setBuyQuantity = (val: number) => {
+    buyQuantity.value = Math.max(1, Math.min(val, maxBuyQuantity.value))
+  }
+
+  const addBuyQuantity = (delta: number) => {
+    setBuyQuantity(buyQuantity.value + delta)
+  }
+
+  const onBuyQuantityInput = (e: Event) => {
+    const val = parseInt((e.target as HTMLInputElement).value, 10)
+    if (!isNaN(val)) setBuyQuantity(val)
+  }
+
   const getMaxBuyable = (unitPrice: number, stockLimit?: number): number => {
     const affordable = unitPrice > 0 ? Math.floor(playerStore.money / unitPrice) : 0
     let max = Math.max(1, affordable)
@@ -1239,21 +1222,6 @@
       playerStore.earnMoney(actualPrice)
       addLog('背包已满级。')
     }
-  }
-
-  const bagExtraPrice = computed(() => {
-    const extraLevel = Math.max(0, inventoryStore.capacity - inventoryStore.MAX_CAPACITY)
-    return 10000 * Math.pow(2, extraLevel)
-  })
-
-  const handleBuyBagExtra = () => {
-    const actualPrice = discounted(bagExtraPrice.value)
-    if (!playerStore.spendMoney(actualPrice)) {
-      addLog('金币不足。')
-      return
-    }
-    inventoryStore.expandCapacityExtra()
-    addLog(`背包扩容至${inventoryStore.capacity}格！(-${actualPrice}文)`)
   }
 
   const warehouseExpandPrice = computed(() => {

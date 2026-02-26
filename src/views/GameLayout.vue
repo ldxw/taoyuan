@@ -47,6 +47,16 @@
       <HeartEventDialog v-if="pendingHeartEvent" :event="pendingHeartEvent" @close="closeHeartEvent" />
     </Transition>
 
+    <!-- 仙灵发现场景弹窗 -->
+    <Transition name="panel-fade">
+      <DiscoveryScene
+        v-if="pendingDiscoveryScene"
+        :npc-id="pendingDiscoveryScene.npcId"
+        :step="pendingDiscoveryScene.step"
+        @close="closeDiscoveryScene"
+      />
+    </Transition>
+
     <!-- 互动节日 -->
     <Transition name="panel-fade">
       <div v-if="currentFestival" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -222,7 +232,7 @@
         <div class="game-panel max-w-xs w-full text-center">
           <p class="text-accent text-sm mb-3">—— {{ sleepLabel }} ——</p>
           <p class="text-xs leading-relaxed mb-1">{{ sleepSummary }}</p>
-          <p v-if="sleepWarning" class="text-danger text-xs mb-1">{{ sleepWarning }}</p>
+          <p v-for="(warn, wi) in sleepWarning.split('\n').filter(Boolean)" :key="wi" class="text-danger text-xs mb-1">{{ warn }}</p>
           <div class="flex space-x-3 justify-center mt-4">
             <Button :icon="X" :icon-size="12" @click="showSleepConfirm = false">再等等</Button>
             <Button class="btn-danger" :icon="Moon" :icon-size="12" @click="confirmSleep">{{ sleepLabel }}</Button>
@@ -237,16 +247,17 @@
   import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useAnimalStore } from '@/stores/useAnimalStore'
-  import { useGameStore } from '@/stores/useGameStore'
+  import { useGameStore, SEASON_NAMES } from '@/stores/useGameStore'
   import { useInventoryStore } from '@/stores/useInventoryStore'
   import { useNpcStore } from '@/stores/useNpcStore'
   import { usePlayerStore } from '@/stores/usePlayerStore'
   import { useWarehouseStore } from '@/stores/useWarehouseStore'
+  import { useFarmStore } from '@/stores/useFarmStore'
   import { useDialogs } from '@/composables/useDialogs'
   import type { MorningChoiceEvent } from '@/data/farmEvents'
   import { handleEndDay } from '@/composables/useEndDay'
   import { addLog } from '@/composables/useGameLog'
-  import { getNpcById, getItemById } from '@/data'
+  import { getNpcById, getItemById, getCropById } from '@/data'
   import { CHEST_DEFS } from '@/data/items'
   import { useGameClock } from '@/composables/useGameClock'
   import { useAudio } from '@/composables/useAudio'
@@ -268,12 +279,14 @@
   import TeaContestView from '@/components/game/TeaContestView.vue'
   import KiteFlyingView from '@/components/game/KiteFlyingView.vue'
   import SettingsDialog from '@/components/game/SettingsDialog.vue'
+  import DiscoveryScene from '@/components/game/DiscoveryScene.vue'
   import { Capacitor } from '@capacitor/core'
 
   const router = useRouter()
   const route = useRoute()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
+  const farmStore = useFarmStore()
   const { switchToSeasonalBgm } = useAudio()
 
   // 游戏未开始时重定向到主菜单
@@ -289,13 +302,15 @@
     pendingPetAdoption,
     childProposalVisible,
     pendingFarmEvent,
+    pendingDiscoveryScene,
     closeEvent,
     closeHeartEvent,
     closeFestival,
     handlePerkSelect,
     closePetAdoption,
     closeChildProposal,
-    closeFarmEvent
+    closeFarmEvent,
+    closeDiscoveryScene
   } = useDialogs()
 
   const npcStore = useNpcStore()
@@ -326,6 +341,7 @@
         pendingPetAdoption.value ||
         childProposalVisible.value ||
         pendingFarmEvent.value ||
+        pendingDiscoveryScene.value ||
         showSleepConfirm.value
       ),
     hasModal => {
@@ -356,13 +372,37 @@
   })
 
   const sleepWarning = computed(() => {
+    const warnings: string[] = []
     if (playerStore.stamina <= 0 || gameStore.hour >= 26) {
-      return '体力仅恢复50%，并损失10%金币（上限1000文）'
+      warnings.push('体力仅恢复50%，并损失10%金币（上限1000文）')
+    } else if (gameStore.hour >= 24) {
+      warnings.push('体力仅恢复75%')
     }
-    if (gameStore.hour >= 24) {
-      return '体力仅恢复75%'
+    // 第28天换季警告：统计将枯萎的作物
+    if (gameStore.day === 28) {
+      const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+      const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(gameStore.season) + 1) % 4]!
+      let willWitherCount = 0
+      let harvestableCount = 0
+      for (const plot of farmStore.plots) {
+        if ((plot.state === 'planted' || plot.state === 'growing' || plot.state === 'harvestable') && plot.cropId) {
+          const crop = getCropById(plot.cropId)
+          if (crop && !crop.season.includes(nextSeason)) {
+            willWitherCount++
+            if (plot.state === 'harvestable') harvestableCount++
+          }
+        }
+      }
+      if (willWitherCount > 0) {
+        const nextName = SEASON_NAMES[nextSeason]
+        let msg = `明天进入${nextName}季，${willWitherCount}株作物将会枯萎！`
+        if (harvestableCount > 0) {
+          msg += `（其中${harvestableCount}株已可收获）`
+        }
+        warnings.push(msg)
+      }
     }
-    return ''
+    return warnings.join('\n')
   })
 
   /** 宠物领养 */

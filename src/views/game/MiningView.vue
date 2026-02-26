@@ -851,7 +851,7 @@
 
   /** 当前层是否为特殊楼层 */
   const currentFloorSpecial = computed(() => {
-    const floor = getFloor(miningStore.currentFloor)
+    const floor = miningStore.getActiveFloorData()
     return floor?.specialType ?? null
   })
 

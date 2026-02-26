@@ -12,6 +12,7 @@ import { useSkillStore } from './useSkillStore'
 import { useHomeStore } from './useHomeStore'
 import { useInventoryStore } from './useInventoryStore'
 import { useAchievementStore } from './useAchievementStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 
 /** 最大体力阶梯 (5档, 270 起 508 顶) */
 const STAMINA_CAPS = [120, 160, 200, 250, 300]
@@ -41,7 +42,7 @@ export const usePlayerStore = defineStore('player', () => {
   /** NPC 用来称呼玩家的称谓 */
   const honorific = computed(() => (gender.value === 'male' ? '小哥' : '姑娘'))
 
-  /** 计算当前最大 HP（基础 + 战斗等级 + 专精加成） */
+  /** 计算当前最大 HP（基础 + 战斗等级 + 专精加成 + 仙缘加成） */
   const getMaxHp = (): number => {
     const skillStore = useSkillStore()
     let bonus = skillStore.combatLevel * HP_PER_COMBAT_LEVEL
@@ -50,7 +51,10 @@ export const usePlayerStore = defineStore('player', () => {
     if (perk5 === 'fighter') bonus += FIGHTER_HP_BONUS
     if (perk10 === 'warrior') bonus += WARRIOR_HP_BONUS
     const ringHpBonus = useInventoryStore().getRingEffectValue('max_hp_bonus')
-    return baseMaxHp.value + bonus + ringHpBonus
+    // 仙缘结缘：灵护（spirit_shield）HP 加成
+    const spiritShield = useHiddenNpcStore().getBondBonusByType('spirit_shield')
+    const spiritHpBonus = spiritShield?.type === 'spirit_shield' ? spiritShield.hpBonus : 0
+    return baseMaxHp.value + bonus + ringHpBonus + spiritHpBonus
   }
 
   const getHpPercent = (): number => {
@@ -61,10 +65,14 @@ export const usePlayerStore = defineStore('player', () => {
     return hp.value <= getMaxHp() * 0.25
   }
 
-  /** 消耗体力，返回是否成功 */
+  /** 消耗体力（含仙缘灵护减免），返回是否成功 */
   const consumeStamina = (amount: number): boolean => {
-    if (stamina.value < amount) return false
-    stamina.value -= amount
+    // 仙缘结缘：灵护（spirit_shield）体力消耗减免
+    const spiritShield2 = useHiddenNpcStore().getBondBonusByType('spirit_shield')
+    const spiritSave = spiritShield2?.type === 'spirit_shield' ? spiritShield2.staminaSave / 100 : 0
+    const effectiveAmount = Math.max(1, Math.floor(amount * (1 - spiritSave)))
+    if (stamina.value < effectiveAmount) return false
+    stamina.value -= effectiveAmount
     return true
   }
 

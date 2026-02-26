@@ -65,6 +65,52 @@
       </div>
     </div>
 
+    <!-- 仙灵分区（仅显示已显现的隐藏NPC） -->
+    <div v-if="revealedHiddenNpcs.length > 0" class="mt-4">
+      <h3 class="text-accent text-sm mb-3">仙灵</h3>
+      <div class="grid grid-cols-4 md:grid-cols-3 gap-1.5 md:gap-2">
+        <div
+          v-for="npc in revealedHiddenNpcs"
+          :key="npc.id"
+          class="border border-accent/20 rounded-xs p-1.5 md:p-2 cursor-pointer hover:bg-accent/5 text-center md:text-left"
+          @click="selectedHiddenNpc = npc.id"
+        >
+          <p class="text-xs text-accent truncate">{{ npc.name }}</p>
+          <p class="text-[10px] text-muted truncate">{{ npc.title }}</p>
+          <div class="flex space-x-px mt-0.5 justify-center md:justify-start">
+            <span
+              v-for="d in 12"
+              :key="d"
+              class="text-[8px]"
+              :class="(hiddenNpcStore.getHiddenNpcState(npc.id)?.affinity ?? 0) >= d * 250 ? 'text-accent' : 'text-muted/20'"
+            >
+              &#x25C6;
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 传闻区（显示rumor/glimpse阶段的线索） -->
+    <div v-if="rumorHiddenNpcs.length > 0" class="mt-4">
+      <h3 class="text-muted/60 text-sm mb-2">传闻</h3>
+      <div class="flex flex-col space-y-1">
+        <div v-for="npc in rumorHiddenNpcs" :key="npc.id" class="border border-muted/10 rounded-xs px-2 py-1 text-[10px] text-muted/50">
+          <span v-if="hiddenNpcStore.getHiddenNpcState(npc.id)?.discoveryPhase === 'rumor'">
+            {{ getLastDiscoveryLog(npc.id) ?? '似乎有什么隐约的传说……' }}
+          </span>
+          <span v-else>
+            {{ getLastDiscoveryLog(npc.id) ?? '你曾看到某种异象……' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 仙灵交互弹窗 -->
+    <Transition name="panel-fade">
+      <HiddenNpcModal v-if="selectedHiddenNpc" :npc-id="selectedHiddenNpc" @close="selectedHiddenNpc = null" />
+    </Transition>
+
     <!-- NPC 交互弹窗 -->
     <Transition name="panel-fade">
       <div v-if="selectedNpc" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" @click.self="selectedNpc = null">
@@ -416,7 +462,9 @@
   import { useNpcStore } from '@/stores/useNpcStore'
   import { usePlayerStore } from '@/stores/usePlayerStore'
   import { useTutorialStore } from '@/stores/useTutorialStore'
+  import { useHiddenNpcStore } from '@/stores/useHiddenNpcStore'
   import { NPCS, getNpcById, getItemById, getHeartEventById } from '@/data'
+  import { getHiddenNpcById } from '@/data/hiddenNpcs'
   import { ACTION_TIME_COSTS, isNpcAvailable } from '@/data/timeConstants'
   import { TIP_NPC_LABELS } from '@/data/npcTips'
   import type { TipNpcId } from '@/data/npcTips'
@@ -425,6 +473,7 @@
   import { handleEndDay } from '@/composables/useEndDay'
   import type { FriendshipLevel, Quality } from '@/types'
   import Button from '@/components/game/Button.vue'
+  import HiddenNpcModal from '@/components/game/HiddenNpcModal.vue'
 
   const npcStore = useNpcStore()
   const inventoryStore = useInventoryStore()
@@ -432,6 +481,21 @@
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const tutorialStore = useTutorialStore()
+  const hiddenNpcStore = useHiddenNpcStore()
+
+  const selectedHiddenNpc = ref<string | null>(null)
+
+  const revealedHiddenNpcs = computed(() => hiddenNpcStore.getRevealedNpcs)
+  const rumorHiddenNpcs = computed(() => hiddenNpcStore.getRumorNpcs)
+
+  const getLastDiscoveryLog = (npcId: string): string | null => {
+    const npcDef = getHiddenNpcById(npcId)
+    const state = hiddenNpcStore.getHiddenNpcState(npcId)
+    if (!npcDef || !state) return null
+    const lastStepId = state.completedSteps[state.completedSteps.length - 1]
+    const step = npcDef.discoverySteps.find(s => s.id === lastStepId)
+    return step?.logMessage ?? null
+  }
 
   const tutorialHint = computed(() => {
     if (!tutorialStore.enabled || gameStore.year > 1) return null

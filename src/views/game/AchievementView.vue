@@ -10,29 +10,15 @@
 
     <!-- 四栏切换 -->
     <div class="flex space-x-1 mb-3">
-      <Button
-        class="flex-1 justify-center"
-        :class="{ '!bg-accent !text-bg': tab === 'collection' }"
-        @click="tab = 'collection'"
-      >
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'collection' }" @click="tab = 'collection'">
         图鉴
       </Button>
-      <Button
-        class="flex-1 justify-center"
-        :class="{ '!bg-accent !text-bg': tab === 'achievements' }"
-        @click="tab = 'achievements'"
-      >
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'achievements' }" @click="tab = 'achievements'">
         成就
       </Button>
-      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'bundles' }" @click="tab = 'bundles'">
-        社区
-      </Button>
-      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'shipping' }" @click="tab = 'shipping'">
-        出货
-      </Button>
-      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'notes' }" @click="tab = 'notes'">
-        笔记
-      </Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'bundles' }" @click="tab = 'bundles'">祠堂</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'shipping' }" @click="tab = 'shipping'">出货</Button>
+      <Button class="flex-1 justify-center" :class="{ '!bg-accent !text-bg': tab === 'notes' }" @click="tab = 'notes'">笔记</Button>
     </div>
 
     <!-- 物品图鉴 -->
@@ -199,7 +185,7 @@
       </div>
     </Transition>
 
-    <!-- 社区任务板 -->
+    <!-- 祠堂任务板 -->
     <template v-if="tab === 'bundles'">
       <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto">
         <div
@@ -226,7 +212,7 @@
       </div>
     </template>
 
-    <!-- 社区任务详情弹窗 -->
+    <!-- 祠堂任务详情弹窗 -->
     <Transition name="panel-fade">
       <div
         v-if="activeBundle"
@@ -517,10 +503,10 @@
   /** 成就详情弹窗 */
   const activeAchievement = ref<AchievementDef | null>(null)
 
-  /** 社区任务弹窗 */
+  /** 祠堂任务弹窗 */
   const activeBundle = ref<CommunityBundleDef | null>(null)
 
-  /** 社区任务完成进度文本 */
+  /** 祠堂任务完成进度文本 */
   const getBundleProgress = (bundle: CommunityBundleDef): string => {
     const done = bundle.requiredItems.filter(r => getSubmittedCount(bundle.id, r.itemId) >= r.quantity).length
     return `${done}/${bundle.requiredItems.length}`

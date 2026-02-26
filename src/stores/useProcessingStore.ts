@@ -18,6 +18,7 @@ import { usePlayerStore } from './usePlayerStore'
 import { useSkillStore } from './useSkillStore'
 import { useBreedingStore } from './useBreedingStore'
 import { useWarehouseStore } from './useWarehouseStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 import { addLog } from '@/composables/useGameLog'
 import { hasCombinedItem, removeCombinedItem, getLowestCombinedQuality } from '@/composables/useCombinedInventory'
 
@@ -151,7 +152,8 @@ export const useProcessingStore = defineStore('processing', () => {
     let quality: Quality = 'normal'
     if (recipe.inputItemId !== null) {
       quality = getLowestQuality(recipe.inputItemId)
-      if (!removeCombinedItem(recipe.inputItemId, recipe.inputQuantity, quality)) return false
+      // 不指定品质消耗，允许混合品质投入（按normal→supreme顺序消耗）
+      if (!removeCombinedItem(recipe.inputItemId, recipe.inputQuantity)) return false
     }
 
     slot.recipeId = recipeId
@@ -159,6 +161,10 @@ export const useProcessingStore = defineStore('processing', () => {
     slot.inputQuality = quality
     slot.daysProcessed = 0
     slot.totalDays = recipe.processingDays
+    // 仙缘能力：织速（gui_nv_1）织布机加工时间-30%
+    if (slot.machineType === 'loom' && useHiddenNpcStore().isAbilityActive('gui_nv_1')) {
+      slot.totalDays = Math.max(1, Math.ceil(slot.totalDays * 0.7))
+    }
     slot.ready = false
     return true
   }
@@ -174,13 +180,9 @@ export const useProcessingStore = defineStore('processing', () => {
     // 优先放入虚空成品箱，箱子满则回退到背包
     const warehouseStore = useWarehouseStore()
     const voidOutput = warehouseStore.getVoidOutputChest()
-    if (
-      voidOutput &&
-      warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
-    ) {
-      // 成功放入成品箱
-    } else {
-      inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
+    const outputQuality = slot.inputQuality ?? 'normal'
+    if (!voidOutput || !warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, outputQuality)) {
+      inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, outputQuality)
     }
 
     // 种子制造机额外触发育种种子生成
@@ -214,13 +216,9 @@ export const useProcessingStore = defineStore('processing', () => {
       if (recipe) {
         const warehouseStore = useWarehouseStore()
         const voidOutput = warehouseStore.getVoidOutputChest()
-        if (
-          voidOutput &&
-          warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
-        ) {
-          // 成功放入成品箱
-        } else {
-          inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
+        const outputQuality = slot.inputQuality ?? 'normal'
+        if (!voidOutput || !warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, outputQuality)) {
+          inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, outputQuality)
         }
       }
     }
@@ -284,20 +282,32 @@ export const useProcessingStore = defineStore('processing', () => {
       if (slot.daysProcessed >= slot.totalDays) {
         const recipe = getProcessingRecipeById(slot.recipeId)
         if (recipe) {
-          if (recipe.inputItemId === null) {
-            // 无需原料的机器（蜂箱、蚯蚓箱）：自动收取并重启
-            if (
-              voidOutput &&
-              warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
-            ) {
-              // 成功放入成品箱
-            } else {
-              inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, slot.inputQuality ?? 'normal')
+          // 仙缘能力：梦织（gui_nv_2）织布机8%概率额外产出梦丝
+          if (slot.machineType === 'loom' && useHiddenNpcStore().isAbilityActive('gui_nv_2') && Math.random() < 0.08) {
+            inventoryStore.addItem('dream_silk', 1)
+            collected.push('梦丝')
+          }
+          const machineDef = PROCESSING_MACHINES.find(m => m.id === slot.machineType)
+          if (recipe.inputItemId === null || machineDef?.autoCollect) {
+            // 自动收取：无需原料的机器（蜂箱/蚯蚓箱）或标记了 autoCollect 的机器（熔炉）
+            const outputQuality = slot.inputQuality ?? 'normal'
+            if (!voidOutput || !warehouseStore.addItemToChest(voidOutput.id, recipe.outputItemId, recipe.outputQuantity, outputQuality)) {
+              inventoryStore.addItem(recipe.outputItemId, recipe.outputQuantity, outputQuality)
             }
             collected.push(recipe.name)
-            slot.daysProcessed = 0
-            slot.inputQuality = undefined
-            slot.ready = false
+            // 无需原料的机器自动重启，有原料的机器回到空闲
+            if (recipe.inputItemId === null) {
+              slot.daysProcessed = 0
+              slot.inputQuality = undefined
+              slot.ready = false
+            } else {
+              slot.recipeId = null
+              slot.inputItemId = null
+              slot.inputQuality = undefined
+              slot.daysProcessed = 0
+              slot.totalDays = 0
+              slot.ready = false
+            }
           } else {
             // 需要原料的机器：标记为完成，等待玩家手动收取
             slot.ready = true

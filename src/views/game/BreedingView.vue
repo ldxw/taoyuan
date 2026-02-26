@@ -123,7 +123,7 @@
         </p>
       </div>
       <!-- 阶层筛选 -->
-      <div class="flex space-x-1 mb-2 flex-wrap">
+      <div class="flex gap-1 mb-2 flex-wrap">
         <Button
           v-for="tf in TIER_FILTERS"
           :key="tf.value"

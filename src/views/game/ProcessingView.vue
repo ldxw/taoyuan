@@ -149,7 +149,7 @@
   import { ref, computed } from 'vue'
   import { Hammer, Trash2, Package, Boxes, X } from 'lucide-vue-next'
   import Button from '@/components/game/Button.vue'
-  import type { MachineType, AnimalBuildingType } from '@/types'
+  import type { MachineType, AnimalBuildingType, ChestTier } from '@/types'
   import { useAnimalStore } from '@/stores/useAnimalStore'
   import { useFarmStore } from '@/stores/useFarmStore'
   import { useGameStore } from '@/stores/useGameStore'
@@ -157,6 +157,7 @@
   import { usePlayerStore } from '@/stores/usePlayerStore'
   import { useProcessingStore } from '@/stores/useProcessingStore'
   import { useSkillStore } from '@/stores/useSkillStore'
+  import { useWarehouseStore } from '@/stores/useWarehouseStore'
   import { getCombinedItemCount, hasCombinedItem, removeCombinedItem } from '@/composables/useCombinedInventory'
   import {
     PROCESSING_MACHINES,
@@ -172,7 +173,7 @@
     BOMBS,
     getProcessingRecipeById
   } from '@/data/processing'
-  import { getItemById } from '@/data/items'
+  import { getItemById, CHEST_DEFS, CHEST_TIER_ORDER } from '@/data/items'
   import { ACTION_TIME_COSTS } from '@/data/timeConstants'
   import { sfxClick } from '@/composables/useAudio'
   import { addLog } from '@/composables/useGameLog'
@@ -185,6 +186,7 @@
   const farmStore = useFarmStore()
   const animalStore = useAnimalStore()
   const skillStore = useSkillStore()
+  const warehouseStore = useWarehouseStore()
 
   // === 制造弹窗 ===
 
@@ -360,7 +362,7 @@
           cost: b.craftMoney,
           onCraft: () => handleCraftBomb(b.id),
           canCraft: () =>
-            (b.id !== 'mega_bomb' || inventoryStore.hasItem('mega_bomb_recipe')) && processingStore.canCraft(b.craftCost, b.craftMoney)
+            (b.id !== 'mega_bomb' || hasCombinedItem('mega_bomb_recipe')) && processingStore.canCraft(b.craftCost, b.craftMoney)
         })),
         {
           id: 'jade_ring',
@@ -386,12 +388,34 @@
             ]
           : [])
       ]
-    }
+    },
+    ...(warehouseStore.unlocked
+      ? [
+          {
+            label: '箱子',
+            items: CHEST_TIER_ORDER.map(tier => {
+              const def = CHEST_DEFS[tier]
+              return {
+                id: `chest_${tier}`,
+                name: def.name,
+                description: def.description,
+                materials: def.craftCost,
+                cost: def.craftMoney,
+                onCraft: () => handleCraftChest(tier),
+                canCraft: () =>
+                  warehouseStore.chests.length < warehouseStore.maxChests && processingStore.canCraft(def.craftCost, def.craftMoney),
+                badge: `${warehouseStore.chests.length}/${warehouseStore.maxChests}`
+              }
+            })
+          }
+        ]
+      : [])
   ])
 
   const handleCraftFromModal = () => {
     if (!craftModal.value) return
     craftModal.value.onCraft()
+    craftModal.value = null
   }
 
   // === 工具函数 ===
@@ -619,6 +643,27 @@
       sfxClick()
       inventoryStore.addItem('stamina_fruit')
       addLog('制造了仙桃！在背包中使用可永久提升体力上限。')
+      const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
+      if (tr.message) addLog(tr.message)
+      if (tr.passedOut) {
+        handleEndDay()
+        return
+      }
+    } else {
+      addLog('材料不足。')
+    }
+  }
+
+  const handleCraftChest = (tier: ChestTier) => {
+    const def = CHEST_DEFS[tier]
+    if (warehouseStore.chests.length >= warehouseStore.maxChests) {
+      addLog('箱子槽位已满，请先扩建仓库。')
+      return
+    }
+    if (processingStore.consumeCraftMaterials(def.craftCost, def.craftMoney)) {
+      sfxClick()
+      warehouseStore.addChest(tier)
+      addLog(`制造了${def.name}，已放入仓库。`)
       const tr = gameStore.advanceTime(ACTION_TIME_COSTS.craftMachine)
       if (tr.message) addLog(tr.message)
       if (tr.passedOut) {

@@ -24,37 +24,111 @@
         <div class="flex flex-col space-y-3">
           <!-- ===== 通用 ===== -->
           <template v-if="activeTab === 'general'">
-            <!-- 时间控制 -->
-            <div class="border border-accent/20 rounded-xs p-3">
-              <p class="text-xs text-muted mb-2">时间控制</p>
-              <div class="flex items-center justify-center space-x-2">
-                <Button :icon="isPaused ? Play : Pause" :icon-size="12" class="py-1 px-3" @click="togglePause">
-                  {{ isPaused ? '继续' : '暂停' }}
-                </Button>
-                <Button class="py-1 px-3" @click="cycleSpeed">速度 {{ gameSpeed }}×</Button>
+            <div class="max-h-[40vh] overflow-y-auto">
+              <!-- 时间控制 -->
+              <div class="border border-accent/20 rounded-xs p-3">
+                <p class="text-xs text-muted mb-2">时间控制</p>
+                <div class="flex items-center justify-center space-x-2">
+                  <Button :icon="isPaused ? Play : Pause" :icon-size="12" class="py-1 px-3" @click="togglePause">
+                    {{ isPaused ? '继续' : '暂停' }}
+                  </Button>
+                  <Button class="py-1 px-3" @click="cycleSpeed">速度 {{ gameSpeed }}×</Button>
+                </div>
               </div>
-            </div>
 
-            <!-- 音频控制 -->
-            <div class="border border-accent/20 rounded-xs p-3">
-              <p class="text-xs text-muted mb-2">音频</p>
-              <div class="flex items-center justify-center space-x-2">
-                <Button :icon="sfxEnabled ? Volume2 : VolumeX" :icon-size="12" class="py-1 px-3" @click="toggleSfx">音效</Button>
-                <Button :icon="bgmEnabled ? Headphones : HeadphoneOff" :icon-size="12" class="py-1 px-3" @click="toggleBgm">音乐</Button>
+              <!-- 音频控制 -->
+              <div class="border border-accent/20 rounded-xs p-3">
+                <p class="text-xs text-muted mb-2">音频</p>
+                <div class="flex items-center justify-center space-x-2">
+                  <Button :icon="sfxEnabled ? Volume2 : VolumeX" :icon-size="12" class="py-1 px-3" @click="toggleSfx">音效</Button>
+                  <Button :icon="bgmEnabled ? Headphones : HeadphoneOff" :icon-size="12" class="py-1 px-3" @click="toggleBgm">音乐</Button>
+                </div>
               </div>
-            </div>
 
-            <!-- 新手提示 -->
-            <div class="border border-accent/20 rounded-xs p-3">
-              <p class="text-xs text-muted mb-2">新手提示</p>
-              <p class="text-[10px] text-muted/50 mb-2">柳村长的晨间建议和面板引导文字</p>
-              <div class="flex items-center justify-center space-x-2">
-                <Button class="py-1 px-3" :class="{ '!bg-accent !text-bg': tutorialStore.enabled }" @click="tutorialStore.enabled = true">
-                  开
-                </Button>
-                <Button class="py-1 px-3" :class="{ '!bg-accent !text-bg': !tutorialStore.enabled }" @click="tutorialStore.enabled = false">
-                  关
-                </Button>
+              <!-- 新手提示 -->
+              <div class="border border-accent/20 rounded-xs p-3">
+                <p class="text-xs text-muted mb-2">新手提示</p>
+                <p class="text-[10px] text-muted/50 mb-2">柳村长的晨间建议和面板引导文字</p>
+                <div class="flex items-center justify-center space-x-2">
+                  <Button class="py-1 px-3" :class="{ '!bg-accent !text-bg': tutorialStore.enabled }" @click="tutorialStore.enabled = true">
+                    开
+                  </Button>
+                  <Button
+                    class="py-1 px-3"
+                    :class="{ '!bg-accent !text-bg': !tutorialStore.enabled }"
+                    @click="tutorialStore.enabled = false"
+                  >
+                    关
+                  </Button>
+                </div>
+              </div>
+
+              <!-- WebDAV 云同步 -->
+              <div class="border border-accent/20 rounded-xs p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-xs text-muted">WebDAV 云同步</p>
+                  <div class="flex space-x-1">
+                    <Button
+                      class="py-0.5 px-2 text-[10px]"
+                      :class="{ '!bg-accent !text-bg': webdavConfig.enabled }"
+                      @click="setWebdavEnabled(true)"
+                    >
+                      开
+                    </Button>
+                    <Button
+                      class="py-0.5 px-2 text-[10px]"
+                      :class="{ '!bg-accent !text-bg': !webdavConfig.enabled }"
+                      @click="setWebdavEnabled(false)"
+                    >
+                      关
+                    </Button>
+                  </div>
+                </div>
+                <template v-if="webdavConfig.enabled">
+                  <div class="flex flex-col space-y-2">
+                    <div>
+                      <label class="text-[10px] text-muted mb-0.5 block">服务器地址</label>
+                      <input
+                        v-model="webdavConfig.serverUrl"
+                        placeholder="https://dav.example.com/path/"
+                        class="w-full px-2 py-1.5 bg-bg border border-accent/30 rounded-xs text-xs text-text focus:border-accent outline-none placeholder:text-muted/40 transition-colors"
+                        @change="saveWebdavConfig"
+                      />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label class="text-[10px] text-muted mb-0.5 block">用户名</label>
+                        <input
+                          v-model="webdavConfig.username"
+                          placeholder="username"
+                          class="w-full px-2 py-1.5 bg-bg border border-accent/30 rounded-xs text-xs text-text focus:border-accent outline-none placeholder:text-muted/40 transition-colors"
+                          @change="saveWebdavConfig"
+                        />
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-muted mb-0.5 block">密码</label>
+                        <input
+                          v-model="webdavConfig.password"
+                          type="password"
+                          placeholder="••••••"
+                          class="w-full px-2 py-1.5 bg-bg border border-accent/30 rounded-xs text-xs text-text focus:border-accent outline-none placeholder:text-muted/40 transition-colors"
+                          @change="saveWebdavConfig"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      class="py-1 px-3 text-xs w-full justify-center"
+                      :disabled="webdavTestStatus === 'testing' || !webdavConfig.serverUrl"
+                      @click="handleTestWebdav"
+                    >
+                      {{ webdavTestStatus === 'testing' ? '测试中...' : '测试连接' }}
+                    </Button>
+                    <p v-if="webdavTestStatus === 'success'" class="text-success text-xs text-center mt-1">连接成功</p>
+                    <p v-if="webdavTestStatus === 'failed'" class="text-danger text-xs text-center mt-1">
+                      {{ webdavTestError || '连接失败' }}
+                    </p>
+                  </div>
+                </template>
               </div>
             </div>
           </template>
@@ -292,6 +366,7 @@
   import { useGameClock } from '@/composables/useGameClock'
   import { useSettingsStore, type QmsgPosition, type QmsgLimitWidthWrap } from '@/stores/useSettingsStore'
   import { useTutorialStore } from '@/stores/useTutorialStore'
+  import { useWebdav } from '@/composables/useWebdav'
   import { THEMES } from '@/data/themes'
   import SaveManager from '@/components/game/SaveManager.vue'
 
@@ -339,8 +414,18 @@
   const { isPaused, gameSpeed, togglePause, cycleSpeed } = useGameClock()
   const settingsStore = useSettingsStore()
   const tutorialStore = useTutorialStore()
+  const { webdavConfig, webdavTestStatus, webdavTestError, saveConfig: saveWebdavConfig, testConnection } = useWebdav()
 
   const showSaveManager = ref(false)
+
+  const handleTestWebdav = async () => {
+    await testConnection()
+  }
+
+  const setWebdavEnabled = (val: boolean) => {
+    webdavConfig.value.enabled = val
+    saveWebdavConfig()
+  }
 
   const changeTimeout = (delta: number) => {
     settingsStore.qmsgTimeout = Math.min(10000, Math.max(500, settingsStore.qmsgTimeout + delta))

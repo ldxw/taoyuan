@@ -1298,9 +1298,9 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: 'hanhai_date_seed',
-    name: '红枣种子',
+    name: '椰枣种子',
     category: 'seed',
-    description: '丝绸之路带来的果树种子，夏/秋季可种植。',
+    description: '丝绸之路带来的西域果实种子，夏/秋季可种植。',
     sellPrice: 200,
     edible: false
   },
@@ -1315,7 +1315,111 @@ export const ITEMS: ItemDef[] = [
     description: '据说能炸开整层矿洞的秘方。',
     sellPrice: 2500,
     edible: false
-  }
+  },
+
+  // ==================== 仙灵物品 ====================
+  // 发现线索
+  {
+    id: 'fox_bead',
+    name: '狐珠',
+    category: 'misc',
+    description: '矿洞深处捡到的赤红色珠子，温热如有生命。',
+    sellPrice: 500,
+    edible: false
+  },
+
+  // 求缘物品
+  {
+    id: 'dragon_scale_charm',
+    name: '龙鳞佩',
+    category: 'misc',
+    description: '以龙玉雕琢的鳞片形佩饰，蕴含潜渊之力。',
+    sellPrice: 0,
+    edible: false
+  },
+  { id: 'blossom_crown', name: '花灵冠', category: 'misc', description: '用永不凋零的桃花编织的花冠。', sellPrice: 0, edible: false },
+  { id: 'jade_mortar', name: '玉药杵', category: 'misc', description: '月光石雕成的药杵，与月兔的玉杵成对。', sellPrice: 0, edible: false },
+  { id: 'fox_flame_lantern', name: '狐火灯笼', category: 'misc', description: '内含狐火的灯笼，永不熄灭。', sellPrice: 0, edible: false },
+  {
+    id: 'cultivation_jade',
+    name: '修炼玉佩',
+    category: 'misc',
+    description: '蕴含灵气的玉佩，修行者的信物。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'silver_thread_ring',
+    name: '银丝戒',
+    category: 'misc',
+    description: '用月光银丝编织的戒指，寄托归乡之思。',
+    sellPrice: 0,
+    edible: false
+  },
+
+  // 结缘物品
+  {
+    id: 'dragon_pearl',
+    name: '龙珠',
+    category: 'misc',
+    description: '以龙玉、月光石与棱彩碎片炼成的灵珠，是龙族至高的缘定信物。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'eternal_blossom',
+    name: '不凋花',
+    category: 'misc',
+    description: '用至尊桃子、蜂蜜和桂花凝聚而成，永不枯萎的灵花。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'moon_elixir',
+    name: '月华丹',
+    category: 'misc',
+    description: '人参、雪莲与月光石炼制的仙丹，散发柔和的银白色光芒。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'fox_spirit_bead',
+    name: '灵狐珠',
+    category: 'misc',
+    description: '红宝石、月光石与黄金炼成的珠子，封印着狐仙的一缕灵力。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'immortal_gourd',
+    name: '仙人葫',
+    category: 'misc',
+    description: '人参、鹿茸与铱矿炼制的丹葫芦，内蕴五百年修行之力。',
+    sellPrice: 0,
+    edible: false
+  },
+  {
+    id: 'starlight_loom',
+    name: '星光织机',
+    category: 'misc',
+    description: '蚕丝、月光石与棱彩碎片织成的微型织机，能织出星光般的丝线。',
+    sellPrice: 0,
+    edible: false
+  },
+
+  // 能力产出物品
+  {
+    id: 'spirit_peach',
+    name: '灵桃',
+    category: 'misc',
+    description: '桃夭赐福的仙桃，散发着灵气。',
+    sellPrice: 800,
+    edible: true,
+    staminaRestore: 50,
+    healthRestore: 30
+  },
+  { id: 'moon_herb', name: '月草', category: 'material', description: '沐浴月华而生的灵草，药效极佳。', sellPrice: 300, edible: false },
+  { id: 'dream_silk', name: '梦丝', category: 'material', description: '归女织出的银白丝线，闪烁着星光。', sellPrice: 500, edible: false }
 ]
 
 /** 根据ID查找物品 */
@@ -1454,7 +1558,24 @@ const ITEM_SOURCE_OVERRIDES: Record<string, string> = {
   herbal_paste: '加工制作',
   ginseng_extract: '加工制作',
   antler_powder: '加工制作',
-  stamina_fruit: '深渊宝箱(极稀有) / 制作'
+  stamina_fruit: '深渊宝箱(极稀有) / 制作',
+  // 仙灵相关物品
+  fox_bead: '矿洞深处（狐仙发现线索）',
+  spirit_peach: '仙缘能力·灵桃（桃夭）',
+  moon_herb: '仙缘能力·月华（月兔）',
+  dream_silk: '仙缘能力·梦织（归女）',
+  dragon_scale_charm: '制作（龙灵求缘信物）',
+  blossom_crown: '制作（桃夭求缘信物）',
+  jade_mortar: '制作（月兔求缘信物）',
+  fox_flame_lantern: '制作（狐仙求缘信物）',
+  cultivation_jade: '制作（山翁求缘信物）',
+  silver_thread_ring: '制作（归女求缘信物）',
+  dragon_pearl: '制作（龙灵结缘信物）',
+  eternal_blossom: '制作（桃夭结缘信物）',
+  moon_elixir: '制作（月兔结缘信物）',
+  fox_spirit_bead: '制作（狐仙结缘信物）',
+  immortal_gourd: '制作（山翁结缘信物）',
+  starlight_loom: '制作（归女结缘信物）'
 }
 
 /** 获取物品来源描述 */

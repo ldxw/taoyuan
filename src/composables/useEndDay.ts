@@ -18,6 +18,7 @@ import { useBreedingStore } from '@/stores/useBreedingStore'
 import { useHanhaiStore } from '@/stores/useHanhaiStore'
 import { useFishPondStore } from '@/stores/useFishPondStore'
 import { useTutorialStore } from '@/stores/useTutorialStore'
+import { useHiddenNpcStore } from '@/stores/useHiddenNpcStore'
 import { getItemById, getTodayEvent, getNpcById, getCropById, getForageItems } from '@/data'
 import { getFertilizerById } from '@/data/processing'
 import { FISH } from '@/data/fish'
@@ -26,7 +27,7 @@ import { CAVE_UNLOCK_EARNINGS } from '@/data/buildings'
 import { TOOL_NAMES, TIER_NAMES } from '@/data/upgrades'
 import { addLog, showFloat } from './useGameLog'
 import { getDailyMarketInfo, MARKET_CATEGORY_NAMES } from '@/data/market'
-import { showEvent, showFestival, triggerWeddingEvent, triggerPetAdoption, showFarmEvent } from './useDialogs'
+import { showEvent, showFestival, triggerWeddingEvent, triggerPetAdoption, showFarmEvent, showDiscoveryScene } from './useDialogs'
 import { sfxSleep, useAudio } from './useAudio'
 import { MORNING_NARRATIONS, NARRATIONS_NO_LOSS, MORNING_CHOICE_EVENTS, MORNING_EASTER_EGGS } from '@/data/farmEvents'
 import { MORNING_TIPS } from '@/data/tutorials'
@@ -492,6 +493,10 @@ export const handleEndDay = () => {
     addLog(`巨型${gc.cropName}出现了！3×3的作物合体成了巨型作物！`)
   }
 
+  // 雇工每日结算（在配偶之前，确保花钱雇的人优先干活）
+  const helperResult = npcStore.processDailyHelpers()
+  for (const msg of helperResult.messages) addLog(msg)
+
   // 配偶助手（在 dailyReset 之前，因为需要检查 talkedToday）
   const spouse = npcStore.getSpouse()
   if (spouse) {
@@ -537,10 +542,6 @@ export const handleEndDay = () => {
       if (harvested > 0) addLog(`${spouseName}帮你收了${harvested}块地的庄稼。`)
     }
   }
-
-  // 雇工每日结算
-  const helperResult = npcStore.processDailyHelpers()
-  for (const msg of helperResult.messages) addLog(msg)
 
   // 知己每日加成（在 dailyReset 之前）
   const zhiji = npcStore.getZhiji()
@@ -645,6 +646,23 @@ export const handleEndDay = () => {
   npcStore.dailyReset()
   cookingStore.dailyReset()
   useHanhaiStore().resetDailyBets()
+
+  // 仙灵每日处理
+  const hiddenNpcStore = useHiddenNpcStore()
+  const discoveryTriggered = hiddenNpcStore.checkDiscoveryConditions()
+  for (const { npcId, step } of discoveryTriggered) {
+    if (step.logMessage) addLog(step.logMessage)
+    if (step.scenes.length > 0) showDiscoveryScene(npcId, step)
+  }
+  hiddenNpcStore.dailyReset()
+  const newAbilities = hiddenNpcStore.checkAbilityUnlocks()
+  for (const a of newAbilities) {
+    addLog(`【仙缘】${a.name}：${a.description}`)
+    // 永久效果：最大体力+20
+    if (a.id === 'shan_weng_3') {
+      playerStore.maxStamina += 20
+    }
+  }
 
   // 动物产出
   const animalResult = animalStore.dailyUpdate()
@@ -837,6 +855,10 @@ export const handleEndDay = () => {
   const bedHour = gameStore.hour
   const { moneyLost, recoveryPct } = playerStore.dailyReset(recoveryMode, bedHour)
 
+  // 仙灵结缘每日奖励（必须在 dailyReset 之后，否则 stamina_restore 会被覆盖）
+  const bondMessages = hiddenNpcStore.dailyBondBonus()
+  for (const msg of bondMessages.messages) addLog(msg)
+
   let summary: string
   if (recoveryMode === 'passout') {
     summary =
@@ -899,6 +921,26 @@ export const handleEndDay = () => {
 
   // 天气预报
   addLog(`明日天气预报：${WEATHER_NAMES[gameStore.tomorrowWeather]}`)
+
+  // 换季倒计时提醒（第25-27天早晨）
+  if (!seasonChanged && gameStore.day >= 25 && gameStore.day <= 27) {
+    const daysLeft = 28 - gameStore.day
+    const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+    const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(gameStore.season) + 1) % 4]!
+    let cropAtRisk = 0
+    for (const plot of farmStore.plots) {
+      if ((plot.state === 'planted' || plot.state === 'growing' || plot.state === 'harvestable') && plot.cropId) {
+        const crop = getCropById(plot.cropId)
+        if (crop && !crop.season.includes(nextSeason)) cropAtRisk++
+      }
+    }
+    if (cropAtRisk > 0) {
+      addLog(`距离换季还有${daysLeft}天，${cropAtRisk}株作物不适应${SEASON_NAMES[nextSeason]}季，届时将会枯萎。`)
+      showFloat(`换季倒计时${daysLeft}天！${cropAtRisk}株作物将枯萎`, 'danger')
+    } else {
+      addLog(`距离换季还有${daysLeft}天。`)
+    }
+  }
 
   // 今日行情
   const marketInfo = getDailyMarketInfo(gameStore.year, gameStore.seasonIndex, gameStore.day, shopStore.getRecentShipping())

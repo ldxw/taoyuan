@@ -190,6 +190,12 @@ export const useInventoryStore = defineStore('inventory', () => {
     if (remaining > 0) {
       const name = getItemById(itemId)?.name ?? itemId
       showFloat(`背包已满！${name}×${remaining}丢失了`, 'danger')
+    } else {
+      // 背包快满预警：剩余格数 ≤ 3 时提示一次
+      const freeSlots = capacity.value - items.value.length
+      if (freeSlots <= 3) {
+        showFloat(`背包快满了！剩余${freeSlots}格`, 'accent')
+      }
     }
 
     return remaining <= 0

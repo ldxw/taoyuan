@@ -40,6 +40,7 @@ import { useCookingStore } from './useCookingStore'
 import { useGameStore } from './useGameStore'
 import { useWalletStore } from './useWalletStore'
 import { useSecretNoteStore } from './useSecretNoteStore'
+import { useHiddenNpcStore } from './useHiddenNpcStore'
 import type { SkullCavernFloorDef } from '@/data/mine'
 
 const DEFEAT_MONEY_PENALTY_RATE = 0.1
@@ -247,6 +248,8 @@ export const useMiningStore = defineStore('mining', () => {
     const walletMiningReduction = walletStore.getMiningStaminaReduction()
     const ringMiningReduction = inventoryStore.getRingEffectValue('mining_stamina')
     const ringGlobalReduction = inventoryStore.getRingEffectValue('stamina_reduction')
+    // 仙缘能力：聚气（shan_weng_1）挖矿体力-15%
+    const spiritMiningReduction = useHiddenNpcStore().getAbilityValue('shan_weng_1') / 100
     const staminaCost = Math.max(
       1,
       Math.floor(
@@ -256,7 +259,8 @@ export const useMiningStore = defineStore('mining', () => {
           (1 - miningBuff) *
           (1 - walletMiningReduction) *
           (1 - ringMiningReduction) *
-          (1 - ringGlobalReduction)
+          (1 - ringGlobalReduction) *
+          (1 - spiritMiningReduction)
       )
     )
     if (!playerStore.consumeStamina(staminaCost)) {
@@ -313,11 +317,22 @@ export const useMiningStore = defineStore('mining', () => {
     // 戒指矿石加成
     const ringOreBonus = inventoryStore.getRingEffectValue('ore_bonus')
     if (ringOreBonus > 0) quantity += Math.floor(ringOreBonus)
+    // 仙缘能力：灵狐眼（hu_xian_2）15%概率额外掉落矿石
+    if (useHiddenNpcStore().isAbilityActive('hu_xian_2') && Math.random() < 0.15) quantity += 1
 
     inventoryStore.addItem(oreId, quantity)
     sessionLoot.value.push({ itemId: oreId, quantity })
     useAchievementStore().discoverItem(oreId)
     useQuestStore().onItemObtained(oreId, quantity)
+
+    // 仙缘能力：药山（shan_weng_2）矿洞15%概率采到稀有草药
+    const hiddenNpcStore = useHiddenNpcStore()
+    if (hiddenNpcStore.isAbilityActive('shan_weng_2') && Math.random() < 0.15) {
+      const herbs = ['herb', 'ginseng'] as const
+      const herbId = herbs[Math.floor(Math.random() * herbs.length)]!
+      inventoryStore.addItem(herbId, 1)
+      sessionLoot.value.push({ itemId: herbId, quantity: 1 })
+    }
 
     // 经验
     const hilltopXpBonus = gameStore.farmMapType === 'hilltop' ? 1.25 : 1.0
@@ -1201,6 +1216,19 @@ export const useMiningStore = defineStore('mining', () => {
     const def = getItemById(itemId)
     if (!def) return { success: false, message: '未知物品。' }
 
+    // 烹饪品走 cookingStore.eat()，以正确应用buff、厨房加成等
+    if (itemId.startsWith('food_')) {
+      const cookingStore = useCookingStore()
+      const hpFull = playerStore.hp >= playerStore.getMaxHp()
+      const staminaFull = playerStore.stamina >= playerStore.maxStamina
+      if (hpFull && staminaFull) {
+        return { success: false, message: '体力和生命值都已满。' }
+      }
+      const result = cookingStore.eat(itemId.slice(5))
+      if (result.success && inCombat.value) combatLog.value.push(result.message)
+      return result
+    }
+
     const hpFull = playerStore.hp >= playerStore.getMaxHp()
     const staminaFull = playerStore.stamina >= playerStore.maxStamina
     const hasHpRestore = def.healthRestore && def.healthRestore > 0
@@ -1218,15 +1246,18 @@ export const useMiningStore = defineStore('mining', () => {
 
     if (!inventoryStore.removeItem(itemId)) return { success: false, message: `没有${def.name}。` }
 
+    // 炼金师专精：食物恢复+50%
+    const alchemistBonus = skillStore.getSkill('foraging').perk10 === 'alchemist' ? 1.5 : 1.0
     const parts: string[] = []
     if (hasHpRestore) {
-      const restore = def.healthRestore! >= 999 ? playerStore.getMaxHp() : def.healthRestore!
+      const restore = def.healthRestore! >= 999 ? playerStore.getMaxHp() : Math.floor(def.healthRestore! * alchemistBonus)
       playerStore.restoreHealth(restore)
-      parts.push(`恢复${def.healthRestore! >= 999 ? '全部' : def.healthRestore}HP`)
+      parts.push(`恢复${def.healthRestore! >= 999 ? '全部' : restore}HP`)
     }
     if (hasStaminaRestore) {
-      playerStore.restoreStamina(def.staminaRestore!)
-      parts.push(`恢复${def.staminaRestore}体力`)
+      const restore = Math.floor(def.staminaRestore! * alchemistBonus)
+      playerStore.restoreStamina(restore)
+      parts.push(`恢复${restore}体力`)
     }
 
     const msg = `使用了${def.name}，${parts.join('和')}！`
@@ -1340,6 +1371,7 @@ export const useMiningStore = defineStore('mining', () => {
     guildBadgeBonusAttack,
     // 方法
     isSkullCavernUnlocked,
+    getActiveFloorData,
     getUnlockedSafePoints,
     canRevealTile,
     engageRevealedMonster,

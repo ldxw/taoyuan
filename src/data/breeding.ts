@@ -545,7 +545,7 @@ export const HYBRID_DEFS: HybridDef[] = [
     minYield: 30,
     resultCropId: 'spring_green_peach',
     baseGenetics: { sweetness: 45, yield: 40, resistance: 35 },
-    discoveryText: '桃子的甜与菠菜的翠绿交融，果皮碧绿如翠玉。'
+    discoveryText: '水蜜桃的甜与菠菜的翠绿交融，果皮碧绿如翠玉。'
   },
   {
     id: 'mustard_bean',

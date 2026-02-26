@@ -410,7 +410,10 @@
     // 草地农场：免费鸡舍 + 2只鸡
     if (selectedMap.value === 'meadowlands') {
       const coop = animalStore.buildings.find(b => b.type === 'coop')
-      if (coop) coop.built = true
+      if (coop) {
+        coop.built = true
+        coop.level = 1
+      }
       animalStore.animals.push(
         {
           id: 'chicken_init_1',
